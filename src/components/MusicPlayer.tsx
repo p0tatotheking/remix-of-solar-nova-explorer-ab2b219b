@@ -48,7 +48,7 @@ export function MusicPlayer() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=50&order=popularity_total&include=musicinfo`
+        `https://corsproxy.io/?${encodeURIComponent(`https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=50&order=popularity_total&include=musicinfo`)}`
       );
       const data = await response.json();
       if (data.results) {
@@ -69,7 +69,7 @@ export function MusicPlayer() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=50&search=${encodeURIComponent(query)}&include=musicinfo`
+        `https://corsproxy.io/?${encodeURIComponent(`https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=50&search=${encodeURIComponent(query)}&include=musicinfo`)}`
       );
       const data = await response.json();
       if (data.results) {
