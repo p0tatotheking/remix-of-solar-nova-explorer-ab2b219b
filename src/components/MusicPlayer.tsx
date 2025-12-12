@@ -13,18 +13,17 @@ import {
 } from 'lucide-react';
 
 interface Track {
-  id: number;
-  title: string;
-  artist: {
-    name: string;
-  };
-  album: {
-    title: string;
-    cover_medium: string;
-  };
-  preview: string;
+  id: string;
+  name: string;
+  artist_name: string;
+  album_name: string;
+  image: string;
+  audio: string;
   duration: number;
 }
+
+// Jamendo API client ID (public/free to use)
+const JAMENDO_CLIENT_ID = 'b6747d04';
 
 export function MusicPlayer() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,8 +34,9 @@ export function MusicPlayer() {
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [popularTracks, setPopularTracks] = useState<Track[]>([]);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Fetch popular tracks on mount
@@ -47,14 +47,12 @@ export function MusicPlayer() {
   const fetchPopularTracks = async () => {
     setIsLoading(true);
     try {
-      // Using Deezer's chart endpoint through a CORS proxy
       const response = await fetch(
-        'https://corsproxy.io/?https://api.deezer.com/chart/0/tracks?limit=50'
+        `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=50&order=popularity_total&include=musicinfo`
       );
       const data = await response.json();
-      if (data.data) {
-        setPopularTracks(data.data);
-        setTracks(data.data);
+      if (data.results) {
+        setTracks(data.results);
       }
     } catch (error) {
       console.error('Error fetching popular tracks:', error);
@@ -64,18 +62,18 @@ export function MusicPlayer() {
 
   const searchTracks = async (query: string) => {
     if (!query.trim()) {
-      setTracks(popularTracks);
+      fetchPopularTracks();
       return;
     }
 
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://corsproxy.io/?https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=50`
+        `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=50&search=${encodeURIComponent(query)}&include=musicinfo`
       );
       const data = await response.json();
-      if (data.data) {
-        setTracks(data.data);
+      if (data.results) {
+        setTracks(data.results);
       }
     } catch (error) {
       console.error('Error searching tracks:', error);
@@ -107,7 +105,7 @@ export function MusicPlayer() {
     setCurrentTrack(track);
     setIsPlaying(true);
     if (audioRef.current) {
-      audioRef.current.src = track.preview;
+      audioRef.current.src = track.audio;
       audioRef.current.play();
     }
   };
@@ -126,12 +124,19 @@ export function MusicPlayer() {
   const handleTimeUpdate = () => {
     if (audioRef.current) {
       const progress = (audioRef.current.currentTime / audioRef.current.duration) * 100;
-      setProgress(progress);
+      setProgress(isNaN(progress) ? 0 : progress);
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
     }
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
     audioRef.current.currentTime = percent * audioRef.current.duration;
@@ -151,9 +156,10 @@ export function MusicPlayer() {
     if (prevTrack) playTrack(prevTrack);
   };
 
-  const formatDuration = (seconds: number) => {
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -162,13 +168,16 @@ export function MusicPlayer() {
       <audio
         ref={audioRef}
         onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => !isLooping && playNext()}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
       />
 
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-4xl font-bold text-gradient mb-2">Music Player</h2>
-        <p className="text-muted-foreground">Stream thousands of songs from Deezer</p>
+        <p className="text-muted-foreground">Stream free full-length tracks from Jamendo</p>
       </div>
 
       {/* Search Bar */}
@@ -191,6 +200,9 @@ export function MusicPlayer() {
               <h3 className="text-lg font-semibold text-foreground">
                 {searchQuery ? 'Search Results' : 'Popular Tracks'}
               </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Free Creative Commons music • Full-length tracks
+              </p>
             </div>
 
             <div className="h-[500px] overflow-y-auto">
@@ -214,16 +226,16 @@ export function MusicPlayer() {
                       }`}
                     >
                       <img
-                        src={track.album.cover_medium}
-                        alt={track.album.title}
+                        src={track.image || '/placeholder.svg'}
+                        alt={track.album_name}
                         className="w-12 h-12 rounded-lg object-cover"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-foreground font-medium truncate">{track.title}</p>
-                        <p className="text-muted-foreground text-sm truncate">{track.artist.name}</p>
+                        <p className="text-foreground font-medium truncate">{track.name}</p>
+                        <p className="text-muted-foreground text-sm truncate">{track.artist_name}</p>
                       </div>
                       <span className="text-muted-foreground text-sm">
-                        {formatDuration(track.duration)}
+                        {formatTime(track.duration)}
                       </span>
                     </button>
                   ))}
@@ -241,14 +253,20 @@ export function MusicPlayer() {
             {currentTrack ? (
               <>
                 <img
-                  src={currentTrack.album.cover_medium}
-                  alt={currentTrack.album.title}
+                  src={currentTrack.image || '/placeholder.svg'}
+                  alt={currentTrack.album_name}
                   className="w-full aspect-square rounded-xl object-cover mb-6 shadow-glow"
                 />
 
-                <div className="text-center mb-6">
-                  <h4 className="text-xl font-bold text-foreground truncate">{currentTrack.title}</h4>
-                  <p className="text-muted-foreground truncate">{currentTrack.artist.name}</p>
+                <div className="text-center mb-4">
+                  <h4 className="text-xl font-bold text-foreground truncate">{currentTrack.name}</h4>
+                  <p className="text-muted-foreground truncate">{currentTrack.artist_name}</p>
+                </div>
+
+                {/* Time display */}
+                <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
                 </div>
 
                 {/* Progress Bar */}
@@ -297,6 +315,7 @@ export function MusicPlayer() {
                     className={`p-2 rounded-lg transition-colors ${
                       isLooping ? 'bg-primary/30 text-primary' : 'text-muted-foreground hover:text-foreground'
                     }`}
+                    title={isLooping ? 'Loop enabled' : 'Enable loop'}
                   >
                     <Repeat className="w-5 h-5" />
                   </button>
