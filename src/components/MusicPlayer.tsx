@@ -11,6 +11,7 @@ import {
   Music,
   Loader2
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Track {
   id: string;
@@ -21,9 +22,6 @@ interface Track {
   audio: string;
   duration: number;
 }
-
-// Jamendo API client ID (public/free to use)
-const JAMENDO_CLIENT_ID = 'b6747d04';
 
 export function MusicPlayer() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,11 +45,16 @@ export function MusicPlayer() {
   const fetchPopularTracks = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `https://corsproxy.io/?${encodeURIComponent(`https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=50&order=popularity_total&include=musicinfo`)}`
-      );
-      const data = await response.json();
-      if (data.results) {
+      const { data, error } = await supabase.functions.invoke('music-api', {
+        body: null,
+      });
+
+      if (error) {
+        console.error('Error fetching tracks:', error);
+        return;
+      }
+
+      if (data?.results) {
         setTracks(data.results);
       }
     } catch (error) {
@@ -68,11 +71,16 @@ export function MusicPlayer() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `https://corsproxy.io/?${encodeURIComponent(`https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=50&search=${encodeURIComponent(query)}&include=musicinfo`)}`
-      );
-      const data = await response.json();
-      if (data.results) {
+      const { data, error } = await supabase.functions.invoke('music-api', {
+        body: { action: 'search', query },
+      });
+
+      if (error) {
+        console.error('Error searching tracks:', error);
+        return;
+      }
+
+      if (data?.results) {
         setTracks(data.results);
       }
     } catch (error) {
