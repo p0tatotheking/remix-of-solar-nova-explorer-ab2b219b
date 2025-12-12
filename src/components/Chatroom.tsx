@@ -1,66 +1,103 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, Lock, Users, MessageSquare } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
   username: string;
-  content: string;
-  timestamp: Date;
+  message: string;
+  created_at: string;
 }
 
 export function Chatroom() {
   const [step, setStep] = useState<'join' | 'chat'>('join');
-  const [chatroomName, setChatroomName] = useState('');
-  const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch existing messages and subscribe to new ones
+  useEffect(() => {
+    if (step !== 'chat') return;
+
+    // Fetch existing messages
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(100);
+
+      if (error) {
+        console.error('Error fetching messages:', error);
+        return;
+      }
+
+      setMessages(data || []);
+    };
+
+    fetchMessages();
+
+    // Subscribe to new messages
+    const channel = supabase
+      .channel('chat-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+        },
+        (payload) => {
+          const newMsg = payload.new as Message;
+          setMessages((prev) => [...prev, newMsg]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [step]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleJoinChatroom = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!chatroomName || !password || !username) {
-      setError('Please fill in all fields');
+    if (!username.trim()) {
+      setError('Please enter a username');
       return;
     }
 
-    // For demo purposes, just move to chat step
-    // Full functionality requires Supabase connection
     setStep('chat');
-    
-    // Add welcome message
-    setMessages([
-      {
-        id: '1',
-        username: 'System',
-        content: `Welcome to ${chatroomName}! Connect Supabase for real-time encrypted messaging.`,
-        timestamp: new Date(),
-      },
-    ]);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || isLoading) return;
 
-    const newMsg: Message = {
-      id: Date.now().toString(),
-      username,
-      content: newMessage,
-      timestamp: new Date(),
-    };
+    setIsLoading(true);
 
-    setMessages((prev) => [...prev, newMsg]);
+    const { error } = await supabase.from('chat_messages').insert({
+      username: username.trim(),
+      message: newMessage.trim(),
+    });
+
+    if (error) {
+      console.error('Error sending message:', error);
+      setError('Failed to send message');
+    }
+
     setNewMessage('');
-
-    // Scroll to bottom
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    setIsLoading(false);
   };
 
   if (step === 'join') {
@@ -75,7 +112,7 @@ export function Chatroom() {
 
           <h2 className="text-3xl font-bold text-foreground text-center mb-2">Join Chatroom</h2>
           <p className="text-muted-foreground text-center mb-6">
-            Secure encrypted messaging
+            Real-time global chat
           </p>
 
           <form onSubmit={handleJoinChatroom} className="space-y-4">
@@ -92,32 +129,6 @@ export function Chatroom() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                Chatroom Name
-              </label>
-              <input
-                type="text"
-                value={chatroomName}
-                onChange={(e) => setChatroomName(e.target.value)}
-                className="w-full bg-background/50 border border-border/30 rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
-                placeholder="Enter chatroom name"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-background/50 border border-border/30 rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
-                placeholder="Enter chatroom password"
-              />
-            </div>
-
             {error && (
               <div className="bg-destructive/20 border border-destructive rounded-lg px-4 py-2 text-destructive text-sm">
                 {error}
@@ -128,14 +139,14 @@ export function Chatroom() {
               type="submit"
               className="w-full bg-gradient-primary hover:opacity-90 text-foreground font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-glow"
             >
-              Join Chatroom
+              Join Chat
             </button>
           </form>
 
           <div className="mt-6 p-4 bg-muted/20 rounded-lg border border-border/20">
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <MessageSquare className="w-4 h-4" />
-              <span>Connect Supabase for real-time messaging</span>
+              <span>Real-time messaging enabled</span>
             </div>
           </div>
         </div>
@@ -151,7 +162,7 @@ export function Chatroom() {
             <div className="flex items-center gap-3">
               <Users className="w-6 h-6 text-primary" />
               <div>
-                <h3 className="text-xl font-bold text-foreground">{chatroomName}</h3>
+                <h3 className="text-xl font-bold text-foreground">Global Chat</h3>
                 <p className="text-sm text-muted-foreground">Logged in as {username}</p>
               </div>
             </div>
@@ -189,7 +200,7 @@ export function Chatroom() {
                   }`}
                 >
                   <p className="text-xs text-foreground/70 mb-1">{msg.username}</p>
-                  <p className="text-foreground break-words">{msg.content}</p>
+                  <p className="text-foreground break-words">{msg.message}</p>
                 </div>
               </div>
             ))
@@ -205,10 +216,12 @@ export function Chatroom() {
               onChange={(e) => setNewMessage(e.target.value)}
               className="flex-1 bg-background/50 border border-border/30 rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
               placeholder="Type a message..."
+              disabled={isLoading}
             />
             <button
               type="submit"
-              className="bg-gradient-primary hover:opacity-90 p-3 rounded-lg transition-all duration-300 shadow-glow"
+              disabled={isLoading}
+              className="bg-gradient-primary hover:opacity-90 p-3 rounded-lg transition-all duration-300 shadow-glow disabled:opacity-50"
             >
               <Send className="w-5 h-5 text-foreground" />
             </button>
