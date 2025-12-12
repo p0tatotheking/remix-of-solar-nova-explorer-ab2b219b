@@ -5,8 +5,9 @@ import { GameCard } from '@/components/GameCard';
 import { Chatroom } from '@/components/Chatroom';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
+import { MusicPlayer } from '@/components/MusicPlayer';
 
-type Section = 'home' | 'games' | 'chatroom' | 'bugs';
+type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState<Section>('home');
@@ -14,6 +15,7 @@ const Index = () => {
   const navItems = [
     { id: 'home' as const, label: 'Home', icon: Home },
     { id: 'games' as const, label: 'Games', icon: Gamepad2 },
+    { id: 'music' as const, label: 'Music', icon: Music },
     { id: 'chatroom' as const, label: 'Chatroom', icon: MessageSquare },
     { id: 'bugs' as const, label: 'Bugs', icon: Bug },
   ];
@@ -141,6 +143,12 @@ const Index = () => {
           {activeSection === 'bugs' && (
             <section className="py-16 px-4 sm:px-6 lg:px-8">
               <BugsSection />
+            </section>
+          )}
+
+          {activeSection === 'music' && (
+            <section className="py-16 px-4 sm:px-6 lg:px-8">
+              <MusicPlayer />
             </section>
           )}
         </main>
