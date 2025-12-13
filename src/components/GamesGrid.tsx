@@ -6,16 +6,22 @@ interface Game {
   url: string;
   icon: string;
   preview: string;
+  embed?: boolean;
 }
 
-export function GamesGrid() {
+interface GamesGridProps {
+  onGameClick: (url: string, title: string, embed?: boolean) => void;
+}
+
+export function GamesGrid({ onGameClick }: GamesGridProps) {
   const games: Game[] = [
     {
       title: 'Friday Night Funkin',
       description: 'Test your rhythm skills in this addictive music battle game. Follow the beat and outperform your opponents in epic rap battles.',
-      url: 'https://fnfcbe.wasmer.app',
+      url: 'https://fnfcbn.wasmer.app/',
       icon: 'star',
       preview: 'Rhythm-based music game with epic battles',
+      embed: true,
     },
     {
       title: 'Unblocked Games',
@@ -81,12 +87,10 @@ export function GamesGrid() {
         {games.map((game) => {
           const Icon = getIcon(game.icon);
           return (
-            <a
+            <button
               key={game.title}
-              href={game.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group bg-gradient-card border border-border/30 rounded-xl overflow-hidden hover:border-primary/60 transition-all duration-300 hover:scale-105 hover:shadow-card-hover"
+              onClick={() => onGameClick(game.url, game.title, game.embed)}
+              className="group bg-gradient-card border border-border/30 rounded-xl overflow-hidden hover:border-primary/60 transition-all duration-300 hover:scale-105 hover:shadow-card-hover text-left"
             >
               <div className="relative h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 bg-background/40" />
@@ -114,11 +118,11 @@ export function GamesGrid() {
 
                 <div className="mt-4 pt-4 border-t border-border/20">
                   <span className="text-primary text-sm font-semibold group-hover:text-secondary transition-colors">
-                    Play Now →
+                    {game.embed ? 'Play Now →' : 'Open Game →'}
                   </span>
                 </div>
               </div>
-            </a>
+            </button>
           );
         })}
       </div>
