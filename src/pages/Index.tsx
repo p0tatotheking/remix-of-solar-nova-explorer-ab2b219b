@@ -23,8 +23,10 @@ const Index = () => {
     { id: 'bugs' as const, label: 'Bugs', icon: Bug },
   ];
 
-  const handleGameClick = (url: string, title: string, embed?: boolean) => {
-    if (embed) {
+  const handleGameClick = (url: string, title: string, embed?: boolean, isTab?: string) => {
+    if (isTab) {
+      setActiveSection(isTab as Section);
+    } else if (embed) {
       setEmbeddedGame({ url, title });
     } else {
       window.open(url, '_blank', 'noopener,noreferrer');

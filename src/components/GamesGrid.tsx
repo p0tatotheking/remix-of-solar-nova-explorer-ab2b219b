@@ -1,4 +1,4 @@
-import { Gamepad2, Music, Star, Zap, Trophy, Target } from 'lucide-react';
+import { Gamepad2, Music, Star, Zap, Trophy, Target, Sparkles, CarFront } from 'lucide-react';
 
 interface Game {
   title: string;
@@ -7,10 +7,11 @@ interface Game {
   icon: string;
   preview: string;
   embed?: boolean;
+  isTab?: string;
 }
 
 interface GamesGridProps {
-  onGameClick: (url: string, title: string, embed?: boolean) => void;
+  onGameClick: (url: string, title: string, embed?: boolean, isTab?: string) => void;
 }
 
 export function GamesGrid({ onGameClick }: GamesGridProps) {
@@ -24,52 +25,75 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       embed: true,
     },
     {
-      title: 'Unblocked Games',
+      title: 'Petezah Games',
       description: 'Access a massive collection of unblocked games. Play classic favorites and discover new games all in one place.',
       url: 'https://petezahstatic.wasmer.app',
       icon: 'gamepad',
       preview: 'Huge collection of classic games',
+      embed: true,
     },
     {
       title: 'Solarnova Music Player',
       description: 'Stream and enjoy your favorite music with our sleek, feature-rich music player. Create playlists and discover new tracks.',
-      url: 'https://solornova.wasmer.app',
+      url: '',
       icon: 'music',
       preview: 'Advanced music streaming platform',
+      isTab: 'music',
     },
     {
-      title: 'Arcade Classics',
-      description: 'Relive the golden age of gaming with authentic arcade classics. High scores and nostalgic gameplay await.',
-      url: 'https://petezahstatic.wasmer.app',
+      title: 'Umbrion Games',
+      description: 'Explore a creative collection of indie game projects. Discover unique gameplay experiences and innovative designs.',
+      url: 'https://umbrion.wasmer.app/projects.html',
       icon: 'zap',
-      preview: 'Retro arcade gaming experience',
+      preview: 'Indie game project showcase',
+      embed: true,
     },
     {
-      title: 'Multiplayer Arena',
-      description: 'Compete against players worldwide in real-time multiplayer battles. Climb the leaderboards and prove your skills.',
-      url: 'https://petezahstatic.wasmer.app',
+      title: 'Lumi OS',
+      description: 'Experience a web-based operating system with apps, games, and utilities. A complete desktop environment in your browser.',
+      url: 'https://lumios.wasmer.app',
       icon: 'trophy',
-      preview: 'Global competitive gaming',
+      preview: 'Browser-based operating system',
+      embed: true,
     },
     {
-      title: 'Puzzle Masters',
-      description: 'Challenge your mind with brain-teasing puzzles and logic games. Perfect for sharpening your problem-solving skills.',
-      url: 'https://petezahstatic.wasmer.app',
+      title: 'Kermitco',
+      description: 'Dive into a unique gaming experience with creative challenges and fun gameplay. Explore and enjoy the adventure.',
+      url: 'https://kermitcooffline82hfdisocirk88enlqtpc75wchgb45cstvvixmc-12367506.codehs.me/0aDV71GtSpyy91KtZE6P7qeL56mVU5nSvCKNk5fdoGV6N1xy1qsbFa548gBQcARY.html',
       icon: 'target',
-      preview: 'Mind-bending puzzle collection',
+      preview: 'Creative gaming adventure',
+      embed: true,
+    },
+    {
+      title: 'Cobra',
+      description: 'Professional business platform with powerful tools and features. Streamline your workflow and boost productivity.',
+      url: 'https://thecobra.odoo.com/',
+      icon: 'snake',
+      preview: 'Business productivity platform',
+      embed: true,
+    },
+    {
+      title: 'Car Game',
+      description: 'Get behind the wheel and race through exciting tracks. Test your driving skills in this thrilling car game.',
+      url: 'https://codebeautify.org/htmlviewer/y25205daf#',
+      icon: 'car',
+      preview: 'Exciting driving experience',
+      embed: true,
     },
   ];
 
   const getIcon = (iconName: string) => {
-    const icons = {
+    const icons: Record<string, typeof Star> = {
       star: Star,
       gamepad: Gamepad2,
       music: Music,
       zap: Zap,
       trophy: Trophy,
       target: Target,
+      snake: Sparkles,
+      car: CarFront,
     };
-    return icons[iconName as keyof typeof icons] || Gamepad2;
+    return icons[iconName] || Gamepad2;
   };
 
   return (
@@ -89,7 +113,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
           return (
             <button
               key={game.title}
-              onClick={() => onGameClick(game.url, game.title, game.embed)}
+              onClick={() => onGameClick(game.url, game.title, game.embed, game.isTab)}
               className="group bg-gradient-card border border-border/30 rounded-xl overflow-hidden hover:border-primary/60 transition-all duration-300 hover:scale-105 hover:shadow-card-hover text-left"
             >
               <div className="relative h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden">
