@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const JAMENDO_CLIENT_ID = 'b6747d04';
+const JAMENDO_CLIENT_ID = 'e9b32f1a';
 
 serve(async (req) => {
   // Handle CORS preflight requests
