@@ -67,6 +67,41 @@ export type Database = {
         }
         Relationships: []
       }
+      uploaded_music: {
+        Row: {
+          artist: string
+          created_at: string
+          file_path: string
+          id: string
+          title: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          artist?: string
+          created_at?: string
+          file_path: string
+          id?: string
+          title: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          artist?: string
+          created_at?: string
+          file_path?: string
+          id?: string
+          title?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uploaded_music_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -98,6 +133,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_uploaded_music: {
+        Args: {
+          p_admin_id: string
+          p_artist: string
+          p_file_path: string
+          p_title: string
+        }
+        Returns: string
+      }
       admin_exists: { Args: never; Returns: boolean }
       create_app_user: {
         Args: {
@@ -110,6 +154,10 @@ export type Database = {
       }
       delete_app_user: {
         Args: { p_admin_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      delete_uploaded_music: {
+        Args: { p_admin_id: string; p_music_id: string }
         Returns: boolean
       }
       get_all_users: {
