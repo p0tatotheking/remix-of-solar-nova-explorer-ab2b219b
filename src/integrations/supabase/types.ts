@@ -98,6 +98,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_exists: { Args: never; Returns: boolean }
       create_app_user: {
         Args: {
           p_admin_id: string
@@ -126,6 +127,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      seed_admin_user: {
+        Args: { p_password_hash: string; p_username: string }
+        Returns: string
       }
       update_user_password: {
         Args: {
