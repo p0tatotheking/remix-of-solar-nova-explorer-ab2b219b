@@ -20,6 +20,7 @@ interface Track {
   image: string;
   audio: string;
   duration: number;
+  isUploaded?: boolean;
 }
 
 interface MusicPlayerContextType {
