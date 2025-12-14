@@ -11,45 +11,7 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
-  const [cloaked, setCloaked] = useState(false);
   const { login } = useAuth();
-
-  // About:blank cloaking - opens site in a new blank tab
-  useEffect(() => {
-    const handleCloak = () => {
-      if (cloaked) return;
-      
-      const newWindow = window.open('about:blank', '_blank');
-      if (newWindow) {
-        newWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>about:blank</title>
-            <style>
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              html, body { height: 100%; overflow: hidden; }
-              iframe { width: 100%; height: 100%; border: none; }
-            </style>
-          </head>
-          <body>
-            <iframe src="${window.location.href}"></iframe>
-          </body>
-          </html>
-        `);
-        newWindow.document.close();
-        setCloaked(true);
-      }
-    };
-
-    if (!cloaked) {
-      document.addEventListener('click', handleCloak, { once: true });
-    }
-
-    return () => {
-      document.removeEventListener('click', handleCloak);
-    };
-  }, [cloaked]);
 
   useEffect(() => {
     checkAdminExists();
