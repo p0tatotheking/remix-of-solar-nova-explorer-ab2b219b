@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Star, Music } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Star, Music, LogOut, Shield } from 'lucide-react';
 import { TypewriterEffect } from '@/components/TypewriterEffect';
 import { GameCard } from '@/components/GameCard';
 import { Chatroom } from '@/components/Chatroom';
@@ -8,12 +8,17 @@ import { BugsSection } from '@/components/BugsSection';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/PersistentMusicPlayer';
 import { GameEmbed } from '@/components/GameEmbed';
+import { useAuth } from '@/contexts/AuthContext';
+import { LoginPage } from '@/components/LoginPage';
+import { AdminPanel } from '@/components/AdminPanel';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music';
 
 const Index = () => {
+  const { user, isLoading, logout, isAdmin } = useAuth();
   const [activeSection, setActiveSection] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   const navItems = [
     { id: 'home' as const, label: 'Home', icon: Home },
@@ -32,6 +37,21 @@ const Index = () => {
       window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
+        <div className="relative z-10 text-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!user) {
+    return <LoginPage />;
+  }
 
   return (
     <MusicPlayerProvider>
@@ -70,6 +90,30 @@ const Index = () => {
                       <span className="hidden sm:inline">{item.label}</span>
                     </button>
                   ))}
+                </div>
+
+                {/* User menu */}
+                <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <button
+                      onClick={() => setShowAdminPanel(true)}
+                      className="flex items-center gap-2 px-3 py-2 text-primary hover:text-secondary transition-colors"
+                      title="Admin Panel"
+                    >
+                      <Shield className="w-4 h-4" />
+                      <span className="hidden sm:inline text-sm">Admin</span>
+                    </button>
+                  )}
+                  <span className="text-sm text-muted-foreground hidden sm:inline">
+                    {user.username}
+                  </span>
+                  <button
+                    onClick={logout}
+                    className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-destructive transition-colors"
+                    title="Logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -193,6 +237,11 @@ const Index = () => {
             title={embeddedGame.title}
             onClose={() => setEmbeddedGame(null)}
           />
+        )}
+
+        {/* Admin Panel */}
+        {showAdminPanel && isAdmin && (
+          <AdminPanel onClose={() => setShowAdminPanel(false)} />
         )}
       </div>
     </MusicPlayerProvider>

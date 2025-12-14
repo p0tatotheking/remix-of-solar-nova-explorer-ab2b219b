@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Lock, Users, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { hashPassword } from '@/lib/crypto';
 
 interface Message {
   id: string;
@@ -10,8 +12,9 @@ interface Message {
 }
 
 export function Chatroom() {
-  const [step, setStep] = useState<'join' | 'chat'>('join');
-  const [username, setUsername] = useState('');
+  const { user } = useAuth();
+  const [step, setStep] = useState<'verify' | 'chat'>('verify');
+  const [password, setPassword] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [error, setError] = useState('');
@@ -22,7 +25,6 @@ export function Chatroom() {
   useEffect(() => {
     if (step !== 'chat') return;
 
-    // Fetch existing messages
     const fetchMessages = async () => {
       const { data, error } = await supabase
         .from('chat_messages')
@@ -40,7 +42,6 @@ export function Chatroom() {
 
     fetchMessages();
 
-    // Subscribe to new messages
     const channel = supabase
       .channel('chat-messages')
       .on(
@@ -62,32 +63,52 @@ export function Chatroom() {
     };
   }, [step]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleJoinChatroom = async (e: React.FormEvent) => {
+  const handleVerifyPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    if (!username.trim()) {
-      setError('Please enter a username');
+    if (!user) {
+      setError('You must be logged in');
+      setIsLoading(false);
       return;
     }
 
-    setStep('chat');
+    try {
+      const passwordHash = await hashPassword(password);
+      
+      const { data, error } = await supabase.rpc('verify_login', {
+        p_username: user.username,
+        p_password_hash: passwordHash,
+      });
+
+      if (error || !data || data.length === 0) {
+        setError('Invalid password');
+        setIsLoading(false);
+        return;
+      }
+
+      setStep('chat');
+    } catch (err) {
+      setError('Verification failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newMessage.trim() || isLoading) return;
+    if (!newMessage.trim() || isLoading || !user) return;
 
     setIsLoading(true);
 
     const { error } = await supabase.from('chat_messages').insert({
-      username: username.trim(),
+      username: user.username,
       message: newMessage.trim(),
     });
 
@@ -100,7 +121,7 @@ export function Chatroom() {
     setIsLoading(false);
   };
 
-  if (step === 'join') {
+  if (step === 'verify') {
     return (
       <div className="max-w-md mx-auto">
         <div className="bg-gradient-card border border-border/30 rounded-xl p-8">
@@ -110,22 +131,23 @@ export function Chatroom() {
             </div>
           </div>
 
-          <h2 className="text-3xl font-bold text-foreground text-center mb-2">Join Chatroom</h2>
+          <h2 className="text-3xl font-bold text-foreground text-center mb-2">Verify Identity</h2>
           <p className="text-muted-foreground text-center mb-6">
-            Real-time global chat
+            Enter your password to access chat
           </p>
 
-          <form onSubmit={handleJoinChatroom} className="space-y-4">
+          <form onSubmit={handleVerifyPassword} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-primary mb-2">
-                Username
+                Password
               </label>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-background/50 border border-border/30 rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
-                placeholder="Enter your username"
+                placeholder="Enter your password"
+                disabled={isLoading}
               />
             </div>
 
@@ -137,16 +159,17 @@ export function Chatroom() {
 
             <button
               type="submit"
-              className="w-full bg-gradient-primary hover:opacity-90 text-foreground font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-glow"
+              disabled={isLoading}
+              className="w-full bg-gradient-primary hover:opacity-90 text-foreground font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-glow disabled:opacity-50"
             >
-              Join Chat
+              {isLoading ? 'Verifying...' : 'Access Chat'}
             </button>
           </form>
 
           <div className="mt-6 p-4 bg-muted/20 rounded-lg border border-border/20">
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <MessageSquare className="w-4 h-4" />
-              <span>Real-time messaging enabled</span>
+              <span>Re-authentication required for chat</span>
             </div>
           </div>
         </div>
@@ -163,12 +186,13 @@ export function Chatroom() {
               <Users className="w-6 h-6 text-primary" />
               <div>
                 <h3 className="text-xl font-bold text-foreground">Global Chat</h3>
-                <p className="text-sm text-muted-foreground">Logged in as {username}</p>
+                <p className="text-sm text-muted-foreground">Logged in as {user?.username}</p>
               </div>
             </div>
             <button
               onClick={() => {
-                setStep('join');
+                setStep('verify');
+                setPassword('');
                 setMessages([]);
               }}
               className="text-sm text-primary hover:text-secondary transition-colors"
@@ -190,11 +214,11 @@ export function Chatroom() {
             messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex ${msg.username === username ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${msg.username === user?.username ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    msg.username === username
+                    msg.username === user?.username
                       ? 'bg-gradient-primary'
                       : 'bg-muted'
                   }`}
