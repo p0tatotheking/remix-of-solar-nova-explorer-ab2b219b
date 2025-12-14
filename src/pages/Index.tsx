@@ -11,6 +11,7 @@ import { GameEmbed } from '@/components/GameEmbed';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
+import { CloakLauncher } from '@/components/CloakLauncher';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music';
 
@@ -19,6 +20,7 @@ const Index = () => {
   const [activeSection, setActiveSection] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [hasLaunched, setHasLaunched] = useState(false);
 
   const navItems = [
     { id: 'home' as const, label: 'Home', icon: Home },
@@ -51,6 +53,11 @@ const Index = () => {
   // Show login if not authenticated
   if (!user) {
     return <LoginPage />;
+  }
+
+  // Show cloak launcher after login
+  if (!hasLaunched) {
+    return <CloakLauncher onContinue={() => setHasLaunched(true)} />;
   }
 
   return (
