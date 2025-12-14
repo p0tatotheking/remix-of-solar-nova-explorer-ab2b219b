@@ -1,0 +1,250 @@
+import { useState, useEffect } from 'react';
+import { Users, Plus, Trash2, Key, X, Shield } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { hashPassword } from '@/lib/crypto';
+
+interface AppUser {
+  id: string;
+  username: string;
+  role: 'admin' | 'user';
+  created_at: string;
+}
+
+export function AdminPanel({ onClose }: { onClose: () => void }) {
+  const { user } = useAuth();
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+
+  const fetchUsers = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('get_all_users', {
+        p_admin_id: user.id,
+      });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError('Failed to load users');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [user]);
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !newUsername.trim() || !newPassword.trim()) return;
+
+    setIsCreating(true);
+    setError('');
+
+    try {
+      const passwordHash = await hashPassword(newPassword);
+      
+      const { error } = await supabase.rpc('create_app_user', {
+        p_admin_id: user.id,
+        p_username: newUsername.trim(),
+        p_password_hash: passwordHash,
+        p_role: 'user',
+      });
+
+      if (error) throw error;
+
+      setNewUsername('');
+      setNewPassword('');
+      setShowCreateForm(false);
+      fetchUsers();
+    } catch (err: any) {
+      console.error('Error creating user:', err);
+      setError(err.message || 'Failed to create user');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!user) return;
+    
+    if (!confirm('Are you sure you want to delete this user?')) return;
+
+    try {
+      const { error } = await supabase.rpc('delete_app_user', {
+        p_admin_id: user.id,
+        p_user_id: userId,
+      });
+
+      if (error) throw error;
+      fetchUsers();
+    } catch (err: any) {
+      console.error('Error deleting user:', err);
+      setError(err.message || 'Failed to delete user');
+    }
+  };
+
+  const handleResetPassword = async (userId: string) => {
+    if (!user) return;
+    
+    const newPass = prompt('Enter new password for this user:');
+    if (!newPass) return;
+
+    try {
+      const passwordHash = await hashPassword(newPass);
+      
+      const { error } = await supabase.rpc('update_user_password', {
+        p_admin_id: user.id,
+        p_user_id: userId,
+        p_new_password_hash: passwordHash,
+      });
+
+      if (error) throw error;
+      alert('Password updated successfully');
+    } catch (err: any) {
+      console.error('Error updating password:', err);
+      setError(err.message || 'Failed to update password');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-gradient-card border border-border/30 rounded-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 border-b border-border/30 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Shield className="w-6 h-6 text-primary" />
+            <h2 className="text-xl font-bold text-foreground">Admin Panel</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
+          {error && (
+            <div className="bg-destructive/20 border border-destructive rounded-lg px-4 py-3 text-destructive text-sm mb-4">
+              {error}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              User Management
+            </h3>
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="flex items-center gap-2 bg-gradient-primary hover:opacity-90 text-foreground font-medium py-2 px-4 rounded-lg transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Add User
+            </button>
+          </div>
+
+          {showCreateForm && (
+            <form onSubmit={handleCreateUser} className="bg-muted/20 rounded-lg p-4 mb-6 border border-border/20">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-2">Username</label>
+                  <input
+                    type="text"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    className="w-full bg-background/50 border border-border/30 rounded-lg px-4 py-2 text-foreground"
+                    placeholder="Enter username"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-2">Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full bg-background/50 border border-border/30 rounded-lg px-4 py-2 text-foreground"
+                    placeholder="Enter password"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={isCreating}
+                  className="bg-gradient-primary hover:opacity-90 text-foreground font-medium py-2 px-4 rounded-lg transition-all disabled:opacity-50"
+                >
+                  {isCreating ? 'Creating...' : 'Create User'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(false)}
+                  className="bg-muted hover:bg-muted/80 text-foreground font-medium py-2 px-4 rounded-lg transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading users...</div>
+          ) : (
+            <div className="space-y-2">
+              {users.map((u) => (
+                <div
+                  key={u.id}
+                  className="flex items-center justify-between bg-background/30 border border-border/20 rounded-lg px-4 py-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      u.role === 'admin' ? 'bg-primary/20' : 'bg-muted'
+                    }`}>
+                      {u.role === 'admin' ? (
+                        <Shield className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">{u.username}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{u.role}</p>
+                    </div>
+                  </div>
+                  
+                  {u.role !== 'admin' && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleResetPassword(u.id)}
+                        className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                        title="Reset Password"
+                      >
+                        <Key className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(u.id)}
+                        className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Delete User"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
