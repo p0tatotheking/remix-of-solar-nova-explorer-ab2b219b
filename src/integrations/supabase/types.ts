@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_users: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          password_hash: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          password_hash: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          password_hash?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_users_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           created_at: string
@@ -35,15 +67,85 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_app_user: {
+        Args: {
+          p_admin_id: string
+          p_password_hash: string
+          p_role?: Database["public"]["Enums"]["app_role"]
+          p_username: string
+        }
+        Returns: string
+      }
+      delete_app_user: {
+        Args: { p_admin_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      get_all_users: {
+        Args: { p_admin_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          username: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      update_user_password: {
+        Args: {
+          p_admin_id: string
+          p_new_password_hash: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      verify_login: {
+        Args: { p_password_hash: string; p_username: string }
+        Returns: {
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          username: string
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -170,6 +272,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
