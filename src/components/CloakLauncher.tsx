@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink, Monitor } from 'lucide-react';
+import { ExternalLink, Monitor, AlertTriangle } from 'lucide-react';
 
 interface CloakLauncherProps {
   onContinue: () => void;
@@ -7,9 +7,11 @@ interface CloakLauncherProps {
 
 export function CloakLauncher({ onContinue }: CloakLauncherProps) {
   const [isLaunching, setIsLaunching] = useState(false);
+  const [popupBlocked, setPopupBlocked] = useState(false);
 
   const launchCloaked = () => {
     setIsLaunching(true);
+    setPopupBlocked(false);
     
     const newWindow = window.open('about:blank', '_blank');
     if (newWindow) {
@@ -36,6 +38,9 @@ export function CloakLauncher({ onContinue }: CloakLauncherProps) {
       
       // Close the original tab
       window.close();
+    } else {
+      // Popup was blocked
+      setPopupBlocked(true);
     }
     
     setIsLaunching(false);
@@ -48,6 +53,18 @@ export function CloakLauncher({ onContinue }: CloakLauncherProps) {
           <h1 className="text-3xl font-bold text-foreground">Launch Options</h1>
           <p className="text-muted-foreground">Choose how you want to access the site</p>
         </div>
+
+        {popupBlocked && (
+          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-destructive">Popup Blocked</p>
+              <p className="text-muted-foreground mt-1">
+                Please allow popups for this site. Click the popup blocked icon in your browser's address bar, then try again.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           {/* Cloaked Launch Option */}
