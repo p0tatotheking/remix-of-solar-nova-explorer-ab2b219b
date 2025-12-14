@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcement_comments: {
+        Row: {
+          announcement_id: string
+          comment: string
+          created_at: string
+          display_name: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          announcement_id: string
+          comment: string
+          created_at?: string
+          display_name: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          announcement_id?: string
+          comment?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_comments_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcement_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_users: {
         Row: {
           created_at: string
@@ -45,6 +122,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bugs: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          status: string
+          title: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          status: string
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
       }
       chat_messages: {
         Row: {
@@ -143,6 +244,10 @@ export type Database = {
         Returns: string
       }
       admin_exists: { Args: never; Returns: boolean }
+      create_announcement: {
+        Args: { p_admin_id: string; p_content: string; p_title: string }
+        Returns: string
+      }
       create_app_user: {
         Args: {
           p_admin_id: string
@@ -152,8 +257,25 @@ export type Database = {
         }
         Returns: string
       }
+      create_bug: {
+        Args: {
+          p_admin_id: string
+          p_category: string
+          p_status: string
+          p_title: string
+        }
+        Returns: string
+      }
+      delete_announcement: {
+        Args: { p_admin_id: string; p_announcement_id: string }
+        Returns: boolean
+      }
       delete_app_user: {
         Args: { p_admin_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      delete_bug: {
+        Args: { p_admin_id: string; p_bug_id: string }
         Returns: boolean
       }
       delete_uploaded_music: {
@@ -179,6 +301,15 @@ export type Database = {
       seed_admin_user: {
         Args: { p_password_hash: string; p_username: string }
         Returns: string
+      }
+      update_announcement: {
+        Args: {
+          p_admin_id: string
+          p_announcement_id: string
+          p_content: string
+          p_title: string
+        }
+        Returns: boolean
       }
       update_user_password: {
         Args: {

@@ -3,6 +3,7 @@ import { Send, Lock, Users, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { hashPassword } from '@/lib/crypto';
+import { censorText } from '@/lib/profanityFilter';
 
 interface Message {
   id: string;
@@ -107,9 +108,11 @@ export function Chatroom() {
 
     setIsLoading(true);
 
+    const censoredMessage = censorText(newMessage.trim());
+    
     const { error } = await supabase.from('chat_messages').insert({
       username: user.username,
-      message: newMessage.trim(),
+      message: censoredMessage,
     });
 
     if (error) {

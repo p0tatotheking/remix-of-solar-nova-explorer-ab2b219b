@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Star, Music, LogOut, Shield } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Star, Music, LogOut, Shield, Megaphone } from 'lucide-react';
 import { TypewriterEffect } from '@/components/TypewriterEffect';
 import { GameCard } from '@/components/GameCard';
 import { Chatroom } from '@/components/Chatroom';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
+import { Announcements } from '@/components/Announcements';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/PersistentMusicPlayer';
 import { GameEmbed } from '@/components/GameEmbed';
@@ -13,7 +14,7 @@ import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
 import { CloakLauncher } from '@/components/CloakLauncher';
 
-type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music';
+type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements';
 
 const Index = () => {
   const { user, isLoading, logout, isAdmin } = useAuth();
@@ -26,6 +27,7 @@ const Index = () => {
     { id: 'home' as const, label: 'Home', icon: Home },
     { id: 'games' as const, label: 'Games', icon: Gamepad2 },
     { id: 'music' as const, label: 'Music', icon: Music },
+    { id: 'announcements' as const, label: 'Announcements', icon: Megaphone },
     { id: 'chatroom' as const, label: 'Chatroom', icon: MessageSquare },
     { id: 'bugs' as const, label: 'Bugs', icon: Bug },
   ];
@@ -215,6 +217,12 @@ const Index = () => {
             {activeSection === 'music' && (
               <section className="py-16 px-4 sm:px-6 lg:px-8">
                 <MusicPlayer />
+              </section>
+            )}
+
+            {activeSection === 'announcements' && (
+              <section className="py-16 px-4 sm:px-6 lg:px-8">
+                <Announcements />
               </section>
             )}
           </main>
