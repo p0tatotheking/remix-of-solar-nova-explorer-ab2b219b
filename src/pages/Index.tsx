@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Home, Gamepad2, MessageSquare, Bug, Star, Music, LogOut, Shield, Megaphone } from 'lucide-react';
 import { TypewriterEffect } from '@/components/TypewriterEffect';
 import { GameCard } from '@/components/GameCard';
@@ -22,6 +22,23 @@ const Index = () => {
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [hasLaunched, setHasLaunched] = useState(false);
+  const [showNav, setShowNav] = useState(false);
+
+  // Panic button - press R to close tab
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'r' || e.key === 'R') {
+        // Don't trigger if typing in an input
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+          return;
+        }
+        window.location.href = 'https://www.google.com';
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const navItems = [
     { id: 'home' as const, label: 'Home', icon: Home },
@@ -69,60 +86,79 @@ const Index = () => {
         <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
 
         <div className="relative z-10">
-          {/* Navigation */}
-          <nav className="border-b border-border/30 bg-background/80 backdrop-blur-lg sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center justify-between h-16">
-                {/* Logo */}
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-                    <span className="text-foreground font-bold text-xl">S</span>
+          {/* Hover trigger zone at top */}
+          <div 
+            className="fixed top-0 left-0 right-0 h-4 z-50"
+            onMouseEnter={() => setShowNav(true)}
+          />
+
+          {/* Popup Navigation */}
+          <nav 
+            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+              showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+            }`}
+            onMouseLeave={() => setShowNav(false)}
+          >
+            <div className="border-b border-border/30 bg-background/95 backdrop-blur-lg">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-16">
+                  {/* Logo */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
+                      <span className="text-foreground font-bold text-xl">S</span>
+                    </div>
+                    <span className="text-2xl font-bold text-gradient">
+                      SOLARNOVA
+                    </span>
                   </div>
-                  <span className="text-2xl font-bold text-gradient">
-                    SOLARNOVA
-                  </span>
-                </div>
 
-                {/* Nav items */}
-                <div className="flex gap-1">
-                  {navItems.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveSection(item.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                        activeSection === item.id
-                          ? 'bg-gradient-primary text-foreground'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                      }`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      <span className="hidden sm:inline">{item.label}</span>
-                    </button>
-                  ))}
-                </div>
+                  {/* Nav items */}
+                  <div className="flex gap-1">
+                    {navItems.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setActiveSection(item.id);
+                          setShowNav(false);
+                        }}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                          activeSection === item.id
+                            ? 'bg-gradient-primary text-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                        }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span className="hidden sm:inline">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
 
-                {/* User menu */}
-                <div className="flex items-center gap-2">
-                  {isAdmin && (
+                  {/* User menu */}
+                  <div className="flex items-center gap-2">
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setShowAdminPanel(true);
+                          setShowNav(false);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 text-primary hover:text-secondary transition-colors"
+                        title="Admin Panel"
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span className="hidden sm:inline text-sm">Admin</span>
+                      </button>
+                    )}
+                    <span className="text-sm text-muted-foreground hidden sm:inline">
+                      {user.username}
+                    </span>
                     <button
-                      onClick={() => setShowAdminPanel(true)}
-                      className="flex items-center gap-2 px-3 py-2 text-primary hover:text-secondary transition-colors"
-                      title="Admin Panel"
+                      onClick={logout}
+                      className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Logout"
                     >
-                      <Shield className="w-4 h-4" />
-                      <span className="hidden sm:inline text-sm">Admin</span>
+                      <LogOut className="w-4 h-4" />
                     </button>
-                  )}
-                  <span className="text-sm text-muted-foreground hidden sm:inline">
-                    {user.username}
-                  </span>
-                  <button
-                    onClick={logout}
-                    className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-destructive transition-colors"
-                    title="Logout"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -150,6 +186,10 @@ const Index = () => {
                         </p>
                       </div>
                     </div>
+
+                    <p className="text-sm text-muted-foreground/60">
+                      Press <kbd className="px-2 py-1 bg-muted rounded text-foreground">R</kbd> to panic exit • Hover top to show menu
+                    </p>
                   </div>
                 </section>
 
