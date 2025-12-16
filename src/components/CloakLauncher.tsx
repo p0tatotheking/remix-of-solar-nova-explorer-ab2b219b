@@ -88,7 +88,10 @@ export function CloakLauncher({ onContinue }: CloakLauncherProps) {
 
           {/* Normal Launch Option */}
           <button
-            onClick={onContinue}
+            onClick={() => {
+              document.documentElement.requestFullscreen?.();
+              onContinue();
+            }}
             className="w-full p-6 rounded-xl border border-border/50 bg-card hover:bg-accent/10 transition-all duration-300 group text-left"
           >
             <div className="flex items-start gap-4">
@@ -98,7 +101,7 @@ export function CloakLauncher({ onContinue }: CloakLauncherProps) {
               <div className="flex-1 space-y-1">
                 <h3 className="text-lg font-semibold text-foreground">Continue Normally</h3>
                 <p className="text-sm text-muted-foreground">
-                  Continue using the site in this tab with the normal URL visible.
+                  Continue in fullscreen mode. Press F11 or G to exit fullscreen.
                 </p>
               </div>
             </div>
