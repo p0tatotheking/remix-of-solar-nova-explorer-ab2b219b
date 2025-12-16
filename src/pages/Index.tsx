@@ -24,21 +24,34 @@ const Index = () => {
   const [hasLaunched, setHasLaunched] = useState(false);
   const [showNav, setShowNav] = useState(false);
 
-  // Panic button - press R to close tab
+  // Keybinds - disabled when in chatroom
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input or in chatroom
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (activeSection === 'chatroom') {
+        return;
+      }
+
+      // Panic button - R
       if (e.key === 'r' || e.key === 'R') {
-        // Don't trigger if typing in an input
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-          return;
-        }
         window.location.href = 'https://www.google.com';
+      }
+
+      // Exit fullscreen - F11 or G
+      if (e.key === 'F11' || e.key === 'g' || e.key === 'G') {
+        e.preventDefault();
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [activeSection]);
 
   const navItems = [
     { id: 'home' as const, label: 'Home', icon: Home },
