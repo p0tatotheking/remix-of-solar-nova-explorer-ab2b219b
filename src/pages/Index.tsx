@@ -86,79 +86,80 @@ const Index = () => {
         <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
 
         <div className="relative z-10">
-          {/* Hover trigger zone at top */}
+          {/* Hover trigger zone on left */}
           <div 
-            className="fixed top-0 left-0 right-0 h-4 z-50"
+            className="fixed top-0 left-0 bottom-0 w-4 z-50"
             onMouseEnter={() => setShowNav(true)}
           />
 
-          {/* Popup Navigation */}
+          {/* Left Sidebar Navigation */}
           <nav 
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-              showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+            className={`fixed top-0 left-0 bottom-0 w-64 z-50 transition-all duration-300 ${
+              showNav ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
             }`}
             onMouseLeave={() => setShowNav(false)}
           >
-            <div className="border-b border-border/30 bg-background/95 backdrop-blur-lg">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                  {/* Logo */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-                      <span className="text-foreground font-bold text-xl">S</span>
-                    </div>
-                    <span className="text-2xl font-bold text-gradient">
-                      SOLARNOVA
-                    </span>
-                  </div>
+            <div className="h-full border-r border-border/30 bg-background/95 backdrop-blur-lg flex flex-col">
+              {/* Logo */}
+              <div className="p-6 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
+                  <span className="text-foreground font-bold text-xl">S</span>
+                </div>
+                <span className="text-xl font-bold text-gradient">
+                  SOLARNOVA
+                </span>
+              </div>
 
-                  {/* Nav items */}
-                  <div className="flex gap-1">
-                    {navItems.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setActiveSection(item.id);
-                          setShowNav(false);
-                        }}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                          activeSection === item.id
-                            ? 'bg-gradient-primary text-foreground'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                        }`}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span className="hidden sm:inline">{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
+              <div className="border-t border-border/30 mx-4" />
 
-                  {/* User menu */}
-                  <div className="flex items-center gap-2">
-                    {isAdmin && (
-                      <button
-                        onClick={() => {
-                          setShowAdminPanel(true);
-                          setShowNav(false);
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 text-primary hover:text-secondary transition-colors"
-                        title="Admin Panel"
-                      >
-                        <Shield className="w-4 h-4" />
-                        <span className="hidden sm:inline text-sm">Admin</span>
-                      </button>
-                    )}
-                    <span className="text-sm text-muted-foreground hidden sm:inline">
-                      {user.username}
-                    </span>
-                    <button
-                      onClick={logout}
-                      className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-destructive transition-colors"
-                      title="Logout"
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </button>
-                  </div>
+              {/* Nav items */}
+              <div className="flex-1 py-4 px-3 space-y-1">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveSection(item.id);
+                      setShowNav(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                      activeSection === item.id
+                        ? 'bg-gradient-primary text-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="border-t border-border/30 mx-4" />
+
+              {/* Bottom section - Admin & User */}
+              <div className="p-4 space-y-2">
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setShowAdminPanel(true);
+                      setShowNav(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-primary hover:bg-muted/30 transition-colors"
+                  >
+                    <Shield className="w-5 h-5" />
+                    <span>Admin Panel</span>
+                  </button>
+                )}
+                <div className="flex items-center justify-between px-4 py-2">
+                  <span className="text-sm text-muted-foreground truncate">
+                    {user.username}
+                  </span>
+                  <button
+                    onClick={logout}
+                    className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-muted/30"
+                    title="Logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </div>
