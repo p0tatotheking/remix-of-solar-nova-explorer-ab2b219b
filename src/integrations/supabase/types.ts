@@ -168,6 +168,114 @@ export type Database = {
         }
         Relationships: []
       }
+      direct_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          receiver_id: string
+          receiver_username: string
+          sender_id: string
+          sender_username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          receiver_id: string
+          receiver_username: string
+          sender_id: string
+          sender_username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          receiver_id?: string
+          receiver_username?: string
+          sender_id?: string
+          sender_username?: string
+        }
+        Relationships: []
+      }
+      friend_requests: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          from_username: string
+          id: string
+          status: string
+          to_user_id: string
+          to_username: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          from_username: string
+          id?: string
+          status?: string
+          to_user_id: string
+          to_username: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          from_username?: string
+          id?: string
+          status?: string
+          to_user_id?: string
+          to_username?: string
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          created_at: string
+          friend_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          created_at: string
+          id: string
+          mute_until: string | null
+          muted_user_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mute_until?: string | null
+          muted_user_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mute_until?: string | null
+          muted_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       uploaded_music: {
         Row: {
           artist: string
@@ -202,6 +310,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -281,6 +410,14 @@ export type Database = {
       delete_uploaded_music: {
         Args: { p_admin_id: string; p_music_id: string }
         Returns: boolean
+      }
+      get_all_app_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          username: string
+        }[]
       }
       get_all_users: {
         Args: { p_admin_id: string }

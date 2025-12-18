@@ -14,6 +14,19 @@ interface GamesGridProps {
   onGameClick: (url: string, title: string, embed?: boolean, isTab?: string) => void;
 }
 
+// Auto-generated game icons based on title
+const getGameIcon = (title: string) => {
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes('music') || titleLower.includes('funkin')) return '🎵';
+  if (titleLower.includes('car') || titleLower.includes('race') || titleLower.includes('drive')) return '🏎️';
+  if (titleLower.includes('snake') || titleLower.includes('cobra')) return '🐍';
+  if (titleLower.includes('lumi') || titleLower.includes('os')) return '💻';
+  if (titleLower.includes('game') || titleLower.includes('petezah')) return '🎮';
+  if (titleLower.includes('umbrion')) return '⚡';
+  if (titleLower.includes('kermit')) return '🐸';
+  return '🎯';
+};
+
 export function GamesGrid({ onGameClick }: GamesGridProps) {
   const games: Game[] = [
     {
@@ -110,6 +123,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {games.map((game) => {
           const Icon = getIcon(game.icon);
+          const emoji = getGameIcon(game.title);
           return (
             <button
               key={game.title}
@@ -118,7 +132,10 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
             >
               <div className="relative h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 bg-background/40" />
-                <Icon className="w-24 h-24 text-primary/50 group-hover:text-primary/70 transition-all duration-300 group-hover:scale-110 relative z-10" />
+                {/* Auto-generated emoji icon */}
+                <span className="text-6xl group-hover:scale-125 transition-all duration-300 relative z-10">
+                  {emoji}
+                </span>
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
               </div>
 

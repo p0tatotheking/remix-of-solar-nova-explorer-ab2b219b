@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Home, Gamepad2, MessageSquare, Bug, Star, Music, LogOut, Shield, Megaphone } from 'lucide-react';
-import { TypewriterEffect } from '@/components/TypewriterEffect';
 import { GameCard } from '@/components/GameCard';
-import { Chatroom } from '@/components/Chatroom';
+import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
 import { Announcements } from '@/components/Announcements';
@@ -13,6 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
 import { CloakLauncher } from '@/components/CloakLauncher';
+import solarnovaIcon from '@/assets/solarnova-icon.png';
+import solarnovaText from '@/assets/solarnova-text.png';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements';
 
@@ -21,13 +22,31 @@ const Index = () => {
   const [activeSection, setActiveSection] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [hasLaunched, setHasLaunched] = useState(false);
+  const [hasChosenLaunchMethod, setHasChosenLaunchMethod] = useState(false);
   const [showNav, setShowNav] = useState(false);
+  const [typewriterText, setTypewriterText] = useState('');
+
+  const fullText = 'SOLARNOVA';
+
+  // Typewriter effect for home
+  useEffect(() => {
+    if (activeSection !== 'home') return;
+    setTypewriterText('');
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < fullText.length) {
+        setTypewriterText(fullText.slice(0, i + 1));
+        i++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 150);
+    return () => clearInterval(interval);
+  }, [activeSection]);
 
   // Keybinds - disabled when in chatroom
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in an input or in chatroom
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
@@ -82,14 +101,14 @@ const Index = () => {
     );
   }
 
+  // Show cloak launcher FIRST (before login)
+  if (!hasChosenLaunchMethod) {
+    return <CloakLauncher onContinue={() => setHasChosenLaunchMethod(true)} />;
+  }
+
   // Show login if not authenticated
   if (!user) {
     return <LoginPage />;
-  }
-
-  // Show cloak launcher after login
-  if (!hasLaunched) {
-    return <CloakLauncher onContinue={() => setHasLaunched(true)} />;
   }
 
   return (
@@ -97,6 +116,19 @@ const Index = () => {
       <div className="min-h-screen bg-background text-foreground">
         {/* Background gradient overlay */}
         <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
+
+        {/* Animated black hole background for home section */}
+        {activeSection === 'home' && (
+          <div className="fixed inset-0 z-0 overflow-hidden">
+            <iframe 
+              src="https://tenor.com/embed/25834090" 
+              className="absolute w-[200%] h-[200%] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-30"
+              frameBorder="0"
+              allowFullScreen
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
+          </div>
+        )}
 
         <div className="relative z-10">
           {/* Hover trigger zone on left */}
@@ -115,9 +147,7 @@ const Index = () => {
             <div className="h-full border-r border-border/30 bg-background/95 backdrop-blur-lg flex flex-col">
               {/* Logo */}
               <div className="p-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-                  <span className="text-foreground font-bold text-xl">S</span>
-                </div>
+                <img src={solarnovaIcon} alt="Solarnova" className="w-10 h-10" />
                 <span className="text-xl font-bold text-gradient">
                   SOLARNOVA
                 </span>
@@ -184,10 +214,32 @@ const Index = () => {
               <>
                 {/* Hero section */}
                 <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-b from-primary/30 to-transparent" />
-
                   <div className="max-w-7xl mx-auto text-center relative z-10">
-                    <TypewriterEffect />
+                    {/* Solar Nova Icon */}
+                    <div className="mb-8 flex justify-center">
+                      <img 
+                        src={solarnovaIcon} 
+                        alt="Solarnova" 
+                        className="w-32 h-32 animate-pulse"
+                      />
+                    </div>
+
+                    {/* Typewriter text with Solar Nova branding */}
+                    <div className="mb-8 flex justify-center">
+                      <img 
+                        src={solarnovaText} 
+                        alt="SOLARNOVA" 
+                        className="h-16 md:h-24"
+                      />
+                    </div>
+
+                    {/* Typewriter effect below */}
+                    <div className="h-12 mb-8">
+                      <span className="text-2xl md:text-4xl font-bold text-gradient">
+                        {typewriterText}
+                        <span className="animate-pulse">|</span>
+                      </span>
+                    </div>
 
                     <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto font-light">
                       Hub for all games and made by p0tato
@@ -196,13 +248,13 @@ const Index = () => {
                     <div className="inline-block p-1 bg-gradient-primary rounded-full mb-16">
                       <div className="bg-background px-6 py-3 rounded-full">
                         <p className="text-primary font-semibold">
-                          ✨ Now with encrypted chatrooms
+                          ✨ Now with Discord-style chatrooms
                         </p>
                       </div>
                     </div>
 
                     <p className="text-sm text-muted-foreground/60">
-                      Press <kbd className="px-2 py-1 bg-muted rounded text-foreground">R</kbd> to panic exit • Hover top to show menu
+                      Press <kbd className="px-2 py-1 bg-muted rounded text-foreground">R</kbd> to panic exit • Hover left to show menu
                     </p>
                   </div>
                 </section>
@@ -214,15 +266,14 @@ const Index = () => {
                       <GameCard
                         title="Friday Night Funkin'"
                         description="Test your rhythm in epic rap battles with challenging beats and memorable characters"
-                        url="https://fnfcbn.wasmer.app/"
                         icon={Star}
-                        onClick={() => handleGameClick('https://fnfcbn.wasmer.app/', "Friday Night Funkin'", true)}
+                        onClick={() => setActiveSection('games')}
                       />
                       <GameCard
                         title="Unblocked Games"
                         description="Access an extensive library of classic and modern games, all playable instantly"
-                        url="https://petezahstatic.wasmer.app"
                         icon={Gamepad2}
+                        onClick={() => setActiveSection('games')}
                       />
                       <GameCard
                         title="Solarnova Music Player"
@@ -257,8 +308,8 @@ const Index = () => {
             )}
 
             {activeSection === 'chatroom' && (
-              <section className="py-16 px-4 sm:px-6 lg:px-8">
-                <Chatroom />
+              <section className="py-8 px-4 sm:px-6 lg:px-8">
+                <DiscordChat />
               </section>
             )}
 
