@@ -13,6 +13,7 @@ import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
 import { CloakLauncher } from '@/components/CloakLauncher';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
+import solarnovaText from '@/assets/solarnova-text.png';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements';
 
@@ -116,6 +117,18 @@ const Index = () => {
         {/* Background gradient overlay */}
         <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
 
+        {/* Animated black hole background for home section */}
+        {activeSection === 'home' && (
+          <div className="fixed inset-0 z-0 overflow-hidden">
+            <iframe 
+              src="https://tenor.com/embed/25834090" 
+              className="absolute w-[200%] h-[200%] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-30"
+              frameBorder="0"
+              allowFullScreen
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
+          </div>
+        )}
 
         <div className="relative z-10">
           {/* Hover trigger zone on left */}
@@ -200,26 +213,48 @@ const Index = () => {
             {activeSection === 'home' && (
               <>
                 {/* Hero section */}
-                <section className="relative min-h-[60vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
+                <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
                   <div className="max-w-7xl mx-auto text-center relative z-10">
-                    {/* Typewriter SOLARNOVA */}
-                    <h1 className="text-6xl md:text-8xl font-bold mb-8 text-gradient tracking-wider">
-                      {typewriterText}
-                      <span className="animate-pulse text-primary">|</span>
-                    </h1>
+                    {/* Solar Nova Icon */}
+                    <div className="mb-8 flex justify-center">
+                      <img 
+                        src={solarnovaIcon} 
+                        alt="Solarnova" 
+                        className="w-32 h-32 animate-pulse"
+                      />
+                    </div>
 
-                    {/* Badge */}
-                    <div className="inline-block mb-12">
-                      <div className="px-6 py-3 rounded-full border border-primary/50 bg-primary/10 backdrop-blur-sm">
-                        <p className="text-primary font-medium flex items-center gap-2">
-                          <span>✨</span> Now with encrypted chatrooms
+                    {/* Typewriter text with Solar Nova branding */}
+                    <div className="mb-8 flex justify-center">
+                      <img 
+                        src={solarnovaText} 
+                        alt="SOLARNOVA" 
+                        className="h-16 md:h-24"
+                      />
+                    </div>
+
+                    {/* Typewriter effect below */}
+                    <div className="h-12 mb-8">
+                      <span className="text-2xl md:text-4xl font-bold text-gradient">
+                        {typewriterText}
+                        <span className="animate-pulse">|</span>
+                      </span>
+                    </div>
+
+                    <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto font-light">
+                      Hub for all games and made by p0tato
+                    </p>
+
+                    <div className="inline-block p-1 bg-gradient-primary rounded-full mb-16">
+                      <div className="bg-background px-6 py-3 rounded-full">
+                        <p className="text-primary font-semibold">
+                          ✨ Now with Discord-style chatrooms
                         </p>
                       </div>
                     </div>
 
-                    {/* Hint text */}
                     <p className="text-sm text-muted-foreground/60">
-                      Press <kbd className="px-2 py-1 bg-muted/50 rounded text-foreground border border-border/30">R</kbd> to panic exit • Hover left to show menu
+                      Press <kbd className="px-2 py-1 bg-muted rounded text-foreground">R</kbd> to panic exit • Hover left to show menu
                     </p>
                   </div>
                 </section>
