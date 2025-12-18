@@ -8,7 +8,18 @@ interface GameCardProps {
   onClick?: () => void;
 }
 
+// Auto-generated game icons based on title
+const getGameEmoji = (title: string) => {
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes('music')) return '🎵';
+  if (titleLower.includes('funkin') || titleLower.includes('rhythm')) return '🎤';
+  if (titleLower.includes('unblock') || titleLower.includes('game')) return '🎮';
+  return '⭐';
+};
+
 export function GameCard({ title, description, url, icon: Icon, onClick }: GameCardProps) {
+  const emoji = getGameEmoji(title);
+  
   const handleClick = (e: React.MouseEvent) => {
     if (onClick) {
       e.preventDefault();
@@ -26,7 +37,7 @@ export function GameCard({ title, description, url, icon: Icon, onClick }: GameC
 
         <div className="relative z-10">
           <div className="w-16 h-16 bg-gradient-primary rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-            <Icon className="w-8 h-8 text-foreground" />
+            <span className="text-3xl">{emoji}</span>
           </div>
 
           <h3 className="text-2xl font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
@@ -53,7 +64,7 @@ export function GameCard({ title, description, url, icon: Icon, onClick }: GameC
 
       <div className="relative z-10">
         <div className="w-16 h-16 bg-gradient-primary rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-          <Icon className="w-8 h-8 text-foreground" />
+          <span className="text-3xl">{emoji}</span>
         </div>
 
         <h3 className="text-2xl font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
