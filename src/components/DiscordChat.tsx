@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown } from 'lucide-react';
+import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { censorText } from '@/lib/profanityFilter';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
+
+interface DiscordChatProps {
+  onClose?: () => void;
+}
 
 interface Message {
   id: string;
@@ -60,7 +64,7 @@ interface MuteSetting {
 
 type ChatView = 'server' | 'friends' | 'dm';
 
-export function DiscordChat() {
+export function DiscordChat({ onClose }: DiscordChatProps) {
   const { user } = useAuth();
   const [view, setView] = useState<ChatView>('server');
   const [selectedDmUser, setSelectedDmUser] = useState<AppUser | null>(null);
@@ -409,6 +413,16 @@ export function DiscordChat() {
 
       {/* Server sidebar */}
       <div className="w-16 bg-background border-r border-border/30 flex flex-col items-center py-4 gap-2">
+        {/* Close button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="w-12 h-12 rounded-2xl flex items-center justify-center bg-destructive/20 hover:bg-destructive/40 text-destructive transition-all mb-2"
+            title="Close Chat"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        )}
         <button
           onClick={() => { setView('server'); setSelectedDmUser(null); }}
           className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
