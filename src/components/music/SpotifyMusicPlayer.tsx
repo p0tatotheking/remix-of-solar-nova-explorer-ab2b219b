@@ -55,6 +55,7 @@ export function SpotifyMusicPlayer() {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [isZipUploading, setIsZipUploading] = useState(false);
   const [isMp3Uploading, setIsMp3Uploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const { currentTrack, playTrack, setTracks } = useMusicPlayer();
 
   // Fetch all data on mount
@@ -280,6 +281,7 @@ export function SpotifyMusicPlayer() {
     }
 
     setIsZipUploading(true);
+    setUploadProgress({ current: 0, total: 0 });
     let uploadedCount = 0;
     let errorCount = 0;
 
@@ -301,14 +303,18 @@ export function SpotifyMusicPlayer() {
       if (mp3Files.length === 0) {
         toast.error('No MP3 files found in ZIP');
         setIsZipUploading(false);
+        setUploadProgress({ current: 0, total: 0 });
         e.target.value = '';
         return;
       }
 
-      toast.info(`Found ${mp3Files.length} MP3 files, uploading...`);
+      setUploadProgress({ current: 0, total: mp3Files.length });
 
       // Upload each file individually to the upload-music endpoint
-      for (const { name, blob } of mp3Files) {
+      for (let i = 0; i < mp3Files.length; i++) {
+        const { name, blob } = mp3Files[i];
+        setUploadProgress({ current: i + 1, total: mp3Files.length });
+        
         try {
           const mp3File = new File([blob], name, { type: 'audio/mpeg' });
           const formData = new FormData();
@@ -344,6 +350,7 @@ export function SpotifyMusicPlayer() {
       toast.error('Failed to process ZIP file');
     }
     setIsZipUploading(false);
+    setUploadProgress({ current: 0, total: 0 });
     e.target.value = '';
   };
 
@@ -479,15 +486,27 @@ export function SpotifyMusicPlayer() {
                 disabled={isMp3Uploading}
               />
             </label>
-            <label className="flex items-center gap-2 px-3 py-2 bg-muted/30 text-muted-foreground rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-              {isZipUploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Archive className="w-4 h-4" />
+            <label className="flex flex-col gap-1 px-3 py-2 bg-muted/30 text-muted-foreground rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-2">
+                {isZipUploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Archive className="w-4 h-4" />
+                )}
+                <span className="text-sm font-medium">
+                  {isZipUploading 
+                    ? `Uploading ${uploadProgress.current}/${uploadProgress.total}...` 
+                    : 'Upload ZIP'}
+                </span>
+              </div>
+              {isZipUploading && uploadProgress.total > 0 && (
+                <div className="w-full bg-muted/50 rounded-full h-1.5 overflow-hidden">
+                  <div 
+                    className="bg-primary h-full transition-all duration-300"
+                    style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                  />
+                </div>
               )}
-              <span className="text-sm font-medium">
-                {isZipUploading ? 'Uploading...' : 'Upload ZIP'}
-              </span>
               <input
                 type="file"
                 accept=".zip"
