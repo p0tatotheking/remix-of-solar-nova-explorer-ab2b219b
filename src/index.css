@@ -119,3 +119,30 @@
 .animate-pulse-glow {
   animation: pulse-glow 1s ease-in-out infinite;
 }
+
+/* Safe area insets for mobile devices */
+.safe-area-pt {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Touch feedback for mobile */
+@media (hover: none) {
+  .active\:scale-\[0\.98\]:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Hide scrollbars on mobile but keep functionality */
+@media (max-width: 768px) {
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}

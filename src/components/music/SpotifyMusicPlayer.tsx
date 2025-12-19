@@ -389,21 +389,50 @@ export function SpotifyMusicPlayer() {
 
   const displayTracks = activeView === 'playlist' && selectedPlaylist ? playlistTracks : filteredTracks;
 
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
   return (
     <div className="flex h-full bg-background">
+      {/* Mobile sidebar toggle */}
+      <button
+        onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border/30 rounded-lg"
+      >
+        <ListMusic className="w-5 h-5" />
+      </button>
+
+      {/* Sidebar overlay for mobile */}
+      {showMobileSidebar && (
+        <div 
+          className="md:hidden fixed inset-0 bg-background/80 z-40"
+          onClick={() => setShowMobileSidebar(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="w-64 bg-card/50 border-r border-border/30 flex flex-col">
-        <div className="p-4">
+      <div className={`
+        fixed md:relative inset-y-0 left-0 z-50 md:z-auto
+        w-64 bg-card/95 md:bg-card/50 border-r border-border/30 flex flex-col
+        transform transition-transform duration-300
+        ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        <div className="p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
             <Music className="w-6 h-6 text-primary" />
             Music
           </h2>
+          <button
+            onClick={() => setShowMobileSidebar(false)}
+            className="md:hidden p-1 text-muted-foreground"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Navigation */}
         <nav className="px-2 space-y-1">
           <button
-            onClick={() => { setActiveView('browse'); setSelectedPlaylist(null); }}
+            onClick={() => { setActiveView('browse'); setSelectedPlaylist(null); setShowMobileSidebar(false); }}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
               activeView === 'browse' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
             }`}
