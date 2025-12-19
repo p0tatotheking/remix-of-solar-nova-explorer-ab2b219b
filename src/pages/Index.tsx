@@ -117,31 +117,117 @@ const Index = () => {
         <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
 
         <div className="relative z-10">
-          {/* Hover trigger zone on left */}
+          {/* Mobile bottom navigation */}
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/30 safe-area-pb">
+            <div className="flex items-center justify-around px-2 py-2">
+              {navItems.slice(0, 5).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+                    activeSection === item.id
+                      ? 'text-primary'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="text-[10px] font-medium">{item.label}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => setShowNav(!showNav)}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+                  showNav ? 'text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                <Bug className="w-5 h-5" />
+                <span className="text-[10px] font-medium">More</span>
+              </button>
+            </div>
+          </nav>
+
+          {/* Mobile "More" menu overlay */}
+          {showNav && (
+            <div className="md:hidden fixed inset-0 z-50 bg-background/95 backdrop-blur-lg flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-border/30">
+                <div className="flex items-center gap-3">
+                  <img src={solarnovaIcon} alt="Solarnova" className="w-8 h-8" />
+                  <span className="text-lg font-bold text-gradient">SOLARNOVA</span>
+                </div>
+                <button onClick={() => setShowNav(false)} className="p-2 text-muted-foreground">
+                  <LogOut className="w-5 h-5 rotate-180" />
+                </button>
+              </div>
+              
+              <div className="flex-1 p-4 space-y-2">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveSection(item.id);
+                      setShowNav(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                      activeSection === item.id
+                        ? 'bg-gradient-primary text-foreground'
+                        : 'text-muted-foreground hover:bg-muted/30'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+                
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setShowAdminPanel(true);
+                      setShowNav(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-primary hover:bg-muted/30"
+                  >
+                    <Shield className="w-5 h-5" />
+                    <span>Admin Panel</span>
+                  </button>
+                )}
+              </div>
+              
+              <div className="p-4 border-t border-border/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{user.username}</span>
+                  <button
+                    onClick={logout}
+                    className="flex items-center gap-2 text-destructive text-sm"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop hover trigger zone */}
           <div 
-            className="fixed top-0 left-0 bottom-0 w-4 z-50"
+            className="hidden md:block fixed top-0 left-0 bottom-0 w-4 z-50"
             onMouseEnter={() => setShowNav(true)}
           />
 
-          {/* Left Sidebar Navigation */}
+          {/* Desktop Sidebar Navigation */}
           <nav 
-            className={`fixed top-0 left-0 bottom-0 w-64 z-50 transition-all duration-300 ${
+            className={`hidden md:block fixed top-0 left-0 bottom-0 w-64 z-50 transition-all duration-300 ${
               showNav ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
             }`}
             onMouseLeave={() => setShowNav(false)}
           >
             <div className="h-full border-r border-border/30 bg-background/95 backdrop-blur-lg flex flex-col">
-              {/* Logo */}
               <div className="p-6 flex items-center gap-3">
                 <img src={solarnovaIcon} alt="Solarnova" className="w-10 h-10" />
-                <span className="text-xl font-bold text-gradient">
-                  SOLARNOVA
-                </span>
+                <span className="text-xl font-bold text-gradient">SOLARNOVA</span>
               </div>
 
               <div className="border-t border-border/30 mx-4" />
 
-              {/* Nav items */}
               <div className="flex-1 py-4 px-3 space-y-1">
                 {navItems.map((item) => (
                   <button
@@ -164,7 +250,6 @@ const Index = () => {
 
               <div className="border-t border-border/30 mx-4" />
 
-              {/* Bottom section - Admin & User */}
               <div className="p-4 space-y-2">
                 {isAdmin && (
                   <button
@@ -179,9 +264,7 @@ const Index = () => {
                   </button>
                 )}
                 <div className="flex items-center justify-between px-4 py-2">
-                  <span className="text-sm text-muted-foreground truncate">
-                    {user.username}
-                  </span>
+                  <span className="text-sm text-muted-foreground truncate">{user.username}</span>
                   <button
                     onClick={logout}
                     className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-muted/30"
@@ -195,40 +278,41 @@ const Index = () => {
           </nav>
 
           {/* Main content */}
-          <main className="relative pb-20">
+          <main className="relative pb-24 md:pb-20">
             {activeSection === 'home' && (
               <>
                 {/* Hero section */}
-                <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+                <section className="relative py-12 md:py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
                   <div className="max-w-7xl mx-auto text-center relative z-10">
                     {/* Typewriter SOLARNOVA */}
-                    <h1 className="text-6xl md:text-8xl font-bold mb-6 text-gradient">
+                    <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold mb-4 md:mb-6 text-gradient">
                       {typewriterText}
                       <span className="animate-pulse text-primary">|</span>
                     </h1>
 
-                    <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto font-light">
+                    <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-8 md:mb-12 max-w-2xl mx-auto font-light px-4">
                       Hub for all games and made by p0tato
                     </p>
 
-                    <div className="inline-block p-1 bg-gradient-primary rounded-full mb-16">
-                      <div className="bg-background px-6 py-3 rounded-full">
-                        <p className="text-primary font-semibold">
+                    <div className="inline-block p-1 bg-gradient-primary rounded-full mb-8 md:mb-16">
+                      <div className="bg-background px-4 md:px-6 py-2 md:py-3 rounded-full">
+                        <p className="text-primary font-semibold text-sm md:text-base">
                           ✨ Now with encrypted chatrooms
                         </p>
                       </div>
                     </div>
 
-                    <p className="text-sm text-muted-foreground/60">
-                      Press <kbd className="px-2 py-1 bg-muted rounded text-foreground">R</kbd> to panic exit • Hover top to show menu
+                    <p className="text-xs md:text-sm text-muted-foreground/60 px-4">
+                      <span className="hidden md:inline">Press <kbd className="px-2 py-1 bg-muted rounded text-foreground">R</kbd> to panic exit • Hover left to show menu</span>
+                      <span className="md:hidden">Tap bottom menu to navigate</span>
                     </p>
                   </div>
                 </section>
 
                 {/* Featured games section */}
-                <section className="py-16 px-4 sm:px-6 lg:px-8">
+                <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
                   <div className="max-w-7xl mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
                       <GameCard
                         title="Friday Night Funkin'"
                         description="Test your rhythm in epic rap battles with challenging beats and memorable characters"
@@ -252,15 +336,14 @@ const Index = () => {
                 </section>
 
                 {/* CTA section */}
-                <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-primary/10 to-transparent">
+                <section className="py-10 md:py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-primary/10 to-transparent">
                   <div className="max-w-4xl mx-auto text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gradient">
+                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6 text-gradient">
                       Join the Gaming Revolution
                     </h2>
-                    <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
+                    <p className="text-muted-foreground text-base md:text-lg mb-6 md:mb-8 leading-relaxed px-4">
                       Experience the future of online gaming with Solarnova. Connect with players worldwide,
-                      compete in tournaments, and discover endless entertainment. Our platform brings together
-                      the best games and features in one sleek, modern interface.
+                      compete in tournaments, and discover endless entertainment.
                     </p>
                   </div>
                 </section>
@@ -297,13 +380,13 @@ const Index = () => {
           </main>
 
           {/* Footer */}
-          <footer className="border-t border-border/30 bg-background/80 backdrop-blur-lg mt-20 pb-20">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <footer className="border-t border-border/30 bg-background/80 backdrop-blur-lg mt-12 md:mt-20 pb-24 md:pb-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
               <div className="text-center">
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-sm md:text-base">
                   © 2024 Solarnova Gaming. Crafted by p0tato
                 </p>
-                <p className="text-muted-foreground/60 text-sm mt-2">
+                <p className="text-muted-foreground/60 text-xs md:text-sm mt-2">
                   Your hub for gaming excellence
                 </p>
               </div>

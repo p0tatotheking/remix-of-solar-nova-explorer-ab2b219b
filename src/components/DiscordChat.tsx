@@ -411,39 +411,43 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
         </div>
       )}
 
-      {/* Server sidebar */}
-      <div className="w-16 bg-background border-r border-border/30 flex flex-col items-center py-4 gap-2">
+      {/* Server sidebar - hidden on mobile when viewing chat */}
+      <div className={`w-14 md:w-16 bg-background border-r border-border/30 flex flex-col items-center py-3 md:py-4 gap-2 ${
+        (view === 'dm' && selectedDmUser) ? 'hidden md:flex' : 'flex'
+      }`}>
         {/* Close button */}
         {onClose && (
           <button
             onClick={onClose}
-            className="w-12 h-12 rounded-2xl flex items-center justify-center bg-destructive/20 hover:bg-destructive/40 text-destructive transition-all mb-2"
+            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center bg-destructive/20 hover:bg-destructive/40 text-destructive transition-all mb-2"
             title="Close Chat"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
           </button>
         )}
         <button
           onClick={() => { setView('server'); setSelectedDmUser(null); }}
-          className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+          className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-all ${
             view === 'server' ? 'bg-primary rounded-xl' : 'bg-muted hover:bg-muted/80 hover:rounded-xl'
           }`}
         >
-          <img src={solarnovaIcon} alt="Server" className="w-8 h-8" />
+          <img src={solarnovaIcon} alt="Server" className="w-6 h-6 md:w-8 md:h-8" />
         </button>
-        <div className="w-8 h-0.5 bg-border rounded-full my-2" />
+        <div className="w-6 md:w-8 h-0.5 bg-border rounded-full my-2" />
         <button
           onClick={() => { setView('friends'); setSelectedDmUser(null); }}
-          className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+          className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-all ${
             view === 'friends' || view === 'dm' ? 'bg-primary rounded-xl' : 'bg-muted hover:bg-muted/80 hover:rounded-xl'
           }`}
         >
-          <Users className="w-5 h-5" />
+          <Users className="w-4 h-4 md:w-5 md:h-5" />
         </button>
       </div>
 
-      {/* Channel/DM sidebar */}
-      <div className="w-60 bg-card/50 border-r border-border/30 flex flex-col">
+      {/* Channel/DM sidebar - hidden on mobile when in DM view */}
+      <div className={`w-48 md:w-60 bg-card/50 border-r border-border/30 flex flex-col ${
+        (view === 'dm' && selectedDmUser) ? 'hidden md:flex' : 'flex'
+      }`}>
         {view === 'server' ? (
           <>
             <div className="p-4 border-b border-border/30">
@@ -529,21 +533,27 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
       </div>
 
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col bg-background">
+      <div className="flex-1 flex flex-col bg-background min-w-0">
         {/* Header */}
-        <div className="h-12 border-b border-border/30 flex items-center px-4 gap-2">
+        <div className="h-12 md:h-14 border-b border-border/30 flex items-center px-3 md:px-4 gap-2">
           {view === 'server' ? (
             <>
-              <Hash className="w-5 h-5 text-muted-foreground" />
-              <span className="font-semibold">general</span>
+              <Hash className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+              <span className="font-semibold text-sm md:text-base">general</span>
             </>
           ) : view === 'dm' && selectedDmUser ? (
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setSelectedDmUser(null); setView('friends'); }}
+                  className="md:hidden p-1 -ml-1 text-muted-foreground"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
                 <div className="w-6 h-6 bg-gradient-primary rounded-full flex items-center justify-center text-xs">
                   {selectedDmUser.username[0].toUpperCase()}
                 </div>
-                <span className="font-semibold">{selectedDmUser.username}</span>
+                <span className="font-semibold text-sm md:text-base">{selectedDmUser.username}</span>
               </div>
               <div className="flex items-center gap-2">
                 {muteSettings.some(m => m.muted_user_id === selectedDmUser.id) ? (
@@ -642,22 +652,22 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
 
         {/* Message input */}
         {(view === 'server' || (view === 'dm' && selectedDmUser && !isBlocked(selectedDmUser.id) && !isBlockedBy(selectedDmUser.id))) && (
-          <form onSubmit={sendMessage} className="p-4 border-t border-border/30">
+          <form onSubmit={sendMessage} className="p-3 md:p-4 border-t border-border/30 safe-area-pb">
             <div className="flex gap-2">
               <input
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                className="flex-1 bg-muted border border-border/30 rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                className="flex-1 bg-muted border border-border/30 rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
                 placeholder={view === 'server' ? 'Message #general' : `Message ${selectedDmUser?.username}`}
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="bg-gradient-primary hover:opacity-90 p-3 rounded-lg transition-all duration-300 disabled:opacity-50"
+                className="bg-gradient-primary hover:opacity-90 p-2.5 md:p-3 rounded-lg transition-all duration-300 disabled:opacity-50"
               >
-                <Send className="w-5 h-5 text-foreground" />
+                <Send className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
               </button>
             </div>
           </form>

@@ -117,36 +117,36 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gradient-card border border-border/30 rounded-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
-        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 border-b border-border/30 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="w-6 h-6 text-primary" />
-            <h2 className="text-xl font-bold text-foreground">Admin Panel</h2>
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4">
+      <div className="bg-gradient-card border border-border/30 rounded-xl w-full max-w-2xl max-h-[90vh] md:max-h-[80vh] overflow-hidden">
+        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 border-b border-border/30 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-3">
+            <Shield className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+            <h2 className="text-lg md:text-xl font-bold text-foreground">Admin Panel</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors p-1"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 md:w-6 md:h-6" />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
+        <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-60px)] md:max-h-[calc(80vh-80px)]">
           {error && (
-            <div className="bg-destructive/20 border border-destructive rounded-lg px-4 py-3 text-destructive text-sm mb-4">
+            <div className="bg-destructive/20 border border-destructive rounded-lg px-3 md:px-4 py-2 md:py-3 text-destructive text-sm mb-4">
               {error}
             </div>
           )}
 
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Users className="w-5 h-5" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 md:mb-6">
+            <h3 className="text-base md:text-lg font-semibold text-foreground flex items-center gap-2">
+              <Users className="w-4 h-4 md:w-5 md:h-5" />
               User Management
             </h3>
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="flex items-center gap-2 bg-gradient-primary hover:opacity-90 text-foreground font-medium py-2 px-4 rounded-lg transition-all"
+              className="flex items-center justify-center gap-2 bg-gradient-primary hover:opacity-90 text-foreground font-medium py-2 px-4 rounded-lg transition-all text-sm md:text-base"
             >
               <Plus className="w-4 h-4" />
               Add User
@@ -154,15 +154,15 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
           </div>
 
           {showCreateForm && (
-            <form onSubmit={handleCreateUser} className="bg-muted/20 rounded-lg p-4 mb-6 border border-border/20">
-              <div className="grid grid-cols-2 gap-4 mb-4">
+            <form onSubmit={handleCreateUser} className="bg-muted/20 rounded-lg p-3 md:p-4 mb-4 md:mb-6 border border-border/20">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-primary mb-2">Username</label>
                   <input
                     type="text"
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
-                    className="w-full bg-background/50 border border-border/30 rounded-lg px-4 py-2 text-foreground"
+                    className="w-full bg-background/50 border border-border/30 rounded-lg px-3 md:px-4 py-2 text-foreground text-sm md:text-base"
                     placeholder="Enter username"
                   />
                 </div>
@@ -172,23 +172,23 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full bg-background/50 border border-border/30 rounded-lg px-4 py-2 text-foreground"
+                    className="w-full bg-background/50 border border-border/30 rounded-lg px-3 md:px-4 py-2 text-foreground text-sm md:text-base"
                     placeholder="Enter password"
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="bg-gradient-primary hover:opacity-90 text-foreground font-medium py-2 px-4 rounded-lg transition-all disabled:opacity-50"
+                  className="bg-gradient-primary hover:opacity-90 text-foreground font-medium py-2 px-4 rounded-lg transition-all disabled:opacity-50 text-sm md:text-base"
                 >
                   {isCreating ? 'Creating...' : 'Create User'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
-                  className="bg-muted hover:bg-muted/80 text-foreground font-medium py-2 px-4 rounded-lg transition-all"
+                  className="bg-muted hover:bg-muted/80 text-foreground font-medium py-2 px-4 rounded-lg transition-all text-sm md:text-base"
                 >
                   Cancel
                 </button>
