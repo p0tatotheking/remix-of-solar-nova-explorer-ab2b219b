@@ -53,6 +53,7 @@ export function SpotifyMusicPlayer() {
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [isZipUploading, setIsZipUploading] = useState(false);
+  const [isMp3Uploading, setIsMp3Uploading] = useState(false);
   const { currentTrack, playTrack, setTracks } = useMusicPlayer();
 
   // Fetch all data on mount
@@ -234,6 +235,40 @@ export function SpotifyMusicPlayer() {
     }
   };
 
+  const handleMp3Upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.name.toLowerCase().endsWith('.mp3')) {
+      toast.error('Please select an MP3 file');
+      return;
+    }
+
+    setIsMp3Uploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('adminId', user.id);
+      formData.append('genre', activeGenre === 'All' || activeGenre === 'Favorites' ? '' : activeGenre);
+
+      const { data, error } = await supabase.functions.invoke('upload-music', {
+        body: formData,
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.track) {
+        toast.success(`Uploaded: ${data.track.title} by ${data.track.artist}`);
+        fetchUploadedMusic();
+      }
+    } catch (error) {
+      console.error('MP3 upload error:', error);
+      toast.error('Failed to upload MP3 file');
+    }
+    setIsMp3Uploading(false);
+    e.target.value = '';
+  };
+
   const handleZipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -271,6 +306,7 @@ export function SpotifyMusicPlayer() {
     setIsZipUploading(false);
     e.target.value = '';
   };
+
 
   const handleDeleteTrack = async (trackId: string) => {
     if (!user || !isAdmin) return;
@@ -385,8 +421,25 @@ export function SpotifyMusicPlayer() {
 
         {/* Admin Upload */}
         {isAdmin && (
-          <div className="p-4 border-t border-border/30">
+          <div className="p-4 border-t border-border/30 space-y-2">
             <label className="flex items-center gap-2 px-3 py-2 bg-primary/20 text-primary rounded-lg cursor-pointer hover:bg-primary/30 transition-colors">
+              {isMp3Uploading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+              <span className="text-sm font-medium">
+                {isMp3Uploading ? 'Uploading...' : 'Upload MP3'}
+              </span>
+              <input
+                type="file"
+                accept=".mp3,audio/mpeg"
+                onChange={handleMp3Upload}
+                className="hidden"
+                disabled={isMp3Uploading}
+              />
+            </label>
+            <label className="flex items-center gap-2 px-3 py-2 bg-muted/30 text-muted-foreground rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
               {isZipUploading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
