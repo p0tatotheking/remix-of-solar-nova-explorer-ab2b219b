@@ -150,10 +150,24 @@ export function DiscordChat() {
     };
   }, [user]);
 
-  // Scroll to bottom
+  // Track previous message counts to only scroll on new messages
+  const prevServerMessagesCount = useRef(serverMessages.length);
+  const prevDmMessagesCount = useRef(dmMessages.length);
+
+  // Scroll to bottom only when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [serverMessages, dmMessages]);
+    if (serverMessages.length > prevServerMessagesCount.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    prevServerMessagesCount.current = serverMessages.length;
+  }, [serverMessages.length]);
+
+  useEffect(() => {
+    if (dmMessages.length > prevDmMessagesCount.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    prevDmMessagesCount.current = dmMessages.length;
+  }, [dmMessages.length]);
 
   const fetchServerMessages = async () => {
     const { data } = await supabase
@@ -347,7 +361,7 @@ export function DiscordChat() {
   const pendingRequests = friendRequests.filter(fr => fr.to_user_id === user?.id && fr.status === 'pending');
 
   return (
-    <div className="max-w-6xl mx-auto h-[calc(100vh-200px)] flex">
+    <div className="fixed inset-0 z-50 flex bg-background">
       {/* Friend Request Notification */}
       {showNotification && (
         <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded-xl p-4 shadow-2xl animate-fade-in max-w-sm">
