@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMusicPlayer } from '../PersistentMusicPlayer';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import JSZip from 'jszip';
 
 interface Track {
   id: string;
@@ -279,28 +280,67 @@ export function SpotifyMusicPlayer() {
     }
 
     setIsZipUploading(true);
+    let uploadedCount = 0;
+    let errorCount = 0;
+
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('adminId', user.id);
-      formData.append('genre', activeGenre === 'All' || activeGenre === 'Favorites' ? 'Other' : activeGenre);
+      // Extract ZIP client-side to avoid edge function memory limits
+      const zip = await JSZip.loadAsync(file);
+      const mp3Files: { name: string; blob: Blob }[] = [];
 
-      const { data, error } = await supabase.functions.invoke('extract-zip', {
-        body: formData,
-      });
+      // Collect all MP3 files
+      for (const [filename, zipEntry] of Object.entries(zip.files)) {
+        if (zipEntry.dir) continue;
+        if (!filename.toLowerCase().endsWith('.mp3')) continue;
+        
+        const content = await zipEntry.async('blob');
+        const cleanName = filename.split('/').pop() || filename;
+        mp3Files.push({ name: cleanName, blob: content });
+      }
 
-      if (error) throw error;
+      if (mp3Files.length === 0) {
+        toast.error('No MP3 files found in ZIP');
+        setIsZipUploading(false);
+        e.target.value = '';
+        return;
+      }
 
-      if (data.uploaded && data.uploaded.length > 0) {
-        toast.success(`Uploaded ${data.uploaded.length} tracks`);
+      toast.info(`Found ${mp3Files.length} MP3 files, uploading...`);
+
+      // Upload each file individually to the upload-music endpoint
+      for (const { name, blob } of mp3Files) {
+        try {
+          const mp3File = new File([blob], name, { type: 'audio/mpeg' });
+          const formData = new FormData();
+          formData.append('file', mp3File);
+          formData.append('adminId', user.id);
+          formData.append('genre', activeGenre === 'All' || activeGenre === 'Favorites' ? '' : activeGenre);
+
+          const { data, error } = await supabase.functions.invoke('upload-music', {
+            body: formData,
+          });
+
+          if (error) {
+            console.error('Upload error for', name, ':', error);
+            errorCount++;
+          } else if (data.success) {
+            uploadedCount++;
+          }
+        } catch (err) {
+          console.error('Error uploading', name, ':', err);
+          errorCount++;
+        }
+      }
+
+      if (uploadedCount > 0) {
+        toast.success(`Uploaded ${uploadedCount} tracks`);
         fetchUploadedMusic();
       }
-
-      if (data.errors && data.errors.length > 0) {
-        toast.warning(`${data.errors.length} files had errors`);
+      if (errorCount > 0) {
+        toast.warning(`${errorCount} files had errors`);
       }
     } catch (error) {
-      console.error('Zip upload error:', error);
+      console.error('Zip processing error:', error);
       toast.error('Failed to process ZIP file');
     }
     setIsZipUploading(false);
