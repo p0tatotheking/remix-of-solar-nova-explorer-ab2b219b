@@ -1,1 +1,7 @@
 project_id = "pgqlruiivbpsqxikagdn"
+
+[functions.music-api]
+verify_jwt = false
+
+[functions.extract-zip]
+verify_jwt = false

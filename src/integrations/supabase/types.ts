@@ -201,6 +201,35 @@ export type Database = {
         }
         Relationships: []
       }
+      favorite_songs: {
+        Row: {
+          created_at: string
+          id: string
+          music_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          music_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          music_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorite_songs_music_id_fkey"
+            columns: ["music_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_music"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friend_requests: {
         Row: {
           created_at: string
@@ -276,27 +305,69 @@ export type Database = {
         }
         Relationships: []
       }
+      playlist_songs: {
+        Row: {
+          added_at: string
+          id: string
+          music_id: string
+          playlist_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          music_id: string
+          playlist_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          music_id?: string
+          playlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_songs_music_id_fkey"
+            columns: ["music_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_music"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playlist_songs_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "user_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       uploaded_music: {
         Row: {
           artist: string
+          cover_url: string | null
           created_at: string
           file_path: string
+          genre: string | null
           id: string
           title: string
           uploaded_by: string | null
         }
         Insert: {
           artist?: string
+          cover_url?: string | null
           created_at?: string
           file_path: string
+          genre?: string | null
           id?: string
           title: string
           uploaded_by?: string | null
         }
         Update: {
           artist?: string
+          cover_url?: string | null
           created_at?: string
           file_path?: string
+          genre?: string | null
           id?: string
           title?: string
           uploaded_by?: string | null
@@ -329,6 +400,30 @@ export type Database = {
           blocker_id?: string
           created_at?: string
           id?: string
+        }
+        Relationships: []
+      }
+      user_playlists: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

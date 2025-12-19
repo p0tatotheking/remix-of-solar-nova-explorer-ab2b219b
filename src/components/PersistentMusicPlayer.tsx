@@ -34,6 +34,8 @@ interface MusicPlayerContextType {
   playPrevious: () => void;
   isLooping: boolean;
   setIsLooping: (loop: boolean) => void;
+  isPlaylistLooping: boolean;
+  setIsPlaylistLooping: (loop: boolean) => void;
   volume: number;
   setVolume: (vol: number) => void;
   isMuted: boolean;
@@ -59,6 +61,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
+  const [isPlaylistLooping, setIsPlaylistLooping] = useState(true);
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -87,8 +90,11 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     };
 
     const handleEnded = () => {
-      if (!isLooping) {
+      if (!isLooping && isPlaylistLooping) {
         playNextInternal();
+      } else if (!isLooping && !isPlaylistLooping) {
+        // Stop at end if not looping
+        setIsPlaying(false);
       }
     };
 
@@ -178,6 +184,8 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
         playPrevious,
         isLooping,
         setIsLooping,
+        isPlaylistLooping,
+        setIsPlaylistLooping,
         volume,
         setVolume,
         isMuted,
