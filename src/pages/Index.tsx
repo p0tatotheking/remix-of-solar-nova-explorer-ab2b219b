@@ -284,7 +284,7 @@ const Index = () => {
             )}
 
             {activeSection === 'music' && (
-              <section className="py-16 px-4 sm:px-6 lg:px-8">
+              <section className="h-[calc(100vh-80px)]">
                 <MusicPlayer />
               </section>
             )}
