@@ -1,4 +1,4 @@
-import { Gamepad2, Music, Star, Zap, Trophy, Target, Sparkles, CarFront } from 'lucide-react';
+import { Gamepad2, Music, Star, Zap, Trophy, Target, Sparkles, CarFront, Play, ExternalLink } from 'lucide-react';
 
 interface Game {
   title: string;
@@ -8,6 +8,7 @@ interface Game {
   preview: string;
   embed?: boolean;
   isTab?: string;
+  gradient: string;
 }
 
 interface GamesGridProps {
@@ -31,137 +32,128 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
   const games: Game[] = [
     {
       title: 'Friday Night Funkin',
-      description: 'Test your rhythm skills in this addictive music battle game. Follow the beat and outperform your opponents in epic rap battles.',
+      description: 'Test your rhythm skills in this addictive music battle game.',
       url: 'https://fnfcbn.wasmer.app/',
       icon: 'star',
-      preview: 'Rhythm-based music game with epic battles',
+      preview: 'Rhythm Battle',
       embed: true,
+      gradient: 'from-pink-500 to-purple-600',
     },
     {
       title: 'Petezah Games',
-      description: 'Access a massive collection of unblocked games. Play classic favorites and discover new games all in one place.',
+      description: 'Access a massive collection of unblocked games.',
       url: 'https://petezahstatic.wasmer.app',
       icon: 'gamepad',
-      preview: 'Huge collection of classic games',
+      preview: 'Game Hub',
       embed: true,
+      gradient: 'from-blue-500 to-cyan-500',
     },
     {
-      title: 'Solarnova Music Player',
-      description: 'Stream and enjoy your favorite music with our sleek, feature-rich music player. Create playlists and discover new tracks.',
+      title: 'Solarnova Music',
+      description: 'Stream your favorite music with our sleek player.',
       url: '',
       icon: 'music',
-      preview: 'Advanced music streaming platform',
+      preview: 'Music Player',
       isTab: 'music',
+      gradient: 'from-green-500 to-emerald-500',
     },
     {
       title: 'Umbrion Games',
-      description: 'Explore a creative collection of indie game projects. Discover unique gameplay experiences and innovative designs.',
+      description: 'Explore creative indie game projects.',
       url: 'https://umbrion.wasmer.app/projects.html',
       icon: 'zap',
-      preview: 'Indie game project showcase',
+      preview: 'Indie Games',
       embed: true,
+      gradient: 'from-yellow-500 to-orange-500',
     },
     {
       title: 'Lumi OS',
-      description: 'Experience a web-based operating system with apps, games, and utilities. A complete desktop environment in your browser.',
+      description: 'A complete desktop environment in your browser.',
       url: 'https://lumios.wasmer.app',
       icon: 'trophy',
-      preview: 'Browser-based operating system',
+      preview: 'Web OS',
       embed: true,
+      gradient: 'from-violet-500 to-purple-600',
     },
     {
       title: 'Kermitco',
-      description: 'Dive into a unique gaming experience with creative challenges and fun gameplay. Explore and enjoy the adventure.',
+      description: 'Unique gaming experience with creative challenges.',
       url: 'https://kermitcooffline82hfdisocirk88enlqtpc75wchgb45cstvvixmc-12367506.codehs.me/0aDV71GtSpyy91KtZE6P7qeL56mVU5nSvCKNk5fdoGV6N1xy1qsbFa548gBQcARY.html',
       icon: 'target',
-      preview: 'Creative gaming adventure',
+      preview: 'Adventure',
       embed: true,
+      gradient: 'from-lime-500 to-green-600',
     },
     {
       title: 'Cobra',
-      description: 'Professional business platform with powerful tools and features. Streamline your workflow and boost productivity.',
+      description: 'Professional business platform with powerful tools.',
       url: 'https://thecobra.odoo.com/',
       icon: 'snake',
-      preview: 'Business productivity platform',
+      preview: 'Business',
       embed: true,
+      gradient: 'from-red-500 to-rose-600',
     },
     {
       title: 'Car Game',
-      description: 'Get behind the wheel and race through exciting tracks. Test your driving skills in this thrilling car game.',
+      description: 'Get behind the wheel and race through exciting tracks.',
       url: 'https://codebeautify.org/htmlviewer/y25205daf#',
       icon: 'car',
-      preview: 'Exciting driving experience',
+      preview: 'Racing',
       embed: true,
+      gradient: 'from-amber-500 to-orange-600',
     },
   ];
 
-  const getIcon = (iconName: string) => {
-    const icons: Record<string, typeof Star> = {
-      star: Star,
-      gamepad: Gamepad2,
-      music: Music,
-      zap: Zap,
-      trophy: Trophy,
-      target: Target,
-      snake: Sparkles,
-      car: CarFront,
-    };
-    return icons[iconName] || Gamepad2;
-  };
-
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="text-center mb-12">
-        <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gradient">
-          Featured Games
+      <div className="text-center mb-16">
+        <h2 className="text-5xl md:text-6xl font-black mb-4 text-gradient tracking-tight">
+          Games
         </h2>
-        <p className="text-muted-foreground text-lg">
-          Explore our curated collection of premium gaming experiences
+        <p className="text-muted-foreground text-lg max-w-md mx-auto">
+          Premium gaming experiences, ready to play
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
         {games.map((game) => {
-          const Icon = getIcon(game.icon);
           const emoji = getGameIcon(game.title);
           return (
             <button
               key={game.title}
               onClick={() => onGameClick(game.url, game.title, game.embed, game.isTab)}
-              className="group bg-gradient-card border border-border/30 rounded-xl overflow-hidden hover:border-primary/60 transition-all duration-300 hover:scale-105 hover:shadow-card-hover text-left"
+              className="group relative aspect-square rounded-3xl overflow-hidden transition-all duration-500 hover:scale-105 hover:z-10"
             >
-              <div className="relative h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 bg-background/40" />
-                {/* Auto-generated emoji icon */}
-                <span className="text-6xl group-hover:scale-125 transition-all duration-300 relative z-10">
+              {/* Gradient background */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${game.gradient} opacity-90 group-hover:opacity-100 transition-opacity`} />
+              
+              {/* Subtle pattern overlay */}
+              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.3),transparent_70%)]" />
+              
+              {/* Glow effect on hover */}
+              <div className={`absolute -inset-1 bg-gradient-to-br ${game.gradient} opacity-0 group-hover:opacity-50 blur-xl transition-opacity duration-500`} />
+              
+              {/* Content */}
+              <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 text-white">
+                {/* Large emoji icon */}
+                <span className="text-5xl md:text-6xl mb-3 transform group-hover:scale-110 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-lg">
                   {emoji}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-              </div>
-
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
-                    {game.title}
-                  </h3>
-                  <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                    <Icon className="w-5 h-5 text-foreground" />
-                  </div>
-                </div>
-
-                <p className="text-sm text-primary mb-3 font-medium">
+                
+                {/* Title */}
+                <h3 className="text-sm md:text-base font-bold text-center leading-tight drop-shadow-md">
+                  {game.title}
+                </h3>
+                
+                {/* Preview tag */}
+                <span className="mt-2 text-xs font-medium px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
                   {game.preview}
-                </p>
-
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {game.description}
-                </p>
-
-                <div className="mt-4 pt-4 border-t border-border/20">
-                  <span className="text-primary text-sm font-semibold group-hover:text-secondary transition-colors">
-                    {game.embed ? 'Play Now →' : 'Open Game →'}
-                  </span>
-                </div>
+                </span>
+              </div>
+              
+              {/* Play indicator on hover */}
+              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                <Play className="w-4 h-4 text-white fill-white" />
               </div>
             </button>
           );

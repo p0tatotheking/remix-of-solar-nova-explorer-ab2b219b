@@ -274,9 +274,7 @@ const Index = () => {
             )}
 
             {activeSection === 'chatroom' && (
-              <section className="py-8 px-4 sm:px-6 lg:px-8">
-                <DiscordChat />
-              </section>
+              <DiscordChat onClose={() => setActiveSection('home')} />
             )}
 
             {activeSection === 'bugs' && (
