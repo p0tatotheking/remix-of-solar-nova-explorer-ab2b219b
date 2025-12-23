@@ -605,39 +605,37 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
         >
           <Users className="w-4 h-4 md:w-5 md:h-5" />
         </button>
-        <div className="flex-1" />
-        <button
-          onClick={() => { setView('settings'); setSelectedDmUser(null); }}
-          className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-all ${
-            view === 'settings' ? 'bg-primary rounded-xl' : 'bg-muted hover:bg-muted/80 hover:rounded-xl'
-          }`}
-          title="Settings"
-        >
-          <Settings className="w-4 h-4 md:w-5 md:h-5" />
-        </button>
       </div>
 
       {/* Channel/DM sidebar - hidden on mobile when in DM view */}
       <div className={`w-48 md:w-60 bg-card/50 border-r border-border/30 flex flex-col ${
         (view === 'dm' && selectedDmUser) ? 'hidden md:flex' : 'flex'
       }`}>
-      {view === 'settings' ? (
-        <UserSettings
-          onClose={() => setView('server')}
-          friends={friends}
-          nicknames={nicknames}
-          onNicknamesChange={fetchNicknames}
-          onProfileChange={fetchProfiles}
-        />
-      ) : view === 'server' ? (
+      {view === 'server' || view === 'settings' ? (
           <>
             <div className="p-4 border-b border-border/30">
               <h2 className="font-bold text-foreground">Solarnova Server</h2>
             </div>
-            <div className="p-2">
-              <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 text-foreground">
-                <Hash className="w-4 h-4 text-muted-foreground" />
+            <div className="p-2 flex-1">
+              <button 
+                onClick={() => setView('server')}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  view === 'server' ? 'bg-muted/50 text-foreground' : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'
+                }`}
+              >
+                <Hash className="w-4 h-4" />
                 <span>general</span>
+              </button>
+            </div>
+            <div className="p-2 border-t border-border/30">
+              <button 
+                onClick={() => setView('settings')}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  view === 'settings' ? 'bg-muted/50 text-foreground' : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                <span>Settings</span>
               </button>
             </div>
           </>
@@ -775,6 +773,11 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
               <Hash className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
               <span className="font-semibold text-sm md:text-base">general</span>
             </>
+          ) : view === 'settings' ? (
+            <>
+              <Settings className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+              <span className="font-semibold text-sm md:text-base">Settings</span>
+            </>
           ) : view === 'dm' && selectedDmUser ? (
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
@@ -833,57 +836,67 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
           )}
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {view === 'server' ? (
+        {/* Messages / Settings */}
+        <div className="flex-1 overflow-y-auto">
+          {view === 'settings' ? (
+            <UserSettings
+              onClose={() => setView('server')}
+              friends={friends}
+              nicknames={nicknames}
+              onNicknamesChange={fetchNicknames}
+              onProfileChange={fetchProfiles}
+            />
+          ) : view === 'server' ? (
             serverMessages.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
+              <div className="flex items-center justify-center h-full text-muted-foreground p-4">
                 <div className="text-center">
                   <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No messages yet. Start the conversation!</p>
                 </div>
               </div>
             ) : (
-              serverMessages.map((msg) => {
-                const senderUser = allUsers.find(u => u.username === msg.username);
-                const msgAvatar = senderUser ? getAvatar(senderUser.id) : null;
-                const displayName = senderUser ? getDisplayName(senderUser.id, msg.username) : msg.username;
-                
-                return (
-                  <div key={msg.id} className="group flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
-                      {msgAvatar ? (
-                        <img src={msgAvatar} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
-                          {msg.username[0].toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-semibold text-foreground">{displayName}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(msg.created_at).toLocaleTimeString()}
-                        </span>
-                      </div>
-                      <p className="text-foreground/90">
-                        {isGifUrl(msg.message) ? (
-                          <img src={extractGifUrl(msg.message) || ''} alt="GIF" className="max-w-xs rounded-lg" loading="lazy" />
+              <div className="p-4 space-y-4">
+                {serverMessages.map((msg) => {
+                  const senderUser = allUsers.find(u => u.username === msg.username);
+                  const msgAvatar = senderUser ? getAvatar(senderUser.id) : null;
+                  const displayName = senderUser ? getDisplayName(senderUser.id, msg.username) : msg.username;
+                  
+                  return (
+                    <div key={msg.id} className="group flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
+                        {msgAvatar ? (
+                          <img src={msgAvatar} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          msg.message
+                          <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
+                            {msg.username[0].toUpperCase()}
+                          </div>
                         )}
-                      </p>
-                      <MessageReactions
-                        messageId={msg.id}
-                        messageType="server"
-                        reactions={reactions[msg.id] || {}}
-                        onReactionChange={fetchReactions}
-                      />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-semibold text-foreground">{displayName}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(msg.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className="text-foreground/90">
+                          {isGifUrl(msg.message) ? (
+                            <img src={extractGifUrl(msg.message) || ''} alt="GIF" className="max-w-xs rounded-lg" loading="lazy" />
+                          ) : (
+                            msg.message
+                          )}
+                        </p>
+                        <MessageReactions
+                          messageId={msg.id}
+                          messageType="server"
+                          reactions={reactions[msg.id] || {}}
+                          onReactionChange={fetchReactions}
+                        />
+                      </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )
           ) : view === 'dm' && selectedDmUser ? (
             dmMessages.length === 0 ? (

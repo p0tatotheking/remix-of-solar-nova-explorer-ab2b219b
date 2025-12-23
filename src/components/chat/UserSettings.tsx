@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Settings, User, Camera, Save, X, Edit2 } from 'lucide-react';
+import { Settings, User, Camera, Save, X, Edit2, Snowflake } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSnowfall } from '@/contexts/SnowfallContext';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
 
 interface UserProfile {
   id: string;
@@ -52,6 +54,7 @@ const AVATAR_OPTIONS = [
 
 export function UserSettings({ onClose, friends, nicknames, onNicknamesChange, onProfileChange }: UserSettingsProps) {
   const { user } = useAuth();
+  const { snowfallEnabled, setSnowfallEnabled } = useSnowfall();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
@@ -167,6 +170,25 @@ export function UserSettings({ onClose, friends, nicknames, onNicknamesChange, o
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Appearance Section */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Appearance</h3>
+          
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Snowflake className="w-5 h-5 text-primary" />
+              <div>
+                <p className="font-medium text-foreground">Snowfall Effect</p>
+                <p className="text-xs text-muted-foreground">Animated snow on the website</p>
+              </div>
+            </div>
+            <Switch
+              checked={snowfallEnabled}
+              onCheckedChange={setSnowfallEnabled}
+            />
+          </div>
+        </div>
+
         {/* Profile Section */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Profile</h3>
