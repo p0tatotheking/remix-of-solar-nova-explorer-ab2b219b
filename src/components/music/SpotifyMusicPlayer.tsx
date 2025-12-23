@@ -238,36 +238,65 @@ export function SpotifyMusicPlayer() {
   };
 
   const handleMp3Upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
 
-    if (!file.name.toLowerCase().endsWith('.mp3')) {
-      toast.error('Please select an MP3 file');
+    // Filter for MP3 files only
+    const mp3Files = Array.from(files).filter(file => 
+      file.name.toLowerCase().endsWith('.mp3') || file.type === 'audio/mpeg'
+    );
+
+    if (mp3Files.length === 0) {
+      toast.error('Please select MP3 files');
       return;
     }
 
-    setIsMp3Uploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('adminId', user.id);
-      formData.append('genre', activeGenre === 'All' || activeGenre === 'Favorites' ? '' : activeGenre);
-
-      const { data, error } = await supabase.functions.invoke('upload-music', {
-        body: formData,
-      });
-
-      if (error) throw error;
-
-      if (data.success && data.track) {
-        toast.success(`Uploaded: ${data.track.title} by ${data.track.artist}`);
-        fetchUploadedMusic();
-      }
-    } catch (error) {
-      console.error('MP3 upload error:', error);
-      toast.error('Failed to upload MP3 file');
+    if (mp3Files.length !== files.length) {
+      toast.warning(`${files.length - mp3Files.length} non-MP3 files were skipped`);
     }
+
+    setIsMp3Uploading(true);
+    setUploadProgress({ current: 0, total: mp3Files.length });
+    
+    let uploadedCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < mp3Files.length; i++) {
+      const file = mp3Files[i];
+      setUploadProgress({ current: i + 1, total: mp3Files.length });
+      
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('adminId', user.id);
+        formData.append('genre', activeGenre === 'All' || activeGenre === 'Favorites' ? '' : activeGenre);
+
+        const { data, error } = await supabase.functions.invoke('upload-music', {
+          body: formData,
+        });
+
+        if (error) {
+          console.error('Upload error for', file.name, ':', error);
+          errorCount++;
+        } else if (data.success) {
+          uploadedCount++;
+        }
+      } catch (err) {
+        console.error('Error uploading', file.name, ':', err);
+        errorCount++;
+      }
+    }
+
+    if (uploadedCount > 0) {
+      toast.success(`Uploaded ${uploadedCount} track${uploadedCount > 1 ? 's' : ''}`);
+      fetchUploadedMusic();
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} file${errorCount > 1 ? 's' : ''} failed to upload`);
+    }
+
     setIsMp3Uploading(false);
+    setUploadProgress({ current: 0, total: 0 });
     e.target.value = '';
   };
 
@@ -498,18 +527,31 @@ export function SpotifyMusicPlayer() {
         {/* Admin Upload */}
         {isAdmin && (
           <div className="p-4 border-t border-border/30 space-y-2">
-            <label className="flex items-center gap-2 px-3 py-2 bg-primary/20 text-primary rounded-lg cursor-pointer hover:bg-primary/30 transition-colors">
-              {isMp3Uploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Upload className="w-4 h-4" />
+            <label className="flex flex-col gap-1 px-3 py-2 bg-primary/20 text-primary rounded-lg cursor-pointer hover:bg-primary/30 transition-colors">
+              <div className="flex items-center gap-2">
+                {isMp3Uploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                <span className="text-sm font-medium">
+                  {isMp3Uploading 
+                    ? `Uploading ${uploadProgress.current}/${uploadProgress.total}...` 
+                    : 'Upload MP3s'}
+                </span>
+              </div>
+              {isMp3Uploading && uploadProgress.total > 0 && (
+                <div className="w-full bg-primary/30 rounded-full h-1.5 overflow-hidden">
+                  <div 
+                    className="bg-primary-foreground h-full transition-all duration-300"
+                    style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                  />
+                </div>
               )}
-              <span className="text-sm font-medium">
-                {isMp3Uploading ? 'Uploading...' : 'Upload MP3'}
-              </span>
               <input
                 type="file"
                 accept=".mp3,audio/mpeg"
+                multiple
                 onChange={handleMp3Upload}
                 className="hidden"
                 disabled={isMp3Uploading}
