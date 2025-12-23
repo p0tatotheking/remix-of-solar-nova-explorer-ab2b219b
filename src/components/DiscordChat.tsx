@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle, Smile, Image as ImageIcon } from 'lucide-react';
+import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle, Smile, Image as ImageIcon, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { censorText } from '@/lib/profanityFilter';
@@ -8,6 +8,7 @@ import { EmojiPicker } from '@/components/chat/EmojiPicker';
 import { GifPicker } from '@/components/chat/GifPicker';
 import { EmojiAutocomplete } from '@/components/chat/EmojiAutocomplete';
 import { MessageReactions } from '@/components/chat/MessageReactions';
+import { UserSettings } from '@/components/chat/UserSettings';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 interface DiscordChatProps {
@@ -72,7 +73,21 @@ interface UserPresence {
   online_at: string;
 }
 
-type ChatView = 'server' | 'friends' | 'dm';
+interface UserProfile {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
+interface FriendNickname {
+  id: string;
+  user_id: string;
+  friend_id: string;
+  nickname: string;
+}
+
+type ChatView = 'server' | 'friends' | 'dm' | 'settings';
 
 export function DiscordChat({ onClose }: DiscordChatProps) {
   const { user } = useAuth();
@@ -99,6 +114,10 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const [showNotification, setShowNotification] = useState<FriendRequest | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [showMuteDialog, setShowMuteDialog] = useState<string | null>(null);
+  
+  // Profiles and nicknames
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [nicknames, setNicknames] = useState<FriendNickname[]>([]);
   
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -174,6 +193,8 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     fetchBlocks();
     fetchMuteSettings();
     fetchReactions();
+    fetchProfiles();
+    fetchNicknames();
     
     // Subscribe to server messages
     const serverChannel = supabase
@@ -318,6 +339,38 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     }
     
     setReactions(grouped);
+  };
+
+  const fetchProfiles = async () => {
+    const { data } = await supabase.from('user_profiles').select('*');
+    setProfiles(data || []);
+  };
+
+  const fetchNicknames = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('friend_nicknames')
+      .select('*')
+      .eq('user_id', user.id);
+    setNicknames(data || []);
+  };
+
+  const getDisplayName = (userId: string, username: string) => {
+    // First check for nickname (user-specific)
+    const nickname = nicknames.find(n => n.friend_id === userId);
+    if (nickname) return nickname.nickname;
+    
+    // Then check for display name from profile
+    const profile = profiles.find(p => p.user_id === userId);
+    if (profile?.display_name) return profile.display_name;
+    
+    // Fallback to username
+    return username;
+  };
+
+  const getAvatar = (userId: string) => {
+    const profile = profiles.find(p => p.user_id === userId);
+    return profile?.avatar_url || null;
   };
 
   const fetchDmMessages = async (otherUserId: string) => {
@@ -552,13 +605,31 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
         >
           <Users className="w-4 h-4 md:w-5 md:h-5" />
         </button>
+        <div className="flex-1" />
+        <button
+          onClick={() => { setView('settings'); setSelectedDmUser(null); }}
+          className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-all ${
+            view === 'settings' ? 'bg-primary rounded-xl' : 'bg-muted hover:bg-muted/80 hover:rounded-xl'
+          }`}
+          title="Settings"
+        >
+          <Settings className="w-4 h-4 md:w-5 md:h-5" />
+        </button>
       </div>
 
       {/* Channel/DM sidebar - hidden on mobile when in DM view */}
       <div className={`w-48 md:w-60 bg-card/50 border-r border-border/30 flex flex-col ${
         (view === 'dm' && selectedDmUser) ? 'hidden md:flex' : 'flex'
       }`}>
-        {view === 'server' ? (
+      {view === 'settings' ? (
+        <UserSettings
+          onClose={() => setView('server')}
+          friends={friends}
+          nicknames={nicknames}
+          onNicknamesChange={fetchNicknames}
+          onProfileChange={fetchProfiles}
+        />
+      ) : view === 'server' ? (
           <>
             <div className="p-4 border-b border-border/30">
               <h2 className="font-bold text-foreground">Solarnova Server</h2>
@@ -597,6 +668,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
               {friends.filter(f => onlineUsers.has(f.id)).map(friend => {
                 const isMuted = muteSettings.some(m => m.muted_user_id === friend.id);
                 const unread = unreadCounts[friend.id] || 0;
+                const friendAvatar = getAvatar(friend.id);
                 
                 return (
                   <button
@@ -606,8 +678,14 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                       selectedDmUser?.id === friend.id ? 'bg-muted' : ''
                     }`}
                   >
-                    <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center text-xs relative">
-                      {friend.username[0].toUpperCase()}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs relative overflow-hidden">
+                      {friendAvatar ? (
+                        <img src={friendAvatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
+                          {friend.username[0].toUpperCase()}
+                        </div>
+                      )}
                       {unread > 0 && (
                         <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-xs flex items-center justify-center">
                           {unread}
@@ -616,7 +694,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                       {/* Online indicator */}
                       <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
                     </div>
-                    <span className="flex-1 text-sm truncate text-left">{friend.username}</span>
+                    <span className="flex-1 text-sm truncate text-left">{getDisplayName(friend.id, friend.username)}</span>
                     {isMuted && <BellOff className="w-3 h-3 text-muted-foreground" />}
                   </button>
                 );
@@ -628,6 +706,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
               {friends.filter(f => !onlineUsers.has(f.id)).map(friend => {
                 const isMuted = muteSettings.some(m => m.muted_user_id === friend.id);
                 const unread = unreadCounts[friend.id] || 0;
+                const friendAvatar = getAvatar(friend.id);
                 
                 return (
                   <button
@@ -637,8 +716,14 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                       selectedDmUser?.id === friend.id ? 'bg-muted' : ''
                     }`}
                   >
-                    <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center text-xs relative">
-                      {friend.username[0].toUpperCase()}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs relative overflow-hidden">
+                      {friendAvatar ? (
+                        <img src={friendAvatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
+                          {friend.username[0].toUpperCase()}
+                        </div>
+                      )}
                       {unread > 0 && (
                         <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-xs flex items-center justify-center">
                           {unread}
@@ -647,7 +732,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                       {/* Offline indicator */}
                       <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-muted-foreground rounded-full border-2 border-card" />
                     </div>
-                    <span className="flex-1 text-sm truncate text-left">{friend.username}</span>
+                    <span className="flex-1 text-sm truncate text-left">{getDisplayName(friend.id, friend.username)}</span>
                     {isMuted && <BellOff className="w-3 h-3 text-muted-foreground" />}
                   </button>
                 );
@@ -699,15 +784,21 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <div className="w-6 h-6 bg-gradient-primary rounded-full flex items-center justify-center text-xs relative">
-                  {selectedDmUser.username[0].toUpperCase()}
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs relative overflow-hidden">
+                  {getAvatar(selectedDmUser.id) ? (
+                    <img src={getAvatar(selectedDmUser.id)!} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
+                      {selectedDmUser.username[0].toUpperCase()}
+                    </div>
+                  )}
                   {/* Online/offline indicator */}
                   <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${
                     onlineUsers.has(selectedDmUser.id) ? 'bg-green-500' : 'bg-muted-foreground'
                   }`} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-semibold text-sm md:text-base leading-tight">{selectedDmUser.username}</span>
+                  <span className="font-semibold text-sm md:text-base leading-tight">{getDisplayName(selectedDmUser.id, selectedDmUser.username)}</span>
                   <span className={`text-[10px] leading-tight ${onlineUsers.has(selectedDmUser.id) ? 'text-green-500' : 'text-muted-foreground'}`}>
                     {onlineUsers.has(selectedDmUser.id) ? 'Online' : 'Offline'}
                   </span>
@@ -753,34 +844,46 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                 </div>
               </div>
             ) : (
-              serverMessages.map((msg) => (
-                <div key={msg.id} className="group flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
-                  <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-sm flex-shrink-0">
-                    {msg.username[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-semibold text-foreground">{msg.username}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(msg.created_at).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <p className="text-foreground/90">
-                      {isGifUrl(msg.message) ? (
-                        <img src={extractGifUrl(msg.message) || ''} alt="GIF" className="max-w-xs rounded-lg" loading="lazy" />
+              serverMessages.map((msg) => {
+                const senderUser = allUsers.find(u => u.username === msg.username);
+                const msgAvatar = senderUser ? getAvatar(senderUser.id) : null;
+                const displayName = senderUser ? getDisplayName(senderUser.id, msg.username) : msg.username;
+                
+                return (
+                  <div key={msg.id} className="group flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
+                      {msgAvatar ? (
+                        <img src={msgAvatar} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        msg.message
+                        <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
+                          {msg.username[0].toUpperCase()}
+                        </div>
                       )}
-                    </p>
-                    <MessageReactions
-                      messageId={msg.id}
-                      messageType="server"
-                      reactions={reactions[msg.id] || {}}
-                      onReactionChange={fetchReactions}
-                    />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-foreground">{displayName}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(msg.created_at).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <p className="text-foreground/90">
+                        {isGifUrl(msg.message) ? (
+                          <img src={extractGifUrl(msg.message) || ''} alt="GIF" className="max-w-xs rounded-lg" loading="lazy" />
+                        ) : (
+                          msg.message
+                        )}
+                      </p>
+                      <MessageReactions
+                        messageId={msg.id}
+                        messageType="server"
+                        reactions={reactions[msg.id] || {}}
+                        onReactionChange={fetchReactions}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )
           ) : view === 'dm' && selectedDmUser ? (
             dmMessages.length === 0 ? (
@@ -791,34 +894,45 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                 </div>
               </div>
             ) : (
-              dmMessages.map((msg) => (
-                <div key={msg.id} className="group flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
-                  <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-sm flex-shrink-0">
-                    {msg.sender_username[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-semibold text-foreground">{msg.sender_username}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(msg.created_at).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <p className="text-foreground/90">
-                      {isGifUrl(msg.message) ? (
-                        <img src={extractGifUrl(msg.message) || ''} alt="GIF" className="max-w-xs rounded-lg" loading="lazy" />
+              dmMessages.map((msg) => {
+                const msgAvatar = getAvatar(msg.sender_id);
+                const displayName = getDisplayName(msg.sender_id, msg.sender_username);
+                
+                return (
+                  <div key={msg.id} className="group flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
+                      {msgAvatar ? (
+                        <img src={msgAvatar} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        msg.message
+                        <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
+                          {msg.sender_username[0].toUpperCase()}
+                        </div>
                       )}
-                    </p>
-                    <MessageReactions
-                      messageId={msg.id}
-                      messageType="dm"
-                      reactions={reactions[msg.id] || {}}
-                      onReactionChange={fetchReactions}
-                    />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-foreground">{displayName}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(msg.created_at).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <p className="text-foreground/90">
+                        {isGifUrl(msg.message) ? (
+                          <img src={extractGifUrl(msg.message) || ''} alt="GIF" className="max-w-xs rounded-lg" loading="lazy" />
+                        ) : (
+                          msg.message
+                        )}
+                      </p>
+                      <MessageReactions
+                        messageId={msg.id}
+                        messageType="dm"
+                        reactions={reactions[msg.id] || {}}
+                        onReactionChange={fetchReactions}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
