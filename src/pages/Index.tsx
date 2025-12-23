@@ -8,7 +8,7 @@ import { Announcements } from '@/components/Announcements';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/PersistentMusicPlayer';
 import { GameEmbed } from '@/components/GameEmbed';
-import { YouTubePlayer } from '@/components/YouTubePlayer';
+import { YouTubePlayer, PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -113,12 +113,13 @@ const Index = () => {
   }
 
   return (
-    <MusicPlayerProvider>
-      <div className="min-h-screen bg-background text-foreground">
-        {/* Background gradient overlay */}
-        <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
+    <PipProvider>
+      <MusicPlayerProvider>
+        <div className="min-h-screen bg-background text-foreground">
+          {/* Background gradient overlay */}
+          <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
 
-        <div className="relative z-10">
+          <div className="relative z-10">
           {/* Mobile bottom navigation */}
           <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/30 safe-area-pb">
             <div className="flex items-center justify-around px-2 py-2">
@@ -405,6 +406,9 @@ const Index = () => {
         {/* Persistent Music Player */}
         <PersistentMusicPlayer />
 
+        {/* Floating YouTube PiP Player */}
+        <FloatingPipPlayer />
+
         {/* Fullscreen Game Embed */}
         {embeddedGame && (
           <GameEmbed
@@ -420,6 +424,7 @@ const Index = () => {
         )}
       </div>
     </MusicPlayerProvider>
+    </PipProvider>
   );
 };
 
