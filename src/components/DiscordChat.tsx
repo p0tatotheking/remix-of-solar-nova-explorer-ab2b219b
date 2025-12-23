@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle } from 'lucide-react';
+import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle, Smile, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { censorText } from '@/lib/profanityFilter';
+import { parseEmojis, isGifUrl, extractGifUrl } from '@/lib/emojiParser';
+import { EmojiPicker } from '@/components/chat/EmojiPicker';
+import { GifPicker } from '@/components/chat/GifPicker';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 interface DiscordChatProps {
@@ -97,6 +100,8 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Presence tracking
@@ -376,17 +381,21 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     fetchMuteSettings();
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
+  const sendMessage = async (e: React.FormEvent, gifUrl?: string) => {
     e.preventDefault();
-    if (!newMessage.trim() || isLoading || !user) return;
+    const messageToSend = gifUrl || newMessage.trim();
+    if (!messageToSend || isLoading || !user) return;
 
     setIsLoading(true);
-    const censoredMessage = censorText(newMessage.trim());
+    // Parse emojis and censor text (skip censoring for GIFs)
+    const finalMessage = gifUrl 
+      ? `[GIF](${gifUrl})` 
+      : censorText(parseEmojis(messageToSend));
 
     if (view === 'server') {
       await supabase.from('chat_messages').insert({
         username: user.username,
-        message: censoredMessage,
+        message: finalMessage,
       });
     } else if (view === 'dm' && selectedDmUser) {
       await supabase.from('direct_messages').insert({
@@ -394,12 +403,14 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
         sender_username: user.username,
         receiver_id: selectedDmUser.id,
         receiver_username: selectedDmUser.username,
-        message: censoredMessage,
+        message: finalMessage,
       });
     }
 
     setNewMessage('');
     setIsLoading(false);
+    setShowEmojiPicker(false);
+    setShowGifPicker(false);
   };
 
   const openDm = (dmUser: AppUser) => {
@@ -709,7 +720,13 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                         {new Date(msg.created_at).toLocaleTimeString()}
                       </span>
                     </div>
-                    <p className="text-foreground/90">{msg.message}</p>
+                    <p className="text-foreground/90">
+                      {isGifUrl(msg.message) ? (
+                        <img src={extractGifUrl(msg.message) || ''} alt="GIF" className="max-w-xs rounded-lg" loading="lazy" />
+                      ) : (
+                        msg.message
+                      )}
+                    </p>
                   </div>
                 </div>
               ))
@@ -735,7 +752,13 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                         {new Date(msg.created_at).toLocaleTimeString()}
                       </span>
                     </div>
-                    <p className="text-foreground/90">{msg.message}</p>
+                    <p className="text-foreground/90">
+                      {isGifUrl(msg.message) ? (
+                        <img src={extractGifUrl(msg.message) || ''} alt="GIF" className="max-w-xs rounded-lg" loading="lazy" />
+                      ) : (
+                        msg.message
+                      )}
+                    </p>
                   </div>
                 </div>
               ))
@@ -755,7 +778,33 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
         {/* Message input */}
         {(view === 'server' || (view === 'dm' && selectedDmUser && !isBlocked(selectedDmUser.id) && !isBlockedBy(selectedDmUser.id))) && (
           <form onSubmit={sendMessage} className="p-3 md:p-4 border-t border-border/30 safe-area-pb">
-            <div className="flex gap-2">
+            <div className="relative flex gap-2">
+              {showEmojiPicker && (
+                <EmojiPicker
+                  onSelect={(emoji) => setNewMessage(prev => prev + emoji)}
+                  onClose={() => setShowEmojiPicker(false)}
+                />
+              )}
+              {showGifPicker && (
+                <GifPicker
+                  onSelect={(gifUrl) => sendMessage({ preventDefault: () => {} } as React.FormEvent, gifUrl)}
+                  onClose={() => setShowGifPicker(false)}
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowGifPicker(false); }}
+                className="p-2.5 md:p-3 hover:bg-muted rounded-lg transition-colors"
+              >
+                <Smile className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowGifPicker(!showGifPicker); setShowEmojiPicker(false); }}
+                className="p-2.5 md:p-3 hover:bg-muted rounded-lg transition-colors"
+              >
+                <ImageIcon className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+              </button>
               <input
                 type="text"
                 value={newMessage}
