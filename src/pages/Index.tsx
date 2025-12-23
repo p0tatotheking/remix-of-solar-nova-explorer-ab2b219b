@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
 import { CloakLauncher } from '@/components/CloakLauncher';
+import { Snowfall } from '@/components/Snowfall';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube';
@@ -116,6 +117,9 @@ const Index = () => {
     <PipProvider>
       <MusicPlayerProvider>
         <div className="min-h-screen bg-background text-foreground">
+          {/* Snowfall effect */}
+          <Snowfall />
+          
           {/* Background gradient overlay */}
           <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
 

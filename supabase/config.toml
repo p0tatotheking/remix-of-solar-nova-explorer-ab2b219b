@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.tenor-gifs]
 verify_jwt = false
+
+[functions.refetch-covers]
+verify_jwt = false
