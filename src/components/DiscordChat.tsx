@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle, Smile, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +6,8 @@ import { censorText } from '@/lib/profanityFilter';
 import { parseEmojis, isGifUrl, extractGifUrl } from '@/lib/emojiParser';
 import { EmojiPicker } from '@/components/chat/EmojiPicker';
 import { GifPicker } from '@/components/chat/GifPicker';
+import { EmojiAutocomplete } from '@/components/chat/EmojiAutocomplete';
+import { MessageReactions } from '@/components/chat/MessageReactions';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 interface DiscordChatProps {
@@ -102,7 +104,18 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [reactions, setReactions] = useState<Record<string, Record<string, { users: string[]; usernames: string[] }>>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Emoji autocomplete state
+  const emojiAutocompleteQuery = useMemo(() => {
+    const match = newMessage.match(/:([a-zA-Z0-9_+-]*)$/);
+    return match ? match[1] : null;
+  }, [newMessage]);
+
+  const handleEmojiAutocomplete = (emoji: string, code: string) => {
+    setNewMessage(prev => prev.replace(/:([a-zA-Z0-9_+-]*)$/, emoji));
+  };
 
   // Presence tracking
   useEffect(() => {
@@ -160,6 +173,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     fetchFriendships();
     fetchBlocks();
     fetchMuteSettings();
+    fetchReactions();
     
     // Subscribe to server messages
     const serverChannel = supabase
@@ -205,11 +219,20 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
         }
       })
       .subscribe();
+
+    // Subscribe to reactions
+    const reactionsChannel = supabase
+      .channel('message-reactions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => {
+        fetchReactions();
+      })
+      .subscribe();
     
     return () => {
       supabase.removeChannel(serverChannel);
       supabase.removeChannel(dmChannel);
       supabase.removeChannel(frChannel);
+      supabase.removeChannel(reactionsChannel);
     };
   }, [user]);
 
@@ -273,6 +296,28 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
       .select('*')
       .eq('user_id', user?.id);
     setMuteSettings(data || []);
+  };
+
+  const fetchReactions = async () => {
+    const { data } = await supabase
+      .from('message_reactions')
+      .select('*');
+    
+    // Group reactions by message_id and emoji
+    const grouped: Record<string, Record<string, { users: string[]; usernames: string[] }>> = {};
+    
+    for (const reaction of data || []) {
+      if (!grouped[reaction.message_id]) {
+        grouped[reaction.message_id] = {};
+      }
+      if (!grouped[reaction.message_id][reaction.emoji]) {
+        grouped[reaction.message_id][reaction.emoji] = { users: [], usernames: [] };
+      }
+      grouped[reaction.message_id][reaction.emoji].users.push(reaction.user_id);
+      grouped[reaction.message_id][reaction.emoji].usernames.push(reaction.username);
+    }
+    
+    setReactions(grouped);
   };
 
   const fetchDmMessages = async (otherUserId: string) => {
@@ -709,11 +754,11 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
               </div>
             ) : (
               serverMessages.map((msg) => (
-                <div key={msg.id} className="flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
+                <div key={msg.id} className="group flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
                   <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-sm flex-shrink-0">
                     {msg.username[0].toUpperCase()}
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="font-semibold text-foreground">{msg.username}</span>
                       <span className="text-xs text-muted-foreground">
@@ -727,6 +772,12 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                         msg.message
                       )}
                     </p>
+                    <MessageReactions
+                      messageId={msg.id}
+                      messageType="server"
+                      reactions={reactions[msg.id] || {}}
+                      onReactionChange={fetchReactions}
+                    />
                   </div>
                 </div>
               ))
@@ -741,11 +792,11 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
               </div>
             ) : (
               dmMessages.map((msg) => (
-                <div key={msg.id} className="flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
+                <div key={msg.id} className="group flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
                   <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-sm flex-shrink-0">
                     {msg.sender_username[0].toUpperCase()}
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="font-semibold text-foreground">{msg.sender_username}</span>
                       <span className="text-xs text-muted-foreground">
@@ -759,6 +810,12 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                         msg.message
                       )}
                     </p>
+                    <MessageReactions
+                      messageId={msg.id}
+                      messageType="dm"
+                      reactions={reactions[msg.id] || {}}
+                      onReactionChange={fetchReactions}
+                    />
                   </div>
                 </div>
               ))
@@ -779,18 +836,24 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
         {(view === 'server' || (view === 'dm' && selectedDmUser && !isBlocked(selectedDmUser.id) && !isBlockedBy(selectedDmUser.id))) && (
           <form onSubmit={sendMessage} className="p-3 md:p-4 border-t border-border/30 safe-area-pb">
             <div className="relative flex gap-2">
-              {showEmojiPicker && (
-                <EmojiPicker
-                  onSelect={(emoji) => setNewMessage(prev => prev + emoji)}
-                  onClose={() => setShowEmojiPicker(false)}
-                />
-              )}
-              {showGifPicker && (
-                <GifPicker
-                  onSelect={(gifUrl) => sendMessage({ preventDefault: () => {} } as React.FormEvent, gifUrl)}
-                  onClose={() => setShowGifPicker(false)}
-                />
-              )}
+                {showEmojiPicker && (
+                  <EmojiPicker
+                    onSelect={(emoji) => setNewMessage(prev => prev + emoji)}
+                    onClose={() => setShowEmojiPicker(false)}
+                  />
+                )}
+                {showGifPicker && (
+                  <GifPicker
+                    onSelect={(gifUrl) => sendMessage({ preventDefault: () => {} } as React.FormEvent, gifUrl)}
+                    onClose={() => setShowGifPicker(false)}
+                  />
+                )}
+                {emojiAutocompleteQuery && emojiAutocompleteQuery.length > 0 && !showEmojiPicker && !showGifPicker && (
+                  <EmojiAutocomplete
+                    query={emojiAutocompleteQuery}
+                    onSelect={handleEmojiAutocomplete}
+                  />
+                )}
               <button
                 type="button"
                 onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowGifPicker(false); }}

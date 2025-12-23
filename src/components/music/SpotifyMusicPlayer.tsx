@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Search, Music, Heart, ListMusic, Plus, Upload, Loader2, 
-  ChevronLeft, Play, MoreHorizontal, Trash2, Archive
+  ChevronLeft, Play, MoreHorizontal, Trash2, Archive, RefreshCw
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useMusicPlayer } from '../PersistentMusicPlayer';
@@ -55,6 +55,7 @@ export function SpotifyMusicPlayer() {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [isZipUploading, setIsZipUploading] = useState(false);
   const [isMp3Uploading, setIsMp3Uploading] = useState(false);
+  const [isRefetchingCovers, setIsRefetchingCovers] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const { currentTrack, playTrack, setTracks } = useMusicPlayer();
 
@@ -383,6 +384,26 @@ export function SpotifyMusicPlayer() {
     e.target.value = '';
   };
 
+  const handleRefetchCovers = async () => {
+    if (!user || !isAdmin) return;
+    setIsRefetchingCovers(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('refetch-covers', {
+        body: { adminId: user.id },
+      });
+      
+      if (error) throw error;
+      
+      toast.success(`Updated ${data.updated} of ${data.total} covers`);
+      fetchUploadedMusic();
+    } catch (err) {
+      console.error('Refetch covers error:', err);
+      toast.error('Failed to refetch covers');
+    }
+    
+    setIsRefetchingCovers(false);
+  };
 
   const handleDeleteTrack = async (trackId: string) => {
     if (!user || !isAdmin) return;
@@ -586,6 +607,20 @@ export function SpotifyMusicPlayer() {
                 disabled={isZipUploading}
               />
             </label>
+            <button
+              onClick={handleRefetchCovers}
+              disabled={isRefetchingCovers}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-secondary/20 text-secondary-foreground rounded-lg hover:bg-secondary/30 transition-colors disabled:opacity-50"
+            >
+              {isRefetchingCovers ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              <span className="text-sm font-medium">
+                {isRefetchingCovers ? 'Fetching covers...' : 'Refetch Missing Covers'}
+              </span>
+            </button>
           </div>
         )}
       </div>
