@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Youtube, Play, Link2, X, Maximize2, Volume2, Clock, Sparkles } from 'lucide-react';
+import { useState, useEffect, useRef, createContext, useContext } from 'react';
+import { Youtube, Play, Link2, X, Maximize2, Volume2, Clock, Sparkles, PictureInPicture2, Minimize2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -11,6 +11,147 @@ interface VideoHistory {
   timestamp: number;
 }
 
+interface PipContextType {
+  pipVideo: { id: string; title: string } | null;
+  setPipVideo: (video: { id: string; title: string } | null) => void;
+}
+
+const PipContext = createContext<PipContextType | null>(null);
+
+export function PipProvider({ children }: { children: React.ReactNode }) {
+  const [pipVideo, setPipVideo] = useState<{ id: string; title: string } | null>(null);
+  return (
+    <PipContext.Provider value={{ pipVideo, setPipVideo }}>
+      {children}
+    </PipContext.Provider>
+  );
+}
+
+export function usePip() {
+  const context = useContext(PipContext);
+  if (!context) {
+    throw new Error('usePip must be used within a PipProvider');
+  }
+  return context;
+}
+
+// Floating PiP Player Component
+export function FloatingPipPlayer() {
+  const { pipVideo, setPipVideo } = usePip();
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [position, setPosition] = useState({ x: 20, y: 20 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('iframe')) return;
+    setIsDragging(true);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: position.x,
+      initialY: position.y,
+    };
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !dragRef.current) return;
+      const deltaX = e.clientX - dragRef.current.startX;
+      const deltaY = e.clientY - dragRef.current.startY;
+      setPosition({
+        x: Math.max(0, Math.min(window.innerWidth - 320, dragRef.current.initialX + deltaX)),
+        y: Math.max(0, Math.min(window.innerHeight - 200, dragRef.current.initialY + deltaY)),
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      dragRef.current = null;
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  if (!pipVideo) return null;
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseDown={handleMouseDown}
+      className={`fixed z-[100] transition-all duration-300 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+      style={{ right: position.x, bottom: position.y }}
+    >
+      <div className={`bg-card border border-border/50 rounded-xl shadow-2xl overflow-hidden transition-all duration-300 ${
+        isMinimized ? 'w-48' : 'w-80'
+      }`}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-red-500/20 to-transparent border-b border-border/30">
+          <div className="flex items-center gap-2 min-w-0">
+            <Youtube className="w-4 h-4 text-red-500 flex-shrink-0" />
+            <span className="text-xs font-medium text-foreground truncate">PiP Mode</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="p-1 hover:bg-muted rounded transition-colors"
+            >
+              <Minimize2 className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+            <button
+              onClick={() => setPipVideo(null)}
+              className="p-1 hover:bg-destructive/20 rounded transition-colors"
+            >
+              <X className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+            </button>
+          </div>
+        </div>
+
+        {/* Video */}
+        {!isMinimized && (
+          <div className="aspect-video">
+            <iframe
+              src={`https://www.youtube.com/embed/${pipVideo.id}?autoplay=1&rel=0&modestbranding=1`}
+              title="YouTube PiP player"
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            />
+          </div>
+        )}
+
+        {/* Minimized state */}
+        {isMinimized && (
+          <div className="p-2 flex items-center gap-2">
+            <img
+              src={`https://img.youtube.com/vi/${pipVideo.id}/default.jpg`}
+              alt="Thumbnail"
+              className="w-10 h-10 rounded object-cover"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-foreground truncate">Now Playing</p>
+              <button
+                onClick={() => setIsMinimized(false)}
+                className="text-[10px] text-primary hover:underline"
+              >
+                Expand
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function YouTubePlayer() {
   const [url, setUrl] = useState('');
   const [videoId, setVideoId] = useState<string | null>(null);
@@ -18,6 +159,13 @@ export function YouTubePlayer() {
   const [history, setHistory] = useState<VideoHistory[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  let pipContext: PipContextType | null = null;
+  try {
+    pipContext = usePip();
+  } catch {
+    // PipProvider not available
+  }
 
   // Load history from localStorage
   useEffect(() => {
@@ -91,6 +239,15 @@ export function YouTubePlayer() {
     }
   };
 
+  const enablePip = () => {
+    if (videoId && pipContext) {
+      pipContext.setPipVideo({ id: videoId, title: `Video ${videoId}` });
+      setIsPlaying(false);
+      setVideoId(null);
+      toast.success('Picture-in-Picture enabled! Video will continue playing while you browse.');
+    }
+  };
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -150,7 +307,7 @@ export function YouTubePlayer() {
               <Sparkles className="w-3 h-3" /> Supports youtu.be
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted/30 rounded-full">
-              <Sparkles className="w-3 h-3" /> Supports Shorts
+              <PictureInPicture2 className="w-3 h-3" /> PiP Mode
             </span>
           </div>
         </div>
@@ -160,13 +317,24 @@ export function YouTubePlayer() {
       {videoId && isPlaying && (
         <div ref={containerRef} className="mb-8">
           <div className="relative bg-black rounded-2xl overflow-hidden shadow-2xl shadow-black/50">
-            {/* Fullscreen button */}
-            <button
-              onClick={toggleFullscreen}
-              className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-lg text-white transition-colors"
-            >
-              <Maximize2 className="w-5 h-5" />
-            </button>
+            {/* Control buttons */}
+            <div className="absolute top-4 right-4 z-10 flex gap-2">
+              {pipContext && (
+                <button
+                  onClick={enablePip}
+                  className="p-2 bg-black/50 hover:bg-black/70 rounded-lg text-white transition-colors"
+                  title="Picture-in-Picture"
+                >
+                  <PictureInPicture2 className="w-5 h-5" />
+                </button>
+              )}
+              <button
+                onClick={toggleFullscreen}
+                className="p-2 bg-black/50 hover:bg-black/70 rounded-lg text-white transition-colors"
+              >
+                <Maximize2 className="w-5 h-5" />
+              </button>
+            </div>
             
             {/* Close button */}
             <button
@@ -252,13 +420,20 @@ export function YouTubePlayer() {
       )}
 
       {/* Features */}
-      <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="mt-12 grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl bg-card/50 border border-border/50 text-center">
           <div className="inline-flex p-2 rounded-lg bg-red-500/10 mb-3">
             <Play className="w-5 h-5 text-red-500" />
           </div>
           <h3 className="font-semibold text-foreground mb-1">Instant Play</h3>
           <p className="text-xs text-muted-foreground">Paste and play any YouTube video instantly</p>
+        </div>
+        <div className="p-4 rounded-xl bg-card/50 border border-border/50 text-center">
+          <div className="inline-flex p-2 rounded-lg bg-red-500/10 mb-3">
+            <PictureInPicture2 className="w-5 h-5 text-red-500" />
+          </div>
+          <h3 className="font-semibold text-foreground mb-1">Picture-in-Picture</h3>
+          <p className="text-xs text-muted-foreground">Watch while browsing other sections</p>
         </div>
         <div className="p-4 rounded-xl bg-card/50 border border-border/50 text-center">
           <div className="inline-flex p-2 rounded-lg bg-red-500/10 mb-3">

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft } from 'lucide-react';
+import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { censorText } from '@/lib/profanityFilter';
@@ -62,6 +62,11 @@ interface MuteSetting {
   mute_until: string | null;
 }
 
+interface UserPresence {
+  id: string;
+  online_at: string;
+}
+
 type ChatView = 'server' | 'friends' | 'dm';
 
 export function DiscordChat({ onClose }: DiscordChatProps) {
@@ -82,6 +87,9 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const [blocks, setBlocks] = useState<UserBlock[]>([]);
   const [muteSettings, setMuteSettings] = useState<MuteSetting[]>([]);
   
+  // Online presence tracking
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  
   // Notifications
   const [showNotification, setShowNotification] = useState<FriendRequest | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -90,6 +98,52 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Presence tracking
+  useEffect(() => {
+    if (!user) return;
+
+    const presenceChannel = supabase.channel('online-users', {
+      config: {
+        presence: {
+          key: user.id,
+        },
+      },
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        const online = new Set<string>();
+        Object.keys(state).forEach((key) => {
+          online.add(key);
+        });
+        setOnlineUsers(online);
+      })
+      .on('presence', { event: 'join' }, ({ key }) => {
+        setOnlineUsers(prev => new Set([...prev, key]));
+      })
+      .on('presence', { event: 'leave' }, ({ key }) => {
+        setOnlineUsers(prev => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({
+            online_at: new Date().toISOString(),
+            user_id: user.id,
+            username: user.username,
+          });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(presenceChannel);
+    };
+  }, [user]);
 
   // Fetch all data on mount
   useEffect(() => {
@@ -481,8 +535,10 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
               </div>
             )}
             <div className="flex-1 overflow-y-auto p-2">
-              <p className="text-xs text-muted-foreground px-2 mb-2">FRIENDS — {friends.length}</p>
-              {friends.map(friend => {
+              <p className="text-xs text-muted-foreground px-2 mb-2">
+                ONLINE — {friends.filter(f => onlineUsers.has(f.id)).length}
+              </p>
+              {friends.filter(f => onlineUsers.has(f.id)).map(friend => {
                 const isMuted = muteSettings.some(m => m.muted_user_id === friend.id);
                 const unread = unreadCounts[friend.id] || 0;
                 
@@ -501,6 +557,39 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                           {unread}
                         </span>
                       )}
+                      {/* Online indicator */}
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
+                    </div>
+                    <span className="flex-1 text-sm truncate text-left">{friend.username}</span>
+                    {isMuted && <BellOff className="w-3 h-3 text-muted-foreground" />}
+                  </button>
+                );
+              })}
+
+              <p className="text-xs text-muted-foreground px-2 mt-4 mb-2">
+                OFFLINE — {friends.filter(f => !onlineUsers.has(f.id)).length}
+              </p>
+              {friends.filter(f => !onlineUsers.has(f.id)).map(friend => {
+                const isMuted = muteSettings.some(m => m.muted_user_id === friend.id);
+                const unread = unreadCounts[friend.id] || 0;
+                
+                return (
+                  <button
+                    key={friend.id}
+                    onClick={() => openDm(friend)}
+                    className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted/50 opacity-60 ${
+                      selectedDmUser?.id === friend.id ? 'bg-muted' : ''
+                    }`}
+                  >
+                    <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center text-xs relative">
+                      {friend.username[0].toUpperCase()}
+                      {unread > 0 && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-xs flex items-center justify-center">
+                          {unread}
+                        </span>
+                      )}
+                      {/* Offline indicator */}
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-muted-foreground rounded-full border-2 border-card" />
                     </div>
                     <span className="flex-1 text-sm truncate text-left">{friend.username}</span>
                     {isMuted && <BellOff className="w-3 h-3 text-muted-foreground" />}
@@ -516,8 +605,12 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                   disabled={isBlockedBy(otherUser.id)}
                   className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted/50 disabled:opacity-50"
                 >
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-xs">
+                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-xs relative">
                     {otherUser.username[0].toUpperCase()}
+                    {/* Online/Offline indicator for all users */}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${
+                      onlineUsers.has(otherUser.id) ? 'bg-green-500' : 'bg-muted-foreground'
+                    }`} />
                   </div>
                   <span className="flex-1 text-sm truncate text-left text-muted-foreground">{otherUser.username}</span>
                   {hasPendingRequest(otherUser.id) ? (
@@ -550,10 +643,19 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <div className="w-6 h-6 bg-gradient-primary rounded-full flex items-center justify-center text-xs">
+                <div className="w-6 h-6 bg-gradient-primary rounded-full flex items-center justify-center text-xs relative">
                   {selectedDmUser.username[0].toUpperCase()}
+                  {/* Online/offline indicator */}
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${
+                    onlineUsers.has(selectedDmUser.id) ? 'bg-green-500' : 'bg-muted-foreground'
+                  }`} />
                 </div>
-                <span className="font-semibold text-sm md:text-base">{selectedDmUser.username}</span>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-sm md:text-base leading-tight">{selectedDmUser.username}</span>
+                  <span className={`text-[10px] leading-tight ${onlineUsers.has(selectedDmUser.id) ? 'text-green-500' : 'text-muted-foreground'}`}>
+                    {onlineUsers.has(selectedDmUser.id) ? 'Online' : 'Offline'}
+                  </span>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 {muteSettings.some(m => m.muted_user_id === selectedDmUser.id) ? (
