@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Star, Music, LogOut, Shield, Megaphone } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Star, Music, LogOut, Shield, Megaphone, Youtube } from 'lucide-react';
 import { GameCard } from '@/components/GameCard';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
@@ -8,13 +8,14 @@ import { Announcements } from '@/components/Announcements';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/PersistentMusicPlayer';
 import { GameEmbed } from '@/components/GameEmbed';
+import { YouTubePlayer } from '@/components/YouTubePlayer';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
 import { CloakLauncher } from '@/components/CloakLauncher';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
-type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements';
+type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube';
 
 const Index = () => {
   const { user, isLoading, logout, isAdmin } = useAuth();
@@ -74,6 +75,7 @@ const Index = () => {
   const navItems = [
     { id: 'home' as const, label: 'Home', icon: Home },
     { id: 'games' as const, label: 'Games', icon: Gamepad2 },
+    { id: 'youtube' as const, label: 'YouTube', icon: Youtube },
     { id: 'music' as const, label: 'Music', icon: Music },
     { id: 'announcements' as const, label: 'Announcements', icon: Megaphone },
     { id: 'chatroom' as const, label: 'Chatroom', icon: MessageSquare },
@@ -375,6 +377,12 @@ const Index = () => {
             {activeSection === 'announcements' && (
               <section className="py-16 px-4 sm:px-6 lg:px-8">
                 <Announcements />
+              </section>
+            )}
+
+            {activeSection === 'youtube' && (
+              <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
+                <YouTubePlayer />
               </section>
             )}
           </main>
