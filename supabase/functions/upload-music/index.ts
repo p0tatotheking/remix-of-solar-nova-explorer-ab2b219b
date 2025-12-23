@@ -65,6 +65,71 @@ JSON response:`;
   return { artist: 'Unknown Artist', genre: 'Other' };
 }
 
+// Fetch cover art from iTunes Search API
+async function fetchCoverArt(title: string, artist: string): Promise<string | null> {
+  try {
+    // Clean up search terms
+    const searchQuery = encodeURIComponent(`${artist} ${title}`.replace(/[^\w\s]/g, ' ').trim());
+    const url = `https://itunes.apple.com/search?term=${searchQuery}&media=music&entity=song&limit=5`;
+    
+    console.log('Searching iTunes for cover art:', searchQuery);
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('iTunes API error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      // Get the first result's artwork and upgrade to higher resolution
+      const artworkUrl = data.results[0].artworkUrl100;
+      if (artworkUrl) {
+        // Replace 100x100 with 600x600 for higher quality
+        const highResUrl = artworkUrl.replace('100x100', '600x600');
+        console.log('Found cover art:', highResUrl);
+        return highResUrl;
+      }
+    }
+
+    // If no results with both, try searching with just the title
+    const titleOnlyQuery = encodeURIComponent(title.replace(/[^\w\s]/g, ' ').trim());
+    const titleOnlyUrl = `https://itunes.apple.com/search?term=${titleOnlyQuery}&media=music&entity=song&limit=3`;
+    
+    console.log('Trying title-only search:', titleOnlyQuery);
+    
+    const titleResponse = await fetch(titleOnlyUrl, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (titleResponse.ok) {
+      const titleData = await titleResponse.json();
+      if (titleData.results && titleData.results.length > 0) {
+        const artworkUrl = titleData.results[0].artworkUrl100;
+        if (artworkUrl) {
+          const highResUrl = artworkUrl.replace('100x100', '600x600');
+          console.log('Found cover art with title-only search:', highResUrl);
+          return highResUrl;
+        }
+      }
+    }
+
+    console.log('No cover art found');
+    return null;
+  } catch (error) {
+    console.error('Cover art fetch error:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -167,6 +232,9 @@ serve(async (req) => {
     // Clean up title
     title = title.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
 
+    // Fetch cover art from iTunes
+    const coverUrl = await fetchCoverArt(title, artist);
+
     // Add to database
     const { data: musicData, error: dbError } = await supabase
       .from('uploaded_music')
@@ -176,6 +244,7 @@ serve(async (req) => {
         file_path: uniqueFilename,
         uploaded_by: adminId,
         genre: finalGenre,
+        cover_url: coverUrl,
       })
       .select()
       .single();
@@ -189,7 +258,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('Successfully uploaded:', title, 'by', artist, 'Genre:', finalGenre);
+    console.log('Successfully uploaded:', title, 'by', artist, 'Genre:', finalGenre, 'Cover:', coverUrl ? 'Yes' : 'No');
 
     return new Response(JSON.stringify({
       success: true,
@@ -198,6 +267,7 @@ serve(async (req) => {
         title,
         artist,
         genre: finalGenre,
+        cover_url: coverUrl,
       },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
