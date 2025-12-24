@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Star, Music, LogOut, Shield, Megaphone, Youtube } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Star, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff } from 'lucide-react';
 import { GameCard } from '@/components/GameCard';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
@@ -148,7 +148,10 @@ function IndexInner() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [typewriterText, setTypewriterText] = useState('');
+  const [userViewMode, setUserViewMode] = useState(false);
 
+  // Effective admin status (false when in user view mode)
+  const effectiveIsAdmin = isAdmin && !userViewMode;
   const fullText = 'SOLARNOVA';
 
   // Typewriter effect for home
@@ -292,7 +295,7 @@ function IndexInner() {
               </button>
             ))}
             
-            {isAdmin && (
+            {effectiveIsAdmin && (
               <button
                 onClick={() => {
                   setShowAdminPanel(true);
@@ -365,7 +368,7 @@ function IndexInner() {
           <div className="border-t border-border/30 mx-4" />
 
           <div className="p-4 space-y-2">
-            {isAdmin && (
+            {effectiveIsAdmin && (
               <button
                 onClick={() => {
                   setShowAdminPanel(true);
@@ -420,6 +423,39 @@ function IndexInner() {
                   <span className="hidden md:inline">Press <kbd className="px-2 py-1 bg-muted rounded text-foreground">R</kbd> to panic exit • Hover left to show menu</span>
                   <span className="md:hidden">Tap bottom menu to navigate</span>
                 </p>
+
+                {/* Admin User View Toggle - only visible to actual admins */}
+                {isAdmin && (
+                  <button
+                    onClick={() => setUserViewMode(!userViewMode)}
+                    className={`mt-6 flex items-center gap-2 px-4 py-2 rounded-lg transition-all mx-auto ${
+                      userViewMode 
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
+                        : 'bg-primary/20 text-primary border border-primary/30'
+                    }`}
+                  >
+                    {userViewMode ? (
+                      <>
+                        <EyeOff className="w-4 h-4" />
+                        <span className="text-sm font-medium">Switch to Admin View</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-4 h-4" />
+                        <span className="text-sm font-medium">Switch to User View</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* User View Mode Indicator */}
+                {userViewMode && (
+                  <div className="mt-4 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
+                    <p className="text-xs text-amber-400">
+                      👁️ Viewing as regular user
+                    </p>
+                  </div>
+                )}
               </div>
             </section>
 
