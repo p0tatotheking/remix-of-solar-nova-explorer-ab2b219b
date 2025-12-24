@@ -55,8 +55,37 @@ export function MessageReactions({ messageId, messageType, reactions, onReaction
   const reactionEntries = Object.entries(reactions);
   const hasReactions = reactionEntries.length > 0;
 
+  // If no reactions and not showing picker, render nothing visible (button shows on hover via parent)
+  if (!hasReactions && !showPicker) {
+    return (
+      <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={() => setShowPicker(true)}
+          className="p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+        {showPicker && (
+          <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl p-2 z-50">
+            <div className="flex gap-1">
+              {QUICK_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => toggleReaction(emoji)}
+                  className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors text-lg"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex items-center gap-1 flex-wrap ${hasReactions ? 'mt-1' : ''}`}>
+    <div className="flex items-center gap-1 flex-wrap mt-1">
       {reactionEntries.map(([emoji, data]) => {
         const userReacted = user && data.users.includes(user.id);
         return (
@@ -76,11 +105,11 @@ export function MessageReactions({ messageId, messageType, reactions, onReaction
         );
       })}
 
-      {/* Add reaction button - only visible on hover */}
+      {/* Add more reactions button */}
       <div className="relative">
         <button
           onClick={() => setShowPicker(!showPicker)}
-          className="p-1 rounded-full hover:bg-muted/50 text-muted-foreground transition-colors opacity-0 group-hover:opacity-100"
+          className="p-1 rounded-full hover:bg-muted/50 text-muted-foreground transition-colors"
         >
           <Plus className="w-3 h-3" />
         </button>
