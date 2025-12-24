@@ -907,45 +907,47 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                 </div>
               </div>
             ) : (
-              dmMessages.map((msg) => {
-                const msgAvatar = getAvatar(msg.sender_id);
-                const displayName = getDisplayName(msg.sender_id, msg.sender_username);
-                
-                return (
-                  <div key={msg.id} className="group flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
-                      {msgAvatar ? (
-                        <img src={msgAvatar} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
-                          {msg.sender_username[0].toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-semibold text-foreground">{displayName}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(msg.created_at).toLocaleTimeString()}
-                        </span>
-                      </div>
-                      <p className="text-foreground/90">
-                        {isGifUrl(msg.message) ? (
-                          <img src={extractGifUrl(msg.message) || ''} alt="GIF" className="max-w-xs rounded-lg" loading="lazy" />
+              <div className="p-4 space-y-4">
+                {dmMessages.map((msg) => {
+                  const msgAvatar = getAvatar(msg.sender_id);
+                  const displayName = getDisplayName(msg.sender_id, msg.sender_username);
+                  
+                  return (
+                    <div key={msg.id} className="group flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
+                        {msgAvatar ? (
+                          <img src={msgAvatar} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          msg.message
+                          <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
+                            {msg.sender_username[0].toUpperCase()}
+                          </div>
                         )}
-                      </p>
-                      <MessageReactions
-                        messageId={msg.id}
-                        messageType="dm"
-                        reactions={reactions[msg.id] || {}}
-                        onReactionChange={fetchReactions}
-                      />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-semibold text-foreground">{displayName}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(msg.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className="text-foreground/90">
+                          {isGifUrl(msg.message) ? (
+                            <img src={extractGifUrl(msg.message) || ''} alt="GIF" className="max-w-xs rounded-lg" loading="lazy" />
+                          ) : (
+                            msg.message
+                          )}
+                        </p>
+                        <MessageReactions
+                          messageId={msg.id}
+                          messageType="dm"
+                          reactions={reactions[msg.id] || {}}
+                          onReactionChange={fetchReactions}
+                        />
+                      </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">

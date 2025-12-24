@@ -53,9 +53,10 @@ export function MessageReactions({ messageId, messageType, reactions, onReaction
   };
 
   const reactionEntries = Object.entries(reactions);
+  const hasReactions = reactionEntries.length > 0;
 
   return (
-    <div className="flex items-center gap-1 mt-1 flex-wrap">
+    <div className={`flex items-center gap-1 flex-wrap ${hasReactions ? 'mt-1' : ''}`}>
       {reactionEntries.map(([emoji, data]) => {
         const userReacted = user && data.users.includes(user.id);
         return (
@@ -75,7 +76,7 @@ export function MessageReactions({ messageId, messageType, reactions, onReaction
         );
       })}
 
-      {/* Add reaction button */}
+      {/* Add reaction button - only visible on hover */}
       <div className="relative">
         <button
           onClick={() => setShowPicker(!showPicker)}
