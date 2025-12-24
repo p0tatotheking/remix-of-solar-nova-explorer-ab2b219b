@@ -127,7 +127,10 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [reactions, setReactions] = useState<Record<string, Record<string, { users: string[]; usernames: string[] }>>>({});
   const [replyingTo, setReplyingTo] = useState<Message | DirectMessage | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Map<string, { username: string; location: string }>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Emoji autocomplete state
   const emojiAutocompleteQuery = useMemo(() => {
@@ -138,6 +141,71 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const handleEmojiAutocomplete = (emoji: string, code: string) => {
     setNewMessage(prev => prev.replace(/:([a-zA-Z0-9_+-]*)$/, emoji));
   };
+
+  // Typing indicator - broadcast when typing
+  const broadcastTyping = () => {
+    if (!user || !typingChannelRef.current) return;
+    
+    const location = view === 'server' ? 'server' : (selectedDmUser?.id || 'unknown');
+    
+    typingChannelRef.current.track({
+      user_id: user.id,
+      username: user.username,
+      location,
+      typing_at: new Date().toISOString(),
+    });
+
+    // Clear typing status after 3 seconds of no typing
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      typingChannelRef.current?.untrack();
+    }, 3000);
+  };
+
+  // Setup typing channel
+  useEffect(() => {
+    if (!user) return;
+
+    const typingChannel = supabase.channel('typing-indicators', {
+      config: {
+        presence: {
+          key: user.id,
+        },
+      },
+    });
+
+    typingChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = typingChannel.presenceState();
+        const newTypingUsers = new Map<string, { username: string; location: string }>();
+        
+        Object.entries(state).forEach(([key, presences]) => {
+          if (key !== user.id && presences.length > 0) {
+            const presence = presences[0] as unknown as { username: string; location: string };
+            if (presence.username && presence.location) {
+              newTypingUsers.set(key, {
+                username: presence.username,
+                location: presence.location,
+              });
+            }
+          }
+        });
+        
+        setTypingUsers(newTypingUsers);
+      })
+      .subscribe();
+
+    typingChannelRef.current = typingChannel;
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      supabase.removeChannel(typingChannel);
+    };
+  }, [user]);
 
   // Presence tracking
   useEffect(() => {
@@ -1014,6 +1082,33 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Typing indicator */}
+        {(() => {
+          const currentLocation = view === 'server' ? 'server' : selectedDmUser?.id;
+          const typingHere = Array.from(typingUsers.entries())
+            .filter(([, data]) => data.location === currentLocation)
+            .map(([, data]) => data.username);
+          
+          if (typingHere.length === 0) return null;
+          
+          const text = typingHere.length === 1 
+            ? `${typingHere[0]} is typing...`
+            : typingHere.length === 2
+            ? `${typingHere[0]} and ${typingHere[1]} are typing...`
+            : `${typingHere.slice(0, 2).join(', ')} and ${typingHere.length - 2} others are typing...`;
+          
+          return (
+            <div className="px-4 py-1 text-xs text-muted-foreground flex items-center gap-2">
+              <span className="flex gap-0.5">
+                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+              {text}
+            </div>
+          );
+        })()}
+
         {/* Message input */}
         {(view === 'server' || (view === 'dm' && selectedDmUser && !isBlocked(selectedDmUser.id) && !isBlockedBy(selectedDmUser.id))) && (
           <form onSubmit={sendMessage} className="p-3 md:p-4 border-t border-border/30 safe-area-pb">
@@ -1073,7 +1168,12 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
               <input
                 type="text"
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  if (e.target.value.length > 0) {
+                    broadcastTyping();
+                  }
+                }}
                 className="flex-1 bg-muted border border-border/30 rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
                 placeholder={replyingTo ? 'Type your reply...' : (view === 'server' ? 'Message #general' : `Message ${selectedDmUser?.username}`)}
                 disabled={isLoading}
