@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { GameOverlayBar } from './GameOverlayBar';
 
 interface GameEmbedProps {
   url: string;
@@ -28,6 +29,9 @@ export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
         allow="fullscreen; autoplay; encrypted-media"
         allowFullScreen
       />
+
+      {/* Overlay bar for music and chat */}
+      <GameOverlayBar />
     </div>
   );
 }

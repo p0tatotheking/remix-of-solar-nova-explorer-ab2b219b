@@ -1,0 +1,280 @@
+import { useState, useRef, useEffect } from 'react';
+import { 
+  Play, 
+  Pause, 
+  SkipBack, 
+  SkipForward, 
+  Volume2, 
+  VolumeX,
+  MessageCircle,
+  Music,
+  Send,
+  X,
+  ChevronUp
+} from 'lucide-react';
+import { useMusicPlayer } from './PersistentMusicPlayer';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { censorText } from '@/lib/profanityFilter';
+
+interface ChatMessage {
+  id: string;
+  username: string;
+  message: string;
+  created_at: string;
+}
+
+export function GameOverlayBar() {
+  const [isVisible, setIsVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<'music' | 'chat' | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { user } = useAuth();
+  
+  const {
+    currentTrack,
+    isPlaying,
+    togglePlayPause,
+    playNext,
+    playPrevious,
+    volume,
+    setVolume,
+    isMuted,
+    setIsMuted,
+  } = useMusicPlayer();
+
+  // Fetch messages
+  useEffect(() => {
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (data) {
+        setMessages(data.reverse());
+      }
+    };
+
+    fetchMessages();
+
+    // Subscribe to new messages
+    const channel = supabase
+      .channel('game-overlay-chat')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+        (payload) => {
+          setMessages((prev) => [...prev.slice(-49), payload.new as ChatMessage]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, activeTab]);
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setIsVisible(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (activeTab) return; // Don't hide if a panel is open
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsVisible(false);
+    }, 300);
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !user || isSending) return;
+
+    setIsSending(true);
+    const censoredMessage = censorText(newMessage.trim());
+    
+    await supabase.from('chat_messages').insert({
+      username: user.username,
+      message: censoredMessage,
+    });
+
+    setNewMessage('');
+    setIsSending(false);
+  };
+
+  const closePanel = () => {
+    setActiveTab(null);
+  };
+
+  return (
+    <>
+      {/* Hover trigger zone at bottom */}
+      <div
+        className="fixed bottom-0 left-0 right-0 h-8 z-[101]"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Indicator */}
+        <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-border/30 transition-all duration-300 ${isVisible ? 'opacity-0 translate-y-4' : 'opacity-100'}`}>
+          <ChevronUp className="w-4 h-4 text-muted-foreground animate-bounce" />
+          <span className="text-xs text-muted-foreground">Hover for controls</span>
+        </div>
+      </div>
+
+      {/* Main bar */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 z-[102] transition-transform duration-300 ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Expanded panels */}
+        {activeTab && (
+          <div className="bg-background/95 backdrop-blur-lg border-t border-border/30">
+            {activeTab === 'music' && (
+              <div className="max-w-2xl mx-auto p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-foreground">Music Player</h3>
+                  <button onClick={closePanel} className="p-1 hover:bg-muted/50 rounded">
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+                
+                {currentTrack ? (
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={currentTrack.image || '/placeholder.svg'}
+                      alt={currentTrack.name}
+                      className="w-16 h-16 rounded-lg object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-foreground font-medium truncate">{currentTrack.name}</p>
+                      <p className="text-muted-foreground text-sm truncate">{currentTrack.artist_name}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setIsMuted(!isMuted)} className="p-2 hover:bg-muted/50 rounded-lg">
+                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                      </button>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={isMuted ? 0 : volume}
+                        onChange={(e) => {
+                          setVolume(parseFloat(e.target.value));
+                          setIsMuted(false);
+                        }}
+                        className="w-20 accent-primary"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm text-center py-4">No track playing. Start music from the main menu.</p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'chat' && (
+              <div className="max-w-2xl mx-auto p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-foreground">Quick Chat</h3>
+                  <button onClick={closePanel} className="p-1 hover:bg-muted/50 rounded">
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+                
+                {/* Messages */}
+                <div className="h-40 overflow-y-auto space-y-2 mb-3 scrollbar-thin">
+                  {messages.slice(-20).map((msg) => (
+                    <div key={msg.id} className="text-sm">
+                      <span className="font-medium text-primary">{msg.username}: </span>
+                      <span className="text-foreground">{msg.message}</span>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input */}
+                {user ? (
+                  <form onSubmit={handleSendMessage} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      className="flex-1 px-3 py-2 bg-muted/30 border border-border/30 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSending || !newMessage.trim()}
+                      className="px-3 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </form>
+                ) : (
+                  <p className="text-muted-foreground text-sm text-center">Login to chat</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Control bar */}
+        <div className="bg-background/90 backdrop-blur-lg border-t border-border/30 px-4 py-2">
+          <div className="max-w-2xl mx-auto flex items-center justify-between">
+            {/* Music controls */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveTab(activeTab === 'music' ? null : 'music')}
+                className={`p-2 rounded-lg transition-colors ${activeTab === 'music' ? 'bg-primary/20 text-primary' : 'hover:bg-muted/50 text-muted-foreground'}`}
+              >
+                <Music className="w-5 h-5" />
+              </button>
+              
+              {currentTrack && (
+                <div className="flex items-center gap-1">
+                  <button onClick={playPrevious} className="p-1.5 hover:bg-muted/50 rounded text-muted-foreground">
+                    <SkipBack className="w-4 h-4" />
+                  </button>
+                  <button onClick={togglePlayPause} className="p-2 bg-primary/20 hover:bg-primary/30 rounded-full text-primary">
+                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                  </button>
+                  <button onClick={playNext} className="p-1.5 hover:bg-muted/50 rounded text-muted-foreground">
+                    <SkipForward className="w-4 h-4" />
+                  </button>
+                  <span className="ml-2 text-xs text-muted-foreground truncate max-w-[120px]">
+                    {currentTrack.name}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Chat toggle */}
+            <button
+              onClick={() => setActiveTab(activeTab === 'chat' ? null : 'chat')}
+              className={`p-2 rounded-lg transition-colors ${activeTab === 'chat' ? 'bg-primary/20 text-primary' : 'hover:bg-muted/50 text-muted-foreground'}`}
+            >
+              <MessageCircle className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
