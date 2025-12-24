@@ -104,6 +104,14 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       embed: true,
       category: 'racing',
     },
+    {
+      title: 'Mathepic',
+      description: 'All credits to gooierpizza7003!',
+      url: 'https://mathepic.tuvnord.hk/',
+      preview: 'Math learning game',
+      embed: true,
+      category: 'arcade',
+    },
   ];
 
   const filteredGames = useMemo(() => {
