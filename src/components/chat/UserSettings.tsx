@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Settings, User, Camera, Save, X, Edit2, Snowflake } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Settings, User, Camera, Save, X, Edit2, Snowflake, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSnowfall } from '@/contexts/SnowfallContext';
@@ -62,6 +62,54 @@ export function UserSettings({ onClose, friends, nicknames, onNicknamesChange, o
   const [editingNickname, setEditingNickname] = useState<string | null>(null);
   const [nicknameValue, setNicknameValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be less than 2MB');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      setSelectedAvatar(publicUrl);
+      setShowAvatarPicker(false);
+      toast.success('Photo uploaded!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload photo');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -220,21 +268,42 @@ export function UserSettings({ onClose, friends, nicknames, onNicknamesChange, o
 
           {/* Avatar Picker */}
           {showAvatarPicker && (
-            <div className="grid grid-cols-4 gap-2 p-3 bg-muted/50 rounded-lg">
-              {AVATAR_OPTIONS.map((avatar, index) => (
+            <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+              {/* Upload Photo Button */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
                 <button
-                  key={index}
-                  onClick={() => {
-                    setSelectedAvatar(avatar);
-                    setShowAvatarPicker(false);
-                  }}
-                  className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all ${
-                    selectedAvatar === avatar ? 'border-primary scale-110' : 'border-transparent hover:border-primary/50'
-                  }`}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="flex-1 py-2 px-4 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                 >
-                  <img src={avatar} alt={`Avatar ${index + 1}`} className="w-full h-full object-cover" />
+                  <Upload className="w-4 h-4" />
+                  {isUploading ? 'Uploading...' : 'Upload Photo'}
                 </button>
-              ))}
+              </div>
+              <p className="text-xs text-muted-foreground text-center">Or choose an avatar below</p>
+              <div className="grid grid-cols-4 gap-2">
+                {AVATAR_OPTIONS.map((avatar, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setSelectedAvatar(avatar);
+                      setShowAvatarPicker(false);
+                    }}
+                    className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all ${
+                      selectedAvatar === avatar ? 'border-primary scale-110' : 'border-transparent hover:border-primary/50'
+                    }`}
+                  >
+                    <img src={avatar} alt={`Avatar ${index + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
