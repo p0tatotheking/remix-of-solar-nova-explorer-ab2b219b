@@ -152,21 +152,32 @@ export type Database = {
           created_at: string
           id: string
           message: string
+          reply_to_id: string | null
           username: string
         }
         Insert: {
           created_at?: string
           id?: string
           message: string
+          reply_to_id?: string | null
           username: string
         }
         Update: {
           created_at?: string
           id?: string
           message?: string
+          reply_to_id?: string | null
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       direct_messages: {
         Row: {
@@ -176,6 +187,7 @@ export type Database = {
           read: boolean
           receiver_id: string
           receiver_username: string
+          reply_to_id: string | null
           sender_id: string
           sender_username: string
         }
@@ -186,6 +198,7 @@ export type Database = {
           read?: boolean
           receiver_id: string
           receiver_username: string
+          reply_to_id?: string | null
           sender_id: string
           sender_username: string
         }
@@ -196,10 +209,19 @@ export type Database = {
           read?: boolean
           receiver_id?: string
           receiver_username?: string
+          reply_to_id?: string | null
           sender_id?: string
           sender_username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       favorite_songs: {
         Row: {

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle, Smile, Image as ImageIcon, Settings } from 'lucide-react';
+import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle, Smile, Image as ImageIcon, Settings, Reply, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { censorText } from '@/lib/profanityFilter';
@@ -20,6 +20,7 @@ interface Message {
   username: string;
   message: string;
   created_at: string;
+  reply_to_id?: string | null;
 }
 
 interface DirectMessage {
@@ -31,6 +32,7 @@ interface DirectMessage {
   message: string;
   read: boolean;
   created_at: string;
+  reply_to_id?: string | null;
 }
 
 interface AppUser {
@@ -124,6 +126,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [reactions, setReactions] = useState<Record<string, Record<string, { users: string[]; usernames: string[] }>>>({});
+  const [replyingTo, setReplyingTo] = useState<Message | DirectMessage | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Emoji autocomplete state
@@ -494,6 +497,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
       await supabase.from('chat_messages').insert({
         username: user.username,
         message: finalMessage,
+        reply_to_id: replyingTo?.id || null,
       });
     } else if (view === 'dm' && selectedDmUser) {
       await supabase.from('direct_messages').insert({
@@ -502,13 +506,24 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
         receiver_id: selectedDmUser.id,
         receiver_username: selectedDmUser.username,
         message: finalMessage,
+        reply_to_id: replyingTo?.id || null,
       });
     }
 
     setNewMessage('');
+    setReplyingTo(null);
     setIsLoading(false);
     setShowEmojiPicker(false);
     setShowGifPicker(false);
+  };
+
+  const getReplyMessage = (replyToId: string | null | undefined, messageType: 'server' | 'dm') => {
+    if (!replyToId) return null;
+    if (messageType === 'server') {
+      return serverMessages.find(m => m.id === replyToId);
+    } else {
+      return dmMessages.find(m => m.id === replyToId);
+    }
   };
 
   const openDm = (dmUser: AppUser) => {
@@ -860,6 +875,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                   const senderUser = allUsers.find(u => u.username === msg.username);
                   const msgAvatar = senderUser ? getAvatar(senderUser.id) : null;
                   const displayName = senderUser ? getDisplayName(senderUser.id, msg.username) : msg.username;
+                  const replyMsg = getReplyMessage(msg.reply_to_id, 'server') as Message | null;
                   
                     return (
                       <div key={msg.id} className="group relative flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
@@ -873,6 +889,16 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
+                          {/* Reply preview */}
+                          {replyMsg && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5 pl-2 border-l-2 border-primary/50">
+                              <Reply className="w-3 h-3" />
+                              <span className="font-medium">{replyMsg.username}</span>
+                              <span className="truncate max-w-[200px]">
+                                {isGifUrl(replyMsg.message) ? 'sent a GIF' : replyMsg.message}
+                              </span>
+                            </div>
+                          )}
                           <div className="flex items-baseline gap-2">
                             <span className="font-semibold text-foreground">{displayName}</span>
                             <span className="text-xs text-muted-foreground">
@@ -893,6 +919,14 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                             onReactionChange={fetchReactions}
                           />
                         </div>
+                        {/* Reply button */}
+                        <button
+                          onClick={() => setReplyingTo(msg)}
+                          className="absolute right-2 top-1 p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Reply"
+                        >
+                          <Reply className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     );
                 })}
@@ -911,6 +945,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                 {dmMessages.map((msg) => {
                   const msgAvatar = getAvatar(msg.sender_id);
                   const displayName = getDisplayName(msg.sender_id, msg.sender_username);
+                  const replyMsg = getReplyMessage(msg.reply_to_id, 'dm') as DirectMessage | null;
                   
                   return (
                     <div key={msg.id} className="group relative flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
@@ -924,6 +959,16 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
+                        {/* Reply preview */}
+                        {replyMsg && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5 pl-2 border-l-2 border-primary/50">
+                            <Reply className="w-3 h-3" />
+                            <span className="font-medium">{replyMsg.sender_username}</span>
+                            <span className="truncate max-w-[200px]">
+                              {isGifUrl(replyMsg.message) ? 'sent a GIF' : replyMsg.message}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-baseline gap-2">
                           <span className="font-semibold text-foreground">{displayName}</span>
                           <span className="text-xs text-muted-foreground">
@@ -944,6 +989,14 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                           onReactionChange={fetchReactions}
                         />
                       </div>
+                      {/* Reply button */}
+                      <button
+                        onClick={() => setReplyingTo(msg)}
+                        className="absolute right-2 top-1 p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Reply"
+                      >
+                        <Reply className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   );
                 })}
@@ -964,6 +1017,26 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
         {/* Message input */}
         {(view === 'server' || (view === 'dm' && selectedDmUser && !isBlocked(selectedDmUser.id) && !isBlockedBy(selectedDmUser.id))) && (
           <form onSubmit={sendMessage} className="p-3 md:p-4 border-t border-border/30 safe-area-pb">
+            {/* Reply indicator */}
+            {replyingTo && (
+              <div className="flex items-center gap-2 mb-2 px-2 py-1.5 bg-muted/50 rounded-lg text-sm">
+                <Reply className="w-4 h-4 text-primary" />
+                <span className="text-muted-foreground">Replying to</span>
+                <span className="font-medium text-foreground">
+                  {'username' in replyingTo ? replyingTo.username : replyingTo.sender_username}
+                </span>
+                <span className="text-muted-foreground truncate flex-1 max-w-[200px]">
+                  {isGifUrl(replyingTo.message) ? 'GIF' : replyingTo.message}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setReplyingTo(null)}
+                  className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             <div className="relative flex gap-2">
                 {showEmojiPicker && (
                   <EmojiPicker
@@ -1002,7 +1075,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 className="flex-1 bg-muted border border-border/30 rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
-                placeholder={view === 'server' ? 'Message #general' : `Message ${selectedDmUser?.username}`}
+                placeholder={replyingTo ? 'Type your reply...' : (view === 'server' ? 'Message #general' : `Message ${selectedDmUser?.username}`)}
                 disabled={isLoading}
               />
               <button

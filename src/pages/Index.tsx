@@ -28,7 +28,7 @@ const Index = () => {
   const [showNav, setShowNav] = useState(false);
   const [typewriterText, setTypewriterText] = useState('');
 
-  const fullText = 'SOLARNOVA';
+  const fullText = 'SOLARNOVA V2';
 
   // Typewriter effect for home
   useEffect(() => {
