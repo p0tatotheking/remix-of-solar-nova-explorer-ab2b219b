@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 
 interface OnlineUser {
   id: string;
@@ -9,9 +10,17 @@ interface OnlineUser {
   online_at: string;
 }
 
+interface UserStatus {
+  user_id: string;
+  last_seen: string;
+  is_online: boolean;
+}
+
 interface PresenceContextType {
   onlineUsers: OnlineUser[];
   isUserOnline: (userId: string) => boolean;
+  getLastSeen: (userId: string) => Promise<string | null>;
+  formatLastSeen: (lastSeen: string | null) => string;
 }
 
 const PresenceContext = createContext<PresenceContextType | undefined>(undefined);
@@ -20,8 +29,26 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [friends, setFriends] = useState<string[]>([]);
+  const [statusCache, setStatusCache] = useState<Map<string, UserStatus>>(new Map());
   const previousOnlineRef = useRef<Set<string>>(new Set());
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Update user status in database
+  const updateUserStatus = useCallback(async (userId: string, isOnline: boolean) => {
+    const { error } = await supabase
+      .from('user_status')
+      .upsert({
+        user_id: userId,
+        is_online: isOnline,
+        last_seen: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
+      });
+
+    if (error) {
+      console.error('Error updating user status:', error);
+    }
+  }, []);
 
   // Fetch friends list
   useEffect(() => {
@@ -73,6 +100,25 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       previousOnlineRef.current = new Set();
       return;
     }
+
+    // Set user as online
+    updateUserStatus(user.id, true);
+
+    // Handle page close/refresh - set user as offline
+    const handleBeforeUnload = () => {
+      // Use sendBeacon for reliable delivery on page unload
+      const data = JSON.stringify({
+        user_id: user.id,
+        is_online: false,
+        last_seen: new Date().toISOString(),
+      });
+      navigator.sendBeacon?.(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/user_status?on_conflict=user_id`,
+        new Blob([data], { type: 'application/json' })
+      );
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     const channel = supabase.channel('online-users', {
       config: {
@@ -147,6 +193,13 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       })
       .on('presence', { event: 'leave' }, ({ leftPresences }) => {
         console.log('User left:', leftPresences);
+        // Update last seen for users who left
+        const leftUsers = leftPresences as Array<{ id?: string; presence_ref: string }>;
+        leftUsers.forEach((leftUser) => {
+          if (leftUser.id) {
+            updateUserStatus(leftUser.id, false);
+          }
+        });
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
@@ -159,17 +212,53 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       });
 
     return () => {
+      // Set offline when component unmounts
+      updateUserStatus(user.id, false);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [user, friends]);
+  }, [user, friends, updateUserStatus]);
 
   const isUserOnline = (userId: string): boolean => {
     return onlineUsers.some((u) => u.id === userId);
   };
 
+  const getLastSeen = useCallback(async (userId: string): Promise<string | null> => {
+    // Check cache first
+    const cached = statusCache.get(userId);
+    if (cached) {
+      return cached.last_seen;
+    }
+
+    const { data } = await supabase
+      .from('user_status')
+      .select('user_id, last_seen, is_online')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (data) {
+      setStatusCache((prev) => new Map(prev).set(userId, data));
+      return data.last_seen;
+    }
+
+    return null;
+  }, [statusCache]);
+
+  const formatLastSeen = useCallback((lastSeen: string | null): string => {
+    if (!lastSeen) {
+      return 'Never seen';
+    }
+
+    try {
+      return `Last seen ${formatDistanceToNow(new Date(lastSeen), { addSuffix: true })}`;
+    } catch {
+      return 'Last seen recently';
+    }
+  }, []);
+
   return (
-    <PresenceContext.Provider value={{ onlineUsers, isUserOnline }}>
+    <PresenceContext.Provider value={{ onlineUsers, isUserOnline, getLastSeen, formatLastSeen }}>
       {children}
     </PresenceContext.Provider>
   );
