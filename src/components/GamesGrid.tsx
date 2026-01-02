@@ -9,6 +9,7 @@ interface Game {
   embed?: boolean;
   isTab?: string;
   category: string;
+  thumbnail?: string;
 }
 
 interface GamesGridProps {
@@ -47,6 +48,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Rhythm battle game',
       embed: true,
       category: 'rhythm',
+      thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop',
     },
     {
       title: 'Petezah Games',
@@ -55,6 +57,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Game collection hub',
       embed: true,
       category: 'arcade',
+      thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=300&fit=crop',
     },
     {
       title: 'Solarnova Music',
@@ -63,6 +66,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Music streaming',
       isTab: 'music',
       category: 'utility',
+      thumbnail: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=300&fit=crop',
     },
     {
       title: 'Umbrion Games',
@@ -71,6 +75,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Indie game showcase',
       embed: true,
       category: 'arcade',
+      thumbnail: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=300&fit=crop',
     },
     {
       title: 'Lumi OS',
@@ -79,6 +84,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Browser OS',
       embed: true,
       category: 'utility',
+      thumbnail: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop',
     },
     {
       title: 'Kermitco',
@@ -87,6 +93,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Creative adventure',
       embed: true,
       category: 'arcade',
+      thumbnail: 'https://images.unsplash.com/photo-1551103782-8ab07afd45c1?w=400&h=300&fit=crop',
     },
     {
       title: 'Cobra',
@@ -95,6 +102,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Business platform',
       embed: true,
       category: 'utility',
+      thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop',
     },
     {
       title: 'Car Game',
@@ -103,6 +111,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Racing game',
       embed: true,
       category: 'racing',
+      thumbnail: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=300&fit=crop',
     },
     {
       title: 'Mathepic',
@@ -111,6 +120,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Math learning game',
       embed: true,
       category: 'arcade',
+      thumbnail: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=300&fit=crop',
     },
   ];
 
@@ -184,36 +194,51 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
               <button
                 key={game.title}
                 onClick={() => onGameClick(game.url, game.title, game.embed, game.isTab)}
-                className="group relative bg-card border border-border/40 rounded-xl md:rounded-2xl p-4 md:p-5 text-left hover:border-primary/60 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.98]"
+                className="group relative bg-card border border-border/40 rounded-xl md:rounded-2xl overflow-hidden text-left hover:border-primary/60 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.98]"
               >
-                <div className="flex items-start gap-3 md:gap-4">
-                  {/* Emoji Icon */}
-                  <div className="w-11 h-11 md:w-14 md:h-14 rounded-lg md:rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <span className="text-2xl md:text-3xl">{emoji}</span>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-0.5 md:mb-1">
-                      <h3 className="font-semibold text-foreground text-sm md:text-base truncate group-hover:text-primary transition-colors">
-                        {game.title}
-                      </h3>
-                      <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-primary/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                        <Play className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary fill-primary" />
-                      </div>
+                {/* Thumbnail Image */}
+                <div className="relative w-full h-32 md:h-40 overflow-hidden">
+                  {game.thumbnail ? (
+                    <img 
+                      src={game.thumbnail} 
+                      alt={game.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                      <span className="text-4xl md:text-5xl">{emoji}</span>
                     </div>
-                    <p className="text-[10px] md:text-xs text-primary/80 font-medium mb-1 md:mb-2">{game.preview}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                      {game.description}
-                    </p>
+                  )}
+                  {/* Overlay gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+                  
+                  {/* Play button overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-lg">
+                      <Play className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground fill-primary-foreground ml-0.5" />
+                    </div>
+                  </div>
+                  
+                  {/* Category badge */}
+                  <div className="absolute top-2 md:top-3 right-2 md:right-3">
+                    <span className="text-[9px] md:text-[10px] uppercase tracking-wider bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full text-foreground font-medium">
+                      {game.category}
+                    </span>
                   </div>
                 </div>
 
-                {/* Category badge */}
-                <div className="absolute top-2 md:top-3 right-2 md:right-3">
-                  <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">
-                    {game.category}
-                  </span>
+                {/* Content */}
+                <div className="p-3 md:p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{emoji}</span>
+                    <h3 className="font-semibold text-foreground text-sm md:text-base truncate group-hover:text-primary transition-colors">
+                      {game.title}
+                    </h3>
+                  </div>
+                  <p className="text-[10px] md:text-xs text-primary/80 font-medium mb-1">{game.preview}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                    {game.description}
+                  </p>
                 </div>
               </button>
             );
