@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Users, Plus, Trash2, Key, X, Shield } from 'lucide-react';
+import { Users, Plus, Trash2, Key, X, Shield, Gamepad2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { hashPassword } from '@/lib/crypto';
+import { GameManagement } from './GameManagement';
 
 interface AppUser {
   id: string;
@@ -10,6 +11,8 @@ interface AppUser {
   role: 'admin' | 'user';
   created_at: string;
 }
+
+type TabType = 'users' | 'games';
 
 export function AdminPanel({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
@@ -20,6 +23,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('users');
 
   const fetchUsers = async () => {
     if (!user) return;
@@ -133,6 +137,36 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-60px)] md:max-h-[calc(80vh-80px)]">
+          {/* Tab Navigation */}
+          <div className="flex gap-2 mb-6 border-b border-border pb-3">
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                activeTab === 'users' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Users
+            </button>
+            <button
+              onClick={() => setActiveTab('games')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                activeTab === 'games' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              <Gamepad2 className="w-4 h-4" />
+              Games
+            </button>
+          </div>
+
+          {activeTab === 'games' ? (
+            <GameManagement />
+          ) : (
+            <>
           {error && (
             <div className="bg-destructive/20 border border-destructive rounded-lg px-3 md:px-4 py-2 md:py-3 text-destructive text-sm mb-4">
               {error}
@@ -242,6 +276,8 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
                 </div>
               ))}
             </div>
+          )}
+            </>
           )}
         </div>
       </div>

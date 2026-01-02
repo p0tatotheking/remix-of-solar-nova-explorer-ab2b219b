@@ -330,6 +330,62 @@ export type Database = {
         }
         Relationships: []
       }
+      games: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          display_order: number
+          embed: boolean
+          id: string
+          is_tab: string | null
+          preview: string
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          display_order?: number
+          embed?: boolean
+          id?: string
+          is_tab?: string | null
+          preview?: string
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          url?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          display_order?: number
+          embed?: boolean
+          id?: string
+          is_tab?: string | null
+          preview?: string
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_reactions: {
         Row: {
           created_at: string
@@ -620,6 +676,21 @@ export type Database = {
         }
         Returns: string
       }
+      create_game: {
+        Args: {
+          p_admin_id: string
+          p_category: string
+          p_description: string
+          p_display_order: number
+          p_embed: boolean
+          p_is_tab: string
+          p_preview: string
+          p_thumbnail_url: string
+          p_title: string
+          p_url: string
+        }
+        Returns: string
+      }
       delete_announcement: {
         Args: { p_admin_id: string; p_announcement_id: string }
         Returns: boolean
@@ -630,6 +701,10 @@ export type Database = {
       }
       delete_bug: {
         Args: { p_admin_id: string; p_bug_id: string }
+        Returns: boolean
+      }
+      delete_game: {
+        Args: { p_admin_id: string; p_game_id: string }
         Returns: boolean
       }
       delete_uploaded_music: {
@@ -670,6 +745,22 @@ export type Database = {
           p_announcement_id: string
           p_content: string
           p_title: string
+        }
+        Returns: boolean
+      }
+      update_game: {
+        Args: {
+          p_admin_id: string
+          p_category: string
+          p_description: string
+          p_display_order: number
+          p_embed: boolean
+          p_game_id: string
+          p_is_tab: string
+          p_preview: string
+          p_thumbnail_url: string
+          p_title: string
+          p_url: string
         }
         Returns: boolean
       }
