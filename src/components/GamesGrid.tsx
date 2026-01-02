@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Play, Gamepad2, Music, Cpu, Car, Sparkles } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Game {
+  id?: string;
   title: string;
   description: string;
   url: string;
@@ -33,96 +35,137 @@ const getGameEmoji = (title: string, category: string) => {
   if (titleLower.includes('petezah')) return '🎮';
   if (titleLower.includes('umbrion')) return '⚡';
   if (titleLower.includes('kermit')) return '🐸';
+  if (titleLower.includes('math')) return '🧮';
   return '🎯';
 };
+
+// Fallback games if database is empty
+const defaultGames: Game[] = [
+  {
+    title: 'Friday Night Funkin',
+    description: 'Test your rhythm skills in epic rap battles with challenging beats.',
+    url: 'https://fnfcbn.wasmer.app/',
+    preview: 'Rhythm battle game',
+    embed: true,
+    category: 'rhythm',
+    thumbnail: 'https://images.launchbox-app.com/382e2596-44e8-41fa-93d6-b1f267bc5223.png',
+  },
+  {
+    title: 'Petezah Games',
+    description: 'Access a massive collection of unblocked games all in one place.',
+    url: 'https://petezahstatic.wasmer.app',
+    preview: 'Game collection hub',
+    embed: true,
+    category: 'arcade',
+    thumbnail: 'https://images.unsplash.com/photo-1493711662062-fa541f7f2f07?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Solarnova Music',
+    description: 'Stream your favorite music with our sleek, feature-rich player.',
+    url: '',
+    preview: 'Music streaming',
+    isTab: 'music',
+    category: 'utility',
+    thumbnail: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Umbrion Games',
+    description: 'Explore creative indie game projects and unique experiences.',
+    url: 'https://umbrion.wasmer.app/projects.html',
+    preview: 'Indie game showcase',
+    embed: true,
+    category: 'arcade',
+    thumbnail: 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/3553640/header.jpg',
+  },
+  {
+    title: 'Lumi OS',
+    description: 'A complete web-based operating system in your browser.',
+    url: 'https://lumios.wasmer.app',
+    preview: 'Browser OS',
+    embed: true,
+    category: 'utility',
+    thumbnail: 'https://raw.githubusercontent.com/LuminesenceProject/LumiOS/refs/heads/main/images/discord.png',
+  },
+  {
+    title: 'Kermitco',
+    description: 'Unique gaming experience with creative challenges and fun.',
+    url: 'https://kermitcooffline82hfdisocirk88enlqtpc75wchgb45cstvvixmc-12367506.codehs.me/0aDV71GtSpyy91KtZE6P7qeL56mVU5nSvCKNk5fdoGV6N1xy1qsbFa548gBQcARY.html',
+    preview: 'Creative adventure',
+    embed: true,
+    category: 'arcade',
+    thumbnail: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Cobra',
+    description: 'Professional business platform with powerful productivity tools.',
+    url: 'https://thecobra.odoo.com/',
+    preview: 'Business platform',
+    embed: true,
+    category: 'utility',
+    thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Car Game',
+    description: 'Get behind the wheel and race through exciting tracks.',
+    url: 'https://codebeautify.org/htmlviewer/y25205daf#',
+    preview: 'Racing game',
+    embed: true,
+    category: 'racing',
+    thumbnail: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Mathepic',
+    description: 'All credits to gooierpizza7003!',
+    url: 'https://mathepic.tuvnord.hk/',
+    preview: 'Math learning game',
+    embed: true,
+    category: 'arcade',
+    thumbnail: 'https://img.gamepix.com/games/mathpup-math-adventure-integers/cover/mathpup-math-adventure-integers.png',
+  },
+];
 
 export function GamesGrid({ onGameClick }: GamesGridProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+  const [games, setGames] = useState<Game[]>(defaultGames);
+  const [loading, setLoading] = useState(true);
 
-  const games: Game[] = [
-    {
-      title: 'Friday Night Funkin',
-      description: 'Test your rhythm skills in epic rap battles with challenging beats.',
-      url: 'https://fnfcbn.wasmer.app/',
-      preview: 'Rhythm battle game',
-      embed: true,
-      category: 'rhythm',
-      thumbnail: 'https://images.launchbox-app.com/382e2596-44e8-41fa-93d6-b1f267bc5223.png',
-    },
-    {
-      title: 'Petezah Games',
-      description: 'Access a massive collection of unblocked games all in one place.',
-      url: 'https://petezahstatic.wasmer.app',
-      preview: 'Game collection hub',
-      embed: true,
-      category: 'arcade',
-      thumbnail: 'https://images.unsplash.com/photo-1493711662062-fa541f7f2f07?w=400&h=300&fit=crop',
-    },
-    {
-      title: 'Solarnova Music',
-      description: 'Stream your favorite music with our sleek, feature-rich player.',
-      url: '',
-      preview: 'Music streaming',
-      isTab: 'music',
-      category: 'utility',
-      thumbnail: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=400&h=300&fit=crop',
-    },
-    {
-      title: 'Umbrion Games',
-      description: 'Explore creative indie game projects and unique experiences.',
-      url: 'https://umbrion.wasmer.app/projects.html',
-      preview: 'Indie game showcase',
-      embed: true,
-      category: 'arcade',
-      thumbnail: 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/3553640/header.jpg',
-    },
-    {
-      title: 'Lumi OS',
-      description: 'A complete web-based operating system in your browser.',
-      url: 'https://lumios.wasmer.app',
-      preview: 'Browser OS',
-      embed: true,
-      category: 'utility',
-      thumbnail: 'https://raw.githubusercontent.com/LuminesenceProject/LumiOS/refs/heads/main/images/discord.png',
-    },
-    {
-      title: 'Kermitco',
-      description: 'Unique gaming experience with creative challenges and fun.',
-      url: 'https://kermitcooffline82hfdisocirk88enlqtpc75wchgb45cstvvixmc-12367506.codehs.me/0aDV71GtSpyy91KtZE6P7qeL56mVU5nSvCKNk5fdoGV6N1xy1qsbFa548gBQcARY.html',
-      preview: 'Creative adventure',
-      embed: true,
-      category: 'arcade',
-      thumbnail: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
-    },
-    {
-      title: 'Cobra',
-      description: 'Professional business platform with powerful productivity tools.',
-      url: 'https://thecobra.odoo.com/',
-      preview: 'Business platform',
-      embed: true,
-      category: 'utility',
-      thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
-    },
-    {
-      title: 'Car Game',
-      description: 'Get behind the wheel and race through exciting tracks.',
-      url: 'https://codebeautify.org/htmlviewer/y25205daf#',
-      preview: 'Racing game',
-      embed: true,
-      category: 'racing',
-      thumbnail: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&h=300&fit=crop',
-    },
-    {
-      title: 'Mathepic',
-      description: 'All credits to gooierpizza7003!',
-      url: 'https://mathepic.tuvnord.hk/',
-      preview: 'Math learning game',
-      embed: true,
-      category: 'arcade',
-      thumbnail: 'https://img.gamepix.com/games/mathpup-math-adventure-integers/cover/mathpup-math-adventure-integers.png',
-    },
-  ];
+  useEffect(() => {
+    const fetchGames = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('games')
+          .select('*')
+          .order('display_order', { ascending: true });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          // Map database fields to component format
+          const mappedGames: Game[] = data.map(g => ({
+            id: g.id,
+            title: g.title,
+            description: g.description,
+            url: g.url,
+            preview: g.preview,
+            embed: g.embed,
+            isTab: g.is_tab || undefined,
+            category: g.category,
+            thumbnail: g.thumbnail_url || undefined,
+          }));
+          setGames(mappedGames);
+        }
+        // If no games in DB, keep default games
+      } catch (error) {
+        console.error('Error fetching games:', error);
+        // Keep default games on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGames();
+  }, []);
 
   const filteredGames = useMemo(() => {
     return games.filter(game => {
@@ -131,7 +174,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       const matchesCategory = activeCategory === 'all' || game.category === activeCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, activeCategory]);
+  }, [games, searchQuery, activeCategory]);
 
   return (
     <div className="max-w-6xl mx-auto px-2 md:px-0">
