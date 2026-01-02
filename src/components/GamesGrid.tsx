@@ -48,7 +48,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Rhythm battle game',
       embed: true,
       category: 'rhythm',
-      thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.launchbox-app.com/382e2596-44e8-41fa-93d6-b1f267bc5223.png',
     },
     {
       title: 'Petezah Games',
@@ -57,7 +57,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Game collection hub',
       embed: true,
       category: 'arcade',
-      thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1493711662062-fa541f7f2f07?w=400&h=300&fit=crop',
     },
     {
       title: 'Solarnova Music',
@@ -66,7 +66,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Music streaming',
       isTab: 'music',
       category: 'utility',
-      thumbnail: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=400&h=300&fit=crop',
     },
     {
       title: 'Umbrion Games',
@@ -75,7 +75,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Indie game showcase',
       embed: true,
       category: 'arcade',
-      thumbnail: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=300&fit=crop',
+      thumbnail: 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/3553640/header.jpg',
     },
     {
       title: 'Lumi OS',
@@ -84,7 +84,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Browser OS',
       embed: true,
       category: 'utility',
-      thumbnail: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop',
+      thumbnail: 'https://raw.githubusercontent.com/LuminesenceProject/LumiOS/refs/heads/main/images/discord.png',
     },
     {
       title: 'Kermitco',
@@ -93,7 +93,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Creative adventure',
       embed: true,
       category: 'arcade',
-      thumbnail: 'https://images.unsplash.com/photo-1551103782-8ab07afd45c1?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
     },
     {
       title: 'Cobra',
@@ -102,7 +102,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Business platform',
       embed: true,
       category: 'utility',
-      thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
     },
     {
       title: 'Car Game',
@@ -111,7 +111,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Racing game',
       embed: true,
       category: 'racing',
-      thumbnail: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&h=300&fit=crop',
     },
     {
       title: 'Mathepic',
@@ -120,7 +120,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
       preview: 'Math learning game',
       embed: true,
       category: 'arcade',
-      thumbnail: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=300&fit=crop',
+      thumbnail: 'https://img.gamepix.com/games/mathpup-math-adventure-integers/cover/mathpup-math-adventure-integers.png',
     },
   ];
 
