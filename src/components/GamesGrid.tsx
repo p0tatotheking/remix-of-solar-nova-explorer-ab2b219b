@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+const STATS_KEY = 'solarnova_user_stats';
+const GAMES_HISTORY_KEY = 'solarnova_games_history';
+
 interface Game {
   id?: string;
   title: string;
@@ -292,12 +295,38 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
               <div key={game.id || game.title} className="relative">
                 <button
                   onClick={() => {
-                    // Save as recent game for dashboard
-                    if (!game.isTab) {
-                      localStorage.setItem('recentGame', JSON.stringify({
+                    // Save game to history for dashboard with persistent tracking
+                    if (!game.isTab && user) {
+                      const historyKey = `${GAMES_HISTORY_KEY}_${user.id}`;
+                      const statsKey = `${STATS_KEY}_${user.id}`;
+                      
+                      // Update games history
+                      const existing = localStorage.getItem(historyKey);
+                      let history: { thumbnail: string; title: string; id: string }[] = [];
+                      if (existing) {
+                        try {
+                          history = JSON.parse(existing);
+                        } catch {}
+                      }
+                      
+                      // Add to front, remove duplicates, keep last 10
+                      const newEntry = {
                         thumbnail: game.thumbnail || '',
-                        title: game.title
-                      }));
+                        title: game.title,
+                        id: game.id || game.title
+                      };
+                      history = [newEntry, ...history.filter(g => g.id !== newEntry.id)].slice(0, 10);
+                      localStorage.setItem(historyKey, JSON.stringify(history));
+                      
+                      // Update games played count in stats
+                      const statsData = localStorage.getItem(statsKey);
+                      if (statsData) {
+                        try {
+                          const stats = JSON.parse(statsData);
+                          stats.gamesPlayed = (stats.gamesPlayed || 0) + 1;
+                          localStorage.setItem(statsKey, JSON.stringify(stats));
+                        } catch {}
+                      }
                     }
                     onGameClick(game.url, game.title, game.embed, game.isTab);
                   }}
