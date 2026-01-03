@@ -291,7 +291,16 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
             return (
               <div key={game.id || game.title} className="relative">
                 <button
-                  onClick={() => onGameClick(game.url, game.title, game.embed, game.isTab)}
+                  onClick={() => {
+                    // Save as recent game for dashboard
+                    if (!game.isTab) {
+                      localStorage.setItem('recentGame', JSON.stringify({
+                        thumbnail: game.thumbnail || '',
+                        title: game.title
+                      }));
+                    }
+                    onGameClick(game.url, game.title, game.embed, game.isTab);
+                  }}
                   className="group relative w-full bg-card border border-border/40 rounded-xl md:rounded-2xl overflow-hidden text-left hover:border-primary/60 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.98]"
                 >
                   {/* Thumbnail Image */}

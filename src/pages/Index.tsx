@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Star, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff } from 'lucide-react';
-import { GameCard } from '@/components/GameCard';
+import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
@@ -15,6 +14,7 @@ import { AdminPanel } from '@/components/AdminPanel';
 import { CloakLauncher } from '@/components/CloakLauncher';
 import { Snowfall } from '@/components/Snowfall';
 import { SnowfallProvider, useSnowfall } from '@/contexts/SnowfallContext';
+import { HomeDashboard } from '@/components/HomeDashboard';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube';
@@ -397,107 +397,10 @@ function IndexInner() {
       {/* Main content */}
       <main className="relative pb-24 md:pb-20">
         {activeSection === 'home' && (
-          <>
-            {/* Hero section */}
-            <section className="relative py-12 md:py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-              <div className="max-w-7xl mx-auto text-center relative z-10">
-                {/* Typewriter SOLARNOVA */}
-                <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold mb-4 md:mb-6 text-gradient">
-                  {typewriterText}
-                  <span className="animate-pulse text-primary">|</span>
-                </h1>
-
-                <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-8 md:mb-12 max-w-2xl mx-auto font-light px-4">
-                  Hub for all games and made by p0tato
-                </p>
-
-                <div className="inline-block p-1 bg-gradient-primary rounded-full mb-8 md:mb-16">
-                  <div className="bg-background px-4 md:px-6 py-2 md:py-3 rounded-full">
-                    <p className="text-primary font-semibold text-sm md:text-base">
-                      ✨ Now with encrypted chatrooms
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-xs md:text-sm text-muted-foreground/60 px-4">
-                  <span className="hidden md:inline">Press <kbd className="px-2 py-1 bg-muted rounded text-foreground">R</kbd> to panic exit • Hover left to show menu</span>
-                  <span className="md:hidden">Tap bottom menu to navigate</span>
-                </p>
-
-                {/* Admin User View Toggle - only visible to actual admins */}
-                {isAdmin && (
-                  <button
-                    onClick={() => setUserViewMode(!userViewMode)}
-                    className={`mt-6 flex items-center gap-2 px-4 py-2 rounded-lg transition-all mx-auto ${
-                      userViewMode 
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
-                        : 'bg-primary/20 text-primary border border-primary/30'
-                    }`}
-                  >
-                    {userViewMode ? (
-                      <>
-                        <EyeOff className="w-4 h-4" />
-                        <span className="text-sm font-medium">Switch to Admin View</span>
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="w-4 h-4" />
-                        <span className="text-sm font-medium">Switch to User View</span>
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {/* User View Mode Indicator */}
-                {userViewMode && (
-                  <div className="mt-4 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
-                    <p className="text-xs text-amber-400">
-                      👁️ Viewing as regular user
-                    </p>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Featured games section */}
-            <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
-              <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
-                  <GameCard
-                    title="Friday Night Funkin'"
-                    description="Test your rhythm in epic rap battles with challenging beats and memorable characters"
-                    icon={Star}
-                    onClick={() => setActiveSection('games')}
-                  />
-                  <GameCard
-                    title="Unblocked Games"
-                    description="Access an extensive library of classic and modern games, all playable instantly"
-                    icon={Gamepad2}
-                    onClick={() => setActiveSection('games')}
-                  />
-                  <GameCard
-                    title="Solarnova Music Player"
-                    description="Stream your favorite tracks with our feature-rich, beautifully designed music player"
-                    onClick={() => setActiveSection('music')}
-                    icon={Music}
-                  />
-                </div>
-              </div>
-            </section>
-
-            {/* CTA section */}
-            <section className="py-10 md:py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-primary/10 to-transparent">
-              <div className="max-w-4xl mx-auto text-center">
-                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6 text-gradient">
-                  Join the Gaming Revolution
-                </h2>
-                <p className="text-muted-foreground text-base md:text-lg mb-6 md:mb-8 leading-relaxed px-4">
-                  Experience the future of online gaming with Solarnova. Connect with players worldwide,
-                  compete in tournaments, and discover endless entertainment.
-                </p>
-              </div>
-            </section>
-          </>
+          <HomeDashboard 
+            typewriterText={typewriterText} 
+            onNavigate={(section) => setActiveSection(section as Section)}
+          />
         )}
 
         {activeSection === 'games' && (
