@@ -1,6 +1,8 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Search, Play, Gamepad2, Music, Cpu, Car, Sparkles } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Search, Play, Gamepad2, Music, Cpu, Car, Sparkles, Camera, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface Game {
   id?: string;
@@ -129,43 +131,95 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [games, setGames] = useState<Game[]>(defaultGames);
   const [loading, setLoading] = useState(true);
+  const [uploadingGameId, setUploadingGameId] = useState<string | null>(null);
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const { isAdmin, user } = useAuth();
+
+  const fetchGames = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('games')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // Map database fields to component format
+        const mappedGames: Game[] = data.map(g => ({
+          id: g.id,
+          title: g.title,
+          description: g.description,
+          url: g.url,
+          preview: g.preview,
+          embed: g.embed,
+          isTab: g.is_tab || undefined,
+          category: g.category,
+          thumbnail: g.thumbnail_url || undefined,
+        }));
+        setGames(mappedGames);
+      }
+      // If no games in DB, keep default games
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      // Keep default games on error
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('games')
-          .select('*')
-          .order('display_order', { ascending: true });
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          // Map database fields to component format
-          const mappedGames: Game[] = data.map(g => ({
-            id: g.id,
-            title: g.title,
-            description: g.description,
-            url: g.url,
-            preview: g.preview,
-            embed: g.embed,
-            isTab: g.is_tab || undefined,
-            category: g.category,
-            thumbnail: g.thumbnail_url || undefined,
-          }));
-          setGames(mappedGames);
-        }
-        // If no games in DB, keep default games
-      } catch (error) {
-        console.error('Error fetching games:', error);
-        // Keep default games on error
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchGames();
   }, []);
+
+  const handleThumbnailUpload = async (gameId: string, file: File) => {
+    if (!user || !isAdmin) return;
+    
+    setUploadingGameId(gameId);
+    
+    try {
+      // Upload to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${gameId}-${Date.now()}.${fileExt}`;
+      const filePath = `thumbnails/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('game-thumbnails')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('game-thumbnails')
+        .getPublicUrl(filePath);
+
+      // Update game in database
+      const { error: updateError } = await supabase.rpc('update_game', {
+        p_admin_id: user.id,
+        p_game_id: gameId,
+        p_title: games.find(g => g.id === gameId)?.title || '',
+        p_description: games.find(g => g.id === gameId)?.description || '',
+        p_url: games.find(g => g.id === gameId)?.url || '',
+        p_preview: games.find(g => g.id === gameId)?.preview || '',
+        p_embed: games.find(g => g.id === gameId)?.embed ?? true,
+        p_is_tab: games.find(g => g.id === gameId)?.isTab || '',
+        p_category: games.find(g => g.id === gameId)?.category || 'arcade',
+        p_thumbnail_url: publicUrl,
+        p_display_order: 0,
+      });
+
+      if (updateError) throw updateError;
+
+      toast.success('Thumbnail updated!');
+      fetchGames(); // Refresh games list
+    } catch (error) {
+      console.error('Error uploading thumbnail:', error);
+      toast.error('Failed to upload thumbnail');
+    } finally {
+      setUploadingGameId(null);
+    }
+  };
 
   const filteredGames = useMemo(() => {
     return games.filter(game => {
@@ -233,57 +287,93 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 px-2 md:px-0">
           {filteredGames.map((game) => {
             const emoji = getGameEmoji(game.title, game.category);
+            const isUploading = uploadingGameId === game.id;
             return (
-              <button
-                key={game.title}
-                onClick={() => onGameClick(game.url, game.title, game.embed, game.isTab)}
-                className="group relative bg-card border border-border/40 rounded-xl md:rounded-2xl overflow-hidden text-left hover:border-primary/60 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.98]"
-              >
-                {/* Thumbnail Image */}
-                <div className="relative w-full h-32 md:h-40 overflow-hidden">
-                  {game.thumbnail ? (
-                    <img 
-                      src={game.thumbnail} 
-                      alt={game.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                      <span className="text-4xl md:text-5xl">{emoji}</span>
+              <div key={game.id || game.title} className="relative">
+                <button
+                  onClick={() => onGameClick(game.url, game.title, game.embed, game.isTab)}
+                  className="group relative w-full bg-card border border-border/40 rounded-xl md:rounded-2xl overflow-hidden text-left hover:border-primary/60 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.98]"
+                >
+                  {/* Thumbnail Image */}
+                  <div className="relative w-full h-32 md:h-40 overflow-hidden">
+                    {game.thumbnail ? (
+                      <img 
+                        src={game.thumbnail} 
+                        alt={game.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                        <span className="text-4xl md:text-5xl">{emoji}</span>
+                      </div>
+                    )}
+                    {/* Overlay gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+                    
+                    {/* Play button overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-lg">
+                        <Play className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground fill-primary-foreground ml-0.5" />
+                      </div>
                     </div>
-                  )}
-                  {/* Overlay gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
-                  
-                  {/* Play button overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-lg">
-                      <Play className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground fill-primary-foreground ml-0.5" />
+                    
+                    {/* Category badge */}
+                    <div className="absolute top-2 md:top-3 right-2 md:right-3">
+                      <span className="text-[9px] md:text-[10px] uppercase tracking-wider bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full text-foreground font-medium">
+                        {game.category}
+                      </span>
                     </div>
                   </div>
-                  
-                  {/* Category badge */}
-                  <div className="absolute top-2 md:top-3 right-2 md:right-3">
-                    <span className="text-[9px] md:text-[10px] uppercase tracking-wider bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full text-foreground font-medium">
-                      {game.category}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Content */}
-                <div className="p-3 md:p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{emoji}</span>
-                    <h3 className="font-semibold text-foreground text-sm md:text-base truncate group-hover:text-primary transition-colors">
-                      {game.title}
-                    </h3>
+                  {/* Content */}
+                  <div className="p-3 md:p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{emoji}</span>
+                      <h3 className="font-semibold text-foreground text-sm md:text-base truncate group-hover:text-primary transition-colors">
+                        {game.title}
+                      </h3>
+                    </div>
+                    <p className="text-[10px] md:text-xs text-primary/80 font-medium mb-1">{game.preview}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                      {game.description}
+                    </p>
                   </div>
-                  <p className="text-[10px] md:text-xs text-primary/80 font-medium mb-1">{game.preview}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                    {game.description}
-                  </p>
-                </div>
-              </button>
+                </button>
+
+                {/* Admin thumbnail upload button */}
+                {isAdmin && game.id && (
+                  <>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={(el) => { fileInputRefs.current[game.id!] = el; }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && game.id) {
+                          handleThumbnailUpload(game.id, file);
+                        }
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRefs.current[game.id!]?.click();
+                      }}
+                      disabled={isUploading}
+                      className="absolute top-2 left-2 z-10 p-2 rounded-full bg-background/90 backdrop-blur-sm border border-border/50 hover:bg-primary hover:text-primary-foreground transition-all shadow-md"
+                      title="Change thumbnail"
+                    >
+                      {isUploading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
             );
           })}
         </div>
