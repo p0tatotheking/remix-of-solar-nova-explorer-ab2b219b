@@ -212,7 +212,39 @@ function IndexInner() {
 
   const handleNavClick = (id: string) => {
     if (id === 'proxy') {
-      setShowProxy(true);
+      // Open in new tab with fullscreen
+      const win = window.open('about:blank', '_blank');
+      if (win) {
+        win.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Google</title>
+              <link rel="icon" href="https://www.google.com/favicon.ico">
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body, html { height: 100%; width: 100%; overflow: hidden; background: #000; }
+                iframe { width: 100%; height: 100%; border: none; }
+                .fs-overlay { position: fixed; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 9999; cursor: pointer; }
+                .fs-overlay span { color: #fff; font-family: system-ui; font-size: 18px; }
+              </style>
+            </head>
+            <body>
+              <div class="fs-overlay" onclick="goFullscreen()">
+                <span>Click anywhere to enter fullscreen</span>
+              </div>
+              <iframe src="https://solarnova.online/browsing" allowfullscreen></iframe>
+              <script>
+                function goFullscreen() {
+                  document.documentElement.requestFullscreen().catch(() => {});
+                  document.querySelector('.fs-overlay').style.display = 'none';
+                }
+              </script>
+            </body>
+          </html>
+        `);
+        win.document.close();
+      }
     } else {
       setActiveSection(id as Section);
     }
