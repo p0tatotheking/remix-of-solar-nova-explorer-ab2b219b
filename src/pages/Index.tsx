@@ -212,7 +212,28 @@ function IndexInner() {
 
   const handleNavClick = (id: string) => {
     if (id === 'proxy') {
-      setShowProxy(true);
+      // Open in new tab with about:blank cloaking
+      const win = window.open('about:blank', '_blank');
+      if (win) {
+        win.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Google</title>
+              <link rel="icon" href="https://www.google.com/favicon.ico">
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body, html { height: 100%; width: 100%; overflow: hidden; }
+                iframe { width: 100%; height: 100%; border: none; }
+              </style>
+            </head>
+            <body>
+              <iframe src="https://solarnova.online/browsing" allowfullscreen></iframe>
+            </body>
+          </html>
+        `);
+        win.document.close();
+      }
     } else {
       setActiveSection(id as Section);
     }
