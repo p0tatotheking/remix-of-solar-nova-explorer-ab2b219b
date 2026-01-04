@@ -7,7 +7,6 @@ import { Announcements } from '@/components/Announcements';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/PersistentMusicPlayer';
 import { GameEmbed } from '@/components/GameEmbed';
-import { ProxyEmbed } from '@/components/ProxyEmbed';
 import { YouTubePlayer, PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
@@ -147,7 +146,6 @@ function IndexInner() {
   const [activeSection, setActiveSection] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [showProxy, setShowProxy] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [typewriterText, setTypewriterText] = useState('');
   const [userViewMode, setUserViewMode] = useState(false);
@@ -213,7 +211,27 @@ function IndexInner() {
 
   const handleNavClick = (id: string) => {
     if (id === 'proxy') {
-      setShowProxy(true);
+      // Open in cloaked new tab using about:blank
+      const newTab = window.open('about:blank', '_blank');
+      if (newTab) {
+        newTab.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Google</title>
+              <link rel="icon" href="https://www.google.com/favicon.ico">
+              <style>
+                body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+                iframe { width: 100%; height: 100%; border: none; }
+              </style>
+            </head>
+            <body>
+              <iframe src="https://solarnova.online"></iframe>
+            </body>
+          </html>
+        `);
+        newTab.document.close();
+      }
     } else {
       setActiveSection(id as Section);
     }
@@ -475,10 +493,6 @@ function IndexInner() {
         />
       )}
 
-      {/* Proxy Embed */}
-      {showProxy && (
-        <ProxyEmbed onClose={() => setShowProxy(false)} />
-      )}
 
       {/* Admin Panel */}
       {showAdminPanel && isAdmin && (
