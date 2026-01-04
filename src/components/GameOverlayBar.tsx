@@ -109,6 +109,7 @@ export function GameOverlayBar() {
     if (!user) return;
     
     const fetchFriends = async () => {
+      // First get friendships
       const { data: friendships } = await supabase
         .from('friendships')
         .select('friend_id')
@@ -116,13 +117,15 @@ export function GameOverlayBar() {
       
       if (friendships && friendships.length > 0) {
         const friendIds = friendships.map(f => f.friend_id);
-        const { data: users } = await supabase
-          .from('app_users')
-          .select('id, username')
-          .in('id', friendIds);
         
-        if (users) {
-          setFriends(users);
+        // Use the RPC function since app_users has restrictive RLS
+        const { data: allUsers } = await supabase.rpc('get_all_app_users');
+        
+        if (allUsers) {
+          const friendUsers = allUsers.filter((u: { id: string; username: string }) => 
+            friendIds.includes(u.id)
+          );
+          setFriends(friendUsers);
         }
       }
     };
