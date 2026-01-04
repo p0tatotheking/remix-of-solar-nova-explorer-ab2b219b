@@ -21,7 +21,7 @@ export function ProxyEmbed({ onClose }: ProxyEmbedProps) {
 
       {/* Iframe */}
       <iframe
-        src="https://solarnova.online"
+        src="https://solarnova.online/browsing"
         title="Proxy"
         className="w-full h-full pt-14"
         allow="fullscreen; autoplay; encrypted-media"
