@@ -41,11 +41,7 @@ interface Friend {
   username: string;
 }
 
-interface GameOverlayBarProps {
-  onClose?: () => void;
-}
-
-export function GameOverlayBar({ onClose }: GameOverlayBarProps) {
+export function GameOverlayBar() {
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'music' | 'chat' | 'dm' | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -498,15 +494,6 @@ export function GameOverlayBar({ onClose }: GameOverlayBarProps) {
               >
                 <MessageCircle className="w-5 h-5" />
               </button>
-              {onClose && (
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
-                  title="Exit"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
             </div>
           </div>
         </div>
