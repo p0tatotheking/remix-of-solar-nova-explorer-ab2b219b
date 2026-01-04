@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
@@ -8,6 +8,7 @@ import { MusicPlayer } from '@/components/MusicPlayer';
 import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/PersistentMusicPlayer';
 import { GameEmbed } from '@/components/GameEmbed';
 import { YouTubePlayer, PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
+import { UnoGame } from '@/components/UnoGame';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -17,7 +18,7 @@ import { SnowfallProvider, useSnowfall } from '@/contexts/SnowfallContext';
 import { HomeDashboard } from '@/components/HomeDashboard';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
-type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube';
+type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno';
 
 const Index = () => {
   const { user, isLoading, logout, isAdmin } = useAuth();
@@ -205,6 +206,7 @@ function IndexInner() {
     { id: 'music' as const, label: 'Music', icon: Music },
     { id: 'announcements' as const, label: 'Announcements', icon: Megaphone },
     { id: 'chatroom' as const, label: 'Chatroom', icon: MessageSquare },
+    { id: 'uno' as const, label: 'UNO', icon: Spade },
     { id: 'proxy' as const, label: 'Proxy', icon: Globe },
     { id: 'bugs' as const, label: 'Bugs', icon: Bug },
   ];
@@ -460,6 +462,12 @@ function IndexInner() {
         {activeSection === 'youtube' && (
           <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
             <YouTubePlayer />
+          </section>
+        )}
+
+        {activeSection === 'uno' && (
+          <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
+            <UnoGame />
           </section>
         )}
       </main>
