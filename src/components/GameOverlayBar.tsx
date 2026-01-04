@@ -10,7 +10,9 @@ import {
   Music,
   Send,
   X,
-  ChevronUp
+  ChevronUp,
+  Users,
+  ArrowLeft
 } from 'lucide-react';
 import { useMusicPlayer } from './PersistentMusicPlayer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,14 +26,36 @@ interface ChatMessage {
   created_at: string;
 }
 
+interface DirectMessage {
+  id: string;
+  sender_id: string;
+  sender_username: string;
+  receiver_id: string;
+  receiver_username: string;
+  message: string;
+  created_at: string;
+}
+
+interface Friend {
+  id: string;
+  username: string;
+}
+
 export function GameOverlayBar() {
   const [isVisible, setIsVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<'music' | 'chat' | null>(null);
+  const [activeTab, setActiveTab] = useState<'music' | 'chat' | 'dm' | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dmMessagesEndRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // DM state
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [dmMessages, setDmMessages] = useState<DirectMessage[]>([]);
+  const [dmMessage, setDmMessage] = useState('');
 
   const { user } = useAuth();
   
@@ -80,6 +104,78 @@ export function GameOverlayBar() {
     };
   }, []);
 
+  // Fetch friends
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchFriends = async () => {
+      const { data: friendships } = await supabase
+        .from('friendships')
+        .select('friend_id')
+        .eq('user_id', user.id);
+      
+      if (friendships && friendships.length > 0) {
+        const friendIds = friendships.map(f => f.friend_id);
+        const { data: users } = await supabase
+          .from('app_users')
+          .select('id, username')
+          .in('id', friendIds);
+        
+        if (users) {
+          setFriends(users);
+        }
+      }
+    };
+    
+    fetchFriends();
+  }, [user]);
+
+  // Fetch DMs for selected friend
+  useEffect(() => {
+    if (!user || !selectedFriend) return;
+    
+    const fetchDms = async () => {
+      const { data } = await supabase
+        .from('direct_messages')
+        .select('*')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedFriend.id}),and(sender_id.eq.${selectedFriend.id},receiver_id.eq.${user.id})`)
+        .order('created_at', { ascending: true })
+        .limit(50);
+      
+      if (data) {
+        setDmMessages(data);
+      }
+    };
+    
+    fetchDms();
+    
+    // Subscribe to new DMs
+    const channel = supabase
+      .channel('game-overlay-dms')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'direct_messages' },
+        (payload) => {
+          const newDm = payload.new as DirectMessage;
+          if ((newDm.sender_id === user.id && newDm.receiver_id === selectedFriend.id) ||
+              (newDm.sender_id === selectedFriend.id && newDm.receiver_id === user.id)) {
+            setDmMessages(prev => [...prev, newDm]);
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, selectedFriend]);
+
+  // Auto-scroll DMs
+  useEffect(() => {
+    if (activeTab === 'dm' && selectedFriend) {
+      dmMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [dmMessages, activeTab, selectedFriend]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     if (activeTab === 'chat') {
@@ -119,6 +215,26 @@ export function GameOverlayBar() {
 
   const closePanel = () => {
     setActiveTab(null);
+    setSelectedFriend(null);
+  };
+
+  const handleSendDm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dmMessage.trim() || !user || !selectedFriend || isSending) return;
+
+    setIsSending(true);
+    const censoredMessage = censorText(dmMessage.trim());
+    
+    await supabase.from('direct_messages').insert({
+      sender_id: user.id,
+      sender_username: user.username,
+      receiver_id: selectedFriend.id,
+      receiver_username: selectedFriend.username,
+      message: censoredMessage,
+    });
+
+    setDmMessage('');
+    setIsSending(false);
   };
 
   return (
@@ -232,6 +348,97 @@ export function GameOverlayBar() {
                 )}
               </div>
             )}
+
+            {activeTab === 'dm' && (
+              <div className="max-w-2xl mx-auto p-4">
+                <div className="flex items-center justify-between mb-2">
+                  {selectedFriend ? (
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setSelectedFriend(null)} 
+                        className="p-1 hover:bg-muted/50 rounded"
+                      >
+                        <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                      <h3 className="text-sm font-semibold text-foreground">{selectedFriend.username}</h3>
+                    </div>
+                  ) : (
+                    <h3 className="text-sm font-semibold text-foreground">Direct Messages</h3>
+                  )}
+                  <button onClick={closePanel} className="p-1 hover:bg-muted/50 rounded">
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+                
+                {!user ? (
+                  <p className="text-muted-foreground text-sm text-center py-4">Login to send direct messages</p>
+                ) : !selectedFriend ? (
+                  // Friend list
+                  <div className="h-40 overflow-y-auto space-y-1 scrollbar-thin">
+                    {friends.length === 0 ? (
+                      <p className="text-muted-foreground text-sm text-center py-4">No friends yet. Add friends from the chat!</p>
+                    ) : (
+                      friends.map((friend) => (
+                        <button
+                          key={friend.id}
+                          onClick={() => setSelectedFriend(friend)}
+                          className="w-full flex items-center gap-3 p-2 hover:bg-muted/30 rounded-lg transition-colors text-left"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="text-primary text-sm font-medium">
+                              {friend.username.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <span className="text-sm text-foreground">{friend.username}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  // DM conversation
+                  <>
+                    <div className="h-40 overflow-y-auto space-y-2 mb-3 scrollbar-thin">
+                      {dmMessages.length === 0 ? (
+                        <p className="text-muted-foreground text-sm text-center py-4">No messages yet. Say hello!</p>
+                      ) : (
+                        dmMessages.map((msg) => (
+                          <div 
+                            key={msg.id} 
+                            className={`text-sm ${msg.sender_id === user.id ? 'text-right' : ''}`}
+                          >
+                            <span className={`inline-block px-3 py-1.5 rounded-lg ${
+                              msg.sender_id === user.id 
+                                ? 'bg-primary/20 text-primary' 
+                                : 'bg-muted/30 text-foreground'
+                            }`}>
+                              {msg.message}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                      <div ref={dmMessagesEndRef} />
+                    </div>
+
+                    <form onSubmit={handleSendDm} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={dmMessage}
+                        onChange={(e) => setDmMessage(e.target.value)}
+                        placeholder={`Message ${selectedFriend.username}...`}
+                        className="flex-1 px-3 py-2 bg-muted/30 border border-border/30 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSending || !dmMessage.trim()}
+                        className="px-3 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -265,13 +472,26 @@ export function GameOverlayBar() {
               )}
             </div>
 
-            {/* Chat toggle */}
-            <button
-              onClick={() => setActiveTab(activeTab === 'chat' ? null : 'chat')}
-              className={`p-2 rounded-lg transition-colors ${activeTab === 'chat' ? 'bg-primary/20 text-primary' : 'hover:bg-muted/50 text-muted-foreground'}`}
-            >
-              <MessageCircle className="w-5 h-5" />
-            </button>
+            {/* Chat & DM toggles */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setActiveTab(activeTab === 'dm' ? null : 'dm');
+                  if (activeTab !== 'dm') setSelectedFriend(null);
+                }}
+                className={`p-2 rounded-lg transition-colors ${activeTab === 'dm' ? 'bg-primary/20 text-primary' : 'hover:bg-muted/50 text-muted-foreground'}`}
+                title="Direct Messages"
+              >
+                <Users className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setActiveTab(activeTab === 'chat' ? null : 'chat')}
+                className={`p-2 rounded-lg transition-colors ${activeTab === 'chat' ? 'bg-primary/20 text-primary' : 'hover:bg-muted/50 text-muted-foreground'}`}
+                title="Quick Chat"
+              >
+                <MessageCircle className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
