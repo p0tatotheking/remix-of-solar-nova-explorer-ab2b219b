@@ -205,10 +205,16 @@ export const HomeDashboard = ({ typewriterText, onNavigate }: HomeDashboardProps
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-6">
       {/* Typewriter Title */}
-      <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 text-center text-gradient">
+      <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-2 text-center text-gradient">
         {typewriterText}
         <span className="animate-pulse text-primary">|</span>
       </h1>
+      <p className="text-center text-muted-foreground text-sm mb-2">Hub for all games • made by p0tato</p>
+      <div className="flex justify-center mb-6">
+        <span className="inline-block px-3 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full border border-purple-400/30">
+          ✨ Now with encrypted chatrooms
+        </span>
+      </div>
 
       {/* Unified Dashboard Panel */}
       <div 
