@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
@@ -7,6 +7,7 @@ import { Announcements } from '@/components/Announcements';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/PersistentMusicPlayer';
 import { GameEmbed } from '@/components/GameEmbed';
+import { ProxyEmbed } from '@/components/ProxyEmbed';
 import { YouTubePlayer, PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
@@ -146,6 +147,7 @@ function IndexInner() {
   const [activeSection, setActiveSection] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showProxy, setShowProxy] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [typewriterText, setTypewriterText] = useState('');
   const [userViewMode, setUserViewMode] = useState(false);
@@ -205,11 +207,16 @@ function IndexInner() {
     { id: 'music' as const, label: 'Music', icon: Music },
     { id: 'announcements' as const, label: 'Announcements', icon: Megaphone },
     { id: 'chatroom' as const, label: 'Chatroom', icon: MessageSquare },
+    { id: 'proxy' as const, label: 'Proxy', icon: Globe },
     { id: 'bugs' as const, label: 'Bugs', icon: Bug },
   ];
 
   const handleNavClick = (id: string) => {
-    setActiveSection(id as Section);
+    if (id === 'proxy') {
+      setShowProxy(true);
+    } else {
+      setActiveSection(id as Section);
+    }
     setShowNav(false);
   };
 
@@ -245,7 +252,7 @@ function IndexInner() {
           {navItems.slice(0, 5).map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveSection(item.id)}
+              onClick={() => handleNavClick(item.id)}
               className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
                 activeSection === item.id
                   ? 'text-primary'
@@ -468,6 +475,10 @@ function IndexInner() {
         />
       )}
 
+      {/* Proxy Embed */}
+      {showProxy && (
+        <ProxyEmbed onClose={() => setShowProxy(false)} />
+      )}
 
       {/* Admin Panel */}
       {showAdminPanel && isAdmin && (
