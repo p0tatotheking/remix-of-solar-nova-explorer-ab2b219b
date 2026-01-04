@@ -476,6 +476,145 @@ export type Database = {
           },
         ]
       }
+      uno_games: {
+        Row: {
+          allow_stacking: boolean
+          created_at: string
+          creator_id: string
+          creator_username: string
+          current_color: string | null
+          current_turn_player_id: string | null
+          direction: number
+          discard_pile: Json | null
+          draw_pile: Json | null
+          finished_at: string | null
+          id: string
+          max_players: number
+          started_at: string | null
+          status: string
+          turn_time_limit: number | null
+          winner_id: string | null
+        }
+        Insert: {
+          allow_stacking?: boolean
+          created_at?: string
+          creator_id: string
+          creator_username: string
+          current_color?: string | null
+          current_turn_player_id?: string | null
+          direction?: number
+          discard_pile?: Json | null
+          draw_pile?: Json | null
+          finished_at?: string | null
+          id?: string
+          max_players?: number
+          started_at?: string | null
+          status?: string
+          turn_time_limit?: number | null
+          winner_id?: string | null
+        }
+        Update: {
+          allow_stacking?: boolean
+          created_at?: string
+          creator_id?: string
+          creator_username?: string
+          current_color?: string | null
+          current_turn_player_id?: string | null
+          direction?: number
+          discard_pile?: Json | null
+          draw_pile?: Json | null
+          finished_at?: string | null
+          id?: string
+          max_players?: number
+          started_at?: string | null
+          status?: string
+          turn_time_limit?: number | null
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
+      uno_invites: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          from_username: string
+          game_id: string
+          id: string
+          status: string
+          to_user_id: string
+          to_username: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          from_username: string
+          game_id: string
+          id?: string
+          status?: string
+          to_user_id: string
+          to_username: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          from_username?: string
+          game_id?: string
+          id?: string
+          status?: string
+          to_user_id?: string
+          to_username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uno_invites_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "uno_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uno_players: {
+        Row: {
+          game_id: string
+          hand: Json | null
+          id: string
+          is_ready: boolean
+          joined_at: string
+          turn_order: number
+          user_id: string
+          username: string
+        }
+        Insert: {
+          game_id: string
+          hand?: Json | null
+          id?: string
+          is_ready?: boolean
+          joined_at?: string
+          turn_order: number
+          user_id: string
+          username: string
+        }
+        Update: {
+          game_id?: string
+          hand?: Json | null
+          id?: string
+          is_ready?: boolean
+          joined_at?: string
+          turn_order?: number
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uno_players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "uno_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       uploaded_music: {
         Row: {
           artist: string
