@@ -5,11 +5,10 @@ interface ProxyEmbedProps {
 }
 
 export function ProxyEmbed({ onClose }: ProxyEmbedProps) {
-  const proxyUrl = `https://pgqlruiivbpsqxikagdn.supabase.co/functions/v1/web-proxy?path=/browsing`;
+  const proxyUrl = 'https://pgqlruiivbpsqxikagdn.supabase.co/functions/v1/web-proxy?path=/browsing';
 
   return (
     <div className="fixed inset-0 z-[100] bg-black">
-      {/* Truly fullscreen iframe */}
       <iframe
         src={proxyUrl}
         title="Proxy"
@@ -18,8 +17,6 @@ export function ProxyEmbed({ onClose }: ProxyEmbedProps) {
         allowFullScreen
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
       />
-
-      {/* Overlay bar for music, chat, and close - appears on hover */}
       <GameOverlayBar onClose={onClose} />
     </div>
   );
