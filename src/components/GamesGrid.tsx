@@ -53,7 +53,7 @@ const defaultGames: Game[] = [
     preview: 'Rhythm battle game',
     embed: true,
     category: 'rhythm',
-    thumbnail: 'https://images.launchbox-app.com/382e2596-44e8-41fa-93d6-b1f267bc5223.png',
+    thumbnail: '/thumbnails/friday-night-funkin.png',
   },
   {
     title: 'Petezah Games',
@@ -62,7 +62,7 @@ const defaultGames: Game[] = [
     preview: 'Game collection hub',
     embed: true,
     category: 'arcade',
-    thumbnail: 'https://images.unsplash.com/photo-1493711662062-fa541f7f2f07?w=400&h=300&fit=crop',
+    thumbnail: '/thumbnails/petezah-games.png',
   },
   {
     title: 'Solarnova Music',
@@ -80,7 +80,7 @@ const defaultGames: Game[] = [
     preview: 'Indie game showcase',
     embed: true,
     category: 'arcade',
-    thumbnail: 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/3553640/header.jpg',
+    thumbnail: '/thumbnails/umbrion-games.png',
   },
   {
     title: 'Lumi OS',
@@ -89,7 +89,7 @@ const defaultGames: Game[] = [
     preview: 'Browser OS',
     embed: true,
     category: 'utility',
-    thumbnail: 'https://raw.githubusercontent.com/LuminesenceProject/LumiOS/refs/heads/main/images/discord.png',
+    thumbnail: '/thumbnails/lumi-os.png',
   },
   {
     title: 'Kermitco',
@@ -125,7 +125,7 @@ const defaultGames: Game[] = [
     preview: 'Math learning game',
     embed: true,
     category: 'arcade',
-    thumbnail: 'https://img.gamepix.com/games/mathpup-math-adventure-integers/cover/mathpup-math-adventure-integers.png',
+    thumbnail: '/thumbnails/mathepic.png',
   },
 ];
 
