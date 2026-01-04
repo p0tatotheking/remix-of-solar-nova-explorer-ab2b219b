@@ -45,7 +45,7 @@ interface GameOverlayBarProps {
   onClose?: () => void;
 }
 
-export function GameOverlayBar({ onClose }: GameOverlayBarProps = {}) {
+export function GameOverlayBar({ onClose }: GameOverlayBarProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'music' | 'chat' | 'dm' | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
