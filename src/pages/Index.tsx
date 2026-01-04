@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
@@ -7,7 +7,6 @@ import { Announcements } from '@/components/Announcements';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/PersistentMusicPlayer';
 import { GameEmbed } from '@/components/GameEmbed';
-import { ProxyEmbed } from '@/components/ProxyEmbed';
 import { YouTubePlayer, PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
@@ -146,7 +145,6 @@ function IndexInner() {
   const { user, isLoading, logout, isAdmin } = useAuth();
   const [activeSection, setActiveSection] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
-  const [showProxy, setShowProxy] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [typewriterText, setTypewriterText] = useState('');
@@ -211,11 +209,7 @@ function IndexInner() {
   ];
 
   const handleNavClick = (id: string) => {
-    if (id === 'proxy') {
-      window.open('https://solarnova.online/browsing', '_blank');
-    } else {
-      setActiveSection(id as Section);
-    }
+    setActiveSection(id as Section);
     setShowNav(false);
   };
 
@@ -303,14 +297,6 @@ function IndexInner() {
               </button>
             ))}
 
-            {/* Proxy button */}
-            <button
-              onClick={() => handleNavClick('proxy')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-muted-foreground hover:bg-muted/30"
-            >
-              <Globe className="w-5 h-5" />
-              <span>Proxy</span>
-            </button>
             
             {effectiveIsAdmin && (
               <button
@@ -378,14 +364,6 @@ function IndexInner() {
               </button>
             ))}
 
-            {/* Proxy button */}
-            <button
-              onClick={() => handleNavClick('proxy')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 text-muted-foreground hover:text-foreground hover:bg-muted/30"
-            >
-              <Globe className="w-5 h-5" />
-              <span>Proxy</span>
-            </button>
           </div>
 
           <div className="border-t border-border/30 mx-4" />
@@ -490,10 +468,6 @@ function IndexInner() {
         />
       )}
 
-      {/* Proxy Embed */}
-      {showProxy && (
-        <ProxyEmbed onClose={() => setShowProxy(false)} />
-      )}
 
       {/* Admin Panel */}
       {showAdminPanel && isAdmin && (
