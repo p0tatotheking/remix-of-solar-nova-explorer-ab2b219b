@@ -1,8 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { X, MessageCircle, Send } from 'lucide-react';
 import { useDMNotification } from '@/contexts/DMNotificationContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
+const NOTIFICATION_DURATION = 5000; // 5 seconds
 
 export function DMNotificationBanner() {
   const {
@@ -17,12 +19,36 @@ export function DMNotificationBanner() {
   } = useDMNotification();
   
   const inputRef = useRef<HTMLInputElement>(null);
+  const [timeLeft, setTimeLeft] = useState(NOTIFICATION_DURATION);
 
   useEffect(() => {
     if (isReplying && inputRef.current) {
       inputRef.current.focus();
     }
   }, [isReplying]);
+
+  // Reset timer when new notification arrives
+  useEffect(() => {
+    if (notification) {
+      setTimeLeft(NOTIFICATION_DURATION);
+    }
+  }, [notification?.id]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!notification || isReplying) return;
+
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 100) {
+          return 0;
+        }
+        return prev - 100;
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [notification, isReplying]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -40,6 +66,8 @@ export function DMNotificationBanner() {
 
   if (!notification) return null;
 
+  const progress = (timeLeft / NOTIFICATION_DURATION) * 100;
+
   return (
     <div className="fixed top-0 left-0 right-0 z-[9999] flex justify-center pointer-events-none px-2 md:px-4 pt-2 md:pt-4 safe-area-pt">
       <div 
@@ -49,6 +77,16 @@ export function DMNotificationBanner() {
         }}
       >
         <div className="bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden">
+          {/* Progress bar timer */}
+          {!isReplying && (
+            <div className="h-1 bg-muted/30 w-full">
+              <div 
+                className="h-full bg-primary transition-all duration-100 ease-linear"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
+          
           {/* Header */}
           <div className="flex items-start gap-2 md:gap-3 p-3 md:p-4">
             {/* Avatar */}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle, Smile, Image as ImageIcon, Settings, Reply, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePresence } from '@/contexts/PresenceContext';
 import { censorText } from '@/lib/profanityFilter';
 import { parseEmojis, isGifUrl, extractGifUrl } from '@/lib/emojiParser';
 import { EmojiPicker } from '@/components/chat/EmojiPicker';
@@ -109,8 +110,11 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const [blocks, setBlocks] = useState<UserBlock[]>([]);
   const [muteSettings, setMuteSettings] = useState<MuteSetting[]>([]);
   
-  // Online presence tracking
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  // Online presence tracking - use context
+  const { onlineUsers: presenceOnlineUsers, isUserOnline } = usePresence();
+  const onlineUsers = useMemo(() => {
+    return new Set(presenceOnlineUsers.map(u => u.id));
+  }, [presenceOnlineUsers]);
   
   // Notifications
   const [showNotification, setShowNotification] = useState<FriendRequest | null>(null);
@@ -207,51 +211,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     };
   }, [user]);
 
-  // Presence tracking
-  useEffect(() => {
-    if (!user) return;
-
-    const presenceChannel = supabase.channel('online-users', {
-      config: {
-        presence: {
-          key: user.id,
-        },
-      },
-    });
-
-    presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState();
-        const online = new Set<string>();
-        Object.keys(state).forEach((key) => {
-          online.add(key);
-        });
-        setOnlineUsers(online);
-      })
-      .on('presence', { event: 'join' }, ({ key }) => {
-        setOnlineUsers(prev => new Set([...prev, key]));
-      })
-      .on('presence', { event: 'leave' }, ({ key }) => {
-        setOnlineUsers(prev => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await presenceChannel.track({
-            online_at: new Date().toISOString(),
-            user_id: user.id,
-            username: user.username,
-          });
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(presenceChannel);
-    };
-  }, [user]);
+  // Presence tracking now handled by PresenceContext
 
   // Fetch all data on mount
   useEffect(() => {
