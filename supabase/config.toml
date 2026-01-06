@@ -1,13 +1,1 @@
-project_id = "pgqlruiivbpsqxikagdn"
-
-[functions.music-api]
-verify_jwt = false
-
-[functions.upload-music]
-verify_jwt = false
-
-[functions.tenor-gifs]
-verify_jwt = false
-
-[functions.refetch-covers]
-verify_jwt = false
+project_id = "hbhopyhvtedsiihaqthl"
