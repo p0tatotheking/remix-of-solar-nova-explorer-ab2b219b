@@ -386,9 +386,9 @@ export function getEmojiSuggestions(query: string, limit: number = 10): Array<{ 
   return matches;
 }
 
-// Check if text contains GIF URL
+// Check if text contains GIF URL (supports Giphy and Tenor)
 export function isGifUrl(text: string): boolean {
-  return text.startsWith('[GIF]') && text.includes('tenor.com');
+  return text.startsWith('[GIF]') && (text.includes('giphy.com') || text.includes('tenor.com'));
 }
 
 // Extract GIF URL from message
