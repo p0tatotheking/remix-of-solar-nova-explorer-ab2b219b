@@ -7,7 +7,8 @@ import { Announcements } from '@/components/Announcements';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/PersistentMusicPlayer';
 import { GameEmbed } from '@/components/GameEmbed';
-import { YouTubePlayer, PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
+import { PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
+import { YouTubeApp } from '@/components/youtube/YouTubeApp';
 import { UnoGame } from '@/components/UnoGame';
 import { TVMoviesPlayer } from '@/components/TVMoviesPlayer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -482,8 +483,8 @@ function IndexInner() {
         )}
 
         {activeSection === 'youtube' && (
-          <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
-            <YouTubePlayer />
+          <section className="h-[calc(100vh-80px)]">
+            <YouTubeApp />
           </section>
         )}
 
