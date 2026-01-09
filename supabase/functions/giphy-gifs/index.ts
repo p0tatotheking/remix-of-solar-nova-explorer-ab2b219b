@@ -13,12 +13,12 @@ serve(async (req) => {
 
   try {
     const { query, limit = 20 } = await req.json();
-    const apiKey = Deno.env.get('TENOR_API_KEY');
+    const apiKey = Deno.env.get('GIPHY_API_KEY');
     
     if (!apiKey) {
-      console.error('TENOR_API_KEY not configured');
+      console.error('GIPHY_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'Tenor API key not configured' }),
+        JSON.stringify({ error: 'Giphy API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -26,29 +26,28 @@ serve(async (req) => {
     // Determine endpoint based on query
     const endpoint = query && query !== 'trending' 
       ? 'search' 
-      : 'featured';
+      : 'trending';
     
     const searchParams = new URLSearchParams({
-      key: apiKey,
-      client_key: 'solarnova_chat',
+      api_key: apiKey,
       limit: String(limit),
-      media_filter: 'gif,tinygif',
+      rating: 'g',
     });
     
     if (endpoint === 'search') {
       searchParams.append('q', query);
     }
 
-    const url = `https://tenor.googleapis.com/v2/${endpoint}?${searchParams.toString()}`;
-    console.log('Fetching GIFs from Tenor:', endpoint, query || 'featured');
+    const url = `https://api.giphy.com/v1/gifs/${endpoint}?${searchParams.toString()}`;
+    console.log('Fetching GIFs from Giphy:', endpoint, query || 'trending');
 
     const response = await fetch(url);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Tenor API error:', response.status, errorText);
+      console.error('Giphy API error:', response.status, errorText);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch GIFs from Tenor' }),
+        JSON.stringify({ error: 'Failed to fetch GIFs from Giphy' }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -56,11 +55,11 @@ serve(async (req) => {
     const data = await response.json();
     
     // Transform the response to a simpler format
-    const results = data.results?.map((gif: any) => ({
+    const results = data.data?.map((gif: any) => ({
       id: gif.id,
-      url: gif.media_formats?.gif?.url || gif.media_formats?.mediumgif?.url,
-      preview: gif.media_formats?.tinygif?.url || gif.media_formats?.nanogif?.url,
-      title: gif.title || gif.content_description || 'GIF',
+      url: gif.images?.original?.url || gif.images?.downsized?.url,
+      preview: gif.images?.fixed_height_small?.url || gif.images?.preview_gif?.url,
+      title: gif.title || 'GIF',
     })) || [];
 
     console.log(`Found ${results.length} GIFs`);
@@ -70,7 +69,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in tenor-gifs function:', error);
+    console.error('Error in giphy-gifs function:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -25,7 +25,7 @@ export function GifPicker({ onSelect, onClose }: GifPickerProps) {
     setError(null);
     
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('tenor-gifs', {
+      const { data, error: fnError } = await supabase.functions.invoke('giphy-gifs', {
         body: { query: query || 'trending', limit: 20 },
       });
 
@@ -82,7 +82,7 @@ export function GifPicker({ onSelect, onClose }: GifPickerProps) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search Tenor..."
+            placeholder="Search Giphy..."
             className="w-full bg-muted border border-border/50 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary"
             autoFocus
           />
@@ -128,7 +128,7 @@ export function GifPicker({ onSelect, onClose }: GifPickerProps) {
       
       {/* Footer */}
       <div className="p-2 border-t border-border text-center">
-        <span className="text-xs text-muted-foreground">Powered by Tenor</span>
+        <span className="text-xs text-muted-foreground">Powered by Giphy</span>
       </div>
     </div>
   );
