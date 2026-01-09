@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
@@ -9,6 +9,7 @@ import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/Persist
 import { GameEmbed } from '@/components/GameEmbed';
 import { YouTubePlayer, PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
 import { UnoGame } from '@/components/UnoGame';
+import { TVMoviesPlayer } from '@/components/TVMoviesPlayer';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -16,9 +17,10 @@ import { CloakLauncher } from '@/components/CloakLauncher';
 import { Snowfall } from '@/components/Snowfall';
 import { SnowfallProvider, useSnowfall } from '@/contexts/SnowfallContext';
 import { HomeDashboard } from '@/components/HomeDashboard';
+import { DisclaimerModal, useDisclaimer } from '@/components/DisclaimerModal';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
-type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno';
+type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv';
 
 const Index = () => {
   const { user, isLoading, logout, isAdmin } = useAuth();
@@ -115,6 +117,8 @@ const Index = () => {
     return <LoginPage />;
   }
 
+  // Show disclaimer after login (handled in IndexInner)
+
   return (
     <SnowfallProvider>
       <PipProvider>
@@ -150,6 +154,8 @@ function IndexInner() {
   const [showNav, setShowNav] = useState(false);
   const [typewriterText, setTypewriterText] = useState('');
   const [userViewMode, setUserViewMode] = useState(false);
+  const [showTVPlayer, setShowTVPlayer] = useState(false);
+  const { hasAccepted, handleAccept, handleDeny } = useDisclaimer();
 
   // Effective admin status (false when in user view mode)
   const effectiveIsAdmin = isAdmin && !userViewMode;
@@ -202,10 +208,11 @@ function IndexInner() {
   const navItems = [
     { id: 'home' as const, label: 'Home', icon: Home },
     { id: 'games' as const, label: 'Games', icon: Gamepad2 },
+    { id: 'tv' as const, label: 'TV & Movies', icon: Tv },
     { id: 'youtube' as const, label: 'YouTube', icon: Youtube },
     { id: 'music' as const, label: 'Music', icon: Music },
-    { id: 'announcements' as const, label: 'Announcements', icon: Megaphone },
-    { id: 'chatroom' as const, label: 'Chatroom', icon: MessageSquare },
+    { id: 'announcements' as const, label: 'Announce', icon: Megaphone },
+    { id: 'chatroom' as const, label: 'Chat', icon: MessageSquare },
     { id: 'uno' as const, label: 'UNO', icon: Spade },
     { id: 'proxy' as const, label: 'Proxy', icon: Globe },
     { id: 'bugs' as const, label: 'Bugs', icon: Bug },
@@ -234,6 +241,8 @@ function IndexInner() {
         `);
         newTab.document.close();
       }
+    } else if (id === 'tv') {
+      setShowTVPlayer(true);
     } else {
       setActiveSection(id as Section);
     }
@@ -264,33 +273,46 @@ function IndexInner() {
     return <LoginPage />;
   }
 
+  // Show disclaimer if not accepted
+  if (hasAccepted === null) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!hasAccepted) {
+    return <DisclaimerModal onAccept={handleAccept} onDeny={handleDeny} />;
+  }
+
   return (
     <div className="relative z-10">
       {/* Mobile bottom navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/30 safe-area-pb">
-        <div className="flex items-center justify-around px-2 py-2">
-          {navItems.slice(0, 5).map((item) => (
+        <div className="flex items-center justify-around px-1 py-2">
+          {navItems.slice(0, 6).map((item) => (
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
-                activeSection === item.id
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all ${
+                activeSection === item.id || (item.id === 'tv' && showTVPlayer)
                   ? 'text-primary'
                   : 'text-muted-foreground'
               }`}
             >
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <item.icon className="w-4 h-4" />
+              <span className="text-[9px] font-medium">{item.label}</span>
             </button>
           ))}
           <button
             onClick={() => setShowNav(!showNav)}
-            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+            className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all ${
               showNav ? 'text-primary' : 'text-muted-foreground'
             }`}
           >
-            <Bug className="w-5 h-5" />
-            <span className="text-[10px] font-medium">More</span>
+            <Bug className="w-4 h-4" />
+            <span className="text-[9px] font-medium">More</span>
           </button>
         </div>
       </nav>
@@ -319,7 +341,7 @@ function IndexInner() {
                     : 'text-muted-foreground hover:bg-muted/30'
                 }`}
               >
-                <item.icon className="w-5 h-5" />
+                <item.icon className="w-4 h-4" />
                 <span>{item.label}</span>
               </button>
             ))}
@@ -333,7 +355,7 @@ function IndexInner() {
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-primary hover:bg-muted/30"
               >
-                <Shield className="w-5 h-5" />
+                <Shield className="w-4 h-4" />
                 <span>Admin Panel</span>
               </button>
             )}
@@ -386,7 +408,7 @@ function IndexInner() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                 }`}
               >
-                <item.icon className="w-5 h-5" />
+                <item.icon className="w-4 h-4" />
                 <span>{item.label}</span>
               </button>
             ))}
@@ -404,7 +426,7 @@ function IndexInner() {
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-primary hover:bg-muted/30 transition-colors"
               >
-                <Shield className="w-5 h-5" />
+                <Shield className="w-4 h-4" />
                 <span>Admin Panel</span>
               </button>
             )}
@@ -501,6 +523,10 @@ function IndexInner() {
         />
       )}
 
+      {/* TV & Movies Fullscreen Player */}
+      {showTVPlayer && (
+        <TVMoviesPlayer onClose={() => setShowTVPlayer(false)} />
+      )}
 
       {/* Admin Panel */}
       {showAdminPanel && isAdmin && (

@@ -127,6 +127,15 @@ const defaultGames: Game[] = [
     category: 'arcade',
     thumbnail: '/thumbnails/mathepic.png',
   },
+  {
+    title: 'learnmath.top',
+    description: 'Educational math games and learning tools.',
+    url: 'https://learnmath.top',
+    preview: 'Math learning platform',
+    embed: true,
+    category: 'arcade',
+    thumbnail: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
+  },
 ];
 
 export function GamesGrid({ onGameClick }: GamesGridProps) {
