@@ -778,6 +778,68 @@ export type Database = {
         }
         Relationships: []
       }
+      youtube_music_playlists: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      youtube_playlist_songs: {
+        Row: {
+          added_at: string
+          artist: string
+          id: string
+          playlist_id: string
+          thumbnail: string | null
+          title: string
+          video_id: string
+        }
+        Insert: {
+          added_at?: string
+          artist: string
+          id?: string
+          playlist_id: string
+          thumbnail?: string | null
+          title: string
+          video_id: string
+        }
+        Update: {
+          added_at?: string
+          artist?: string
+          id?: string
+          playlist_id?: string
+          thumbnail?: string | null
+          title?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_playlist_songs_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_music_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

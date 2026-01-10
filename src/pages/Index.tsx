@@ -5,6 +5,7 @@ import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
 import { Announcements } from '@/components/Announcements';
 import { YouTubeMusicPlayer } from '@/components/music/YouTubeMusicPlayer';
+import { PersistentYouTubeMiniPlayer } from '@/components/music/PersistentYouTubeMiniPlayer';
 import { YouTubeMusicProvider } from '@/contexts/YouTubeMusicContext';
 import { GameEmbed } from '@/components/GameEmbed';
 import { PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
@@ -508,6 +509,11 @@ function IndexInner() {
           </div>
         </div>
       </footer>
+
+      {/* Persistent YouTube Music Mini Player - shows when not in music tab */}
+      {activeSection !== 'music' && (
+        <PersistentYouTubeMiniPlayer onExpand={() => setActiveSection('music')} />
+      )}
 
       {/* Floating YouTube PiP Player */}
       <FloatingPipPlayer />
