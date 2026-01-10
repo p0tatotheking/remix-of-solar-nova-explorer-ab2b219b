@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv, Sparkles } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
@@ -12,6 +12,7 @@ import { PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
 import { YouTubeApp } from '@/components/youtube/YouTubeApp';
 import { UnoGame } from '@/components/UnoGame';
 import { TVMoviesPlayer } from '@/components/TVMoviesPlayer';
+import { StudyHelper } from '@/components/StudyHelper';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -22,7 +23,7 @@ import { HomeDashboard } from '@/components/HomeDashboard';
 import { DisclaimerModal, useDisclaimer } from '@/components/DisclaimerModal';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
-type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv';
+type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar';
 
 const Index = () => {
   const { user, isLoading, logout, isAdmin } = useAuth();
@@ -213,6 +214,7 @@ function IndexInner() {
     { id: 'tv' as const, label: 'TV & Movies', icon: Tv, disabled: false },
     { id: 'youtube' as const, label: 'YouTube', icon: Youtube, disabled: false },
     { id: 'music' as const, label: 'Music', icon: Music, disabled: false },
+    { id: 'solar' as const, label: 'Solar AI', icon: Sparkles, disabled: false },
     { id: 'announcements' as const, label: 'Announce', icon: Megaphone, disabled: false },
     { id: 'chatroom' as const, label: 'Chat', icon: MessageSquare, disabled: false },
     { id: 'uno' as const, label: 'UNO', icon: Spade, disabled: false },
@@ -484,6 +486,12 @@ function IndexInner() {
         {activeSection === 'uno' && (
           <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
             <UnoGame />
+          </section>
+        )}
+
+        {activeSection === 'solar' && (
+          <section className="h-[calc(100vh-80px)]">
+            <StudyHelper onClose={() => setActiveSection('home')} />
           </section>
         )}
       </main>
