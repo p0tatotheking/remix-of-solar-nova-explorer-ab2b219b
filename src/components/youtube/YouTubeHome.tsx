@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, TrendingUp, Flame, Music, Gamepad2, Film, Newspaper, Trophy, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,15 +33,26 @@ const categories = [
 export function YouTubeHome({ onVideoSelect, onShortsClick, searchQuery, setSearchQuery }: YouTubeHomeProps) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [currentQuery, setCurrentQuery] = useState<string>('');
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const fetchVideos = async (categoryId?: string, query?: string) => {
-    setLoading(true);
+  const fetchVideos = async (categoryId?: string, query?: string, pageToken?: string) => {
+    if (pageToken) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setVideos([]);
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('youtube-api', {
         body: query 
-          ? { action: 'search', query, maxResults: 24 }
-          : { action: 'trending', maxResults: 24, categoryId }
+          ? { action: 'search', query, maxResults: 24, pageToken }
+          : { action: 'trending', maxResults: 24, categoryId, pageToken }
       });
 
       if (error) throw error;
@@ -57,14 +68,52 @@ export function YouTubeHome({ onVideoSelect, onShortsClick, searchQuery, setSear
         duration: item.contentDetails?.duration,
       }));
 
-      setVideos(formattedVideos);
+      if (pageToken) {
+        setVideos(prev => [...prev, ...formattedVideos]);
+      } else {
+        setVideos(formattedVideos);
+      }
+      
+      setNextPageToken(data.nextPageToken || null);
     } catch (error: any) {
       console.error('Error fetching videos:', error);
       toast.error('Failed to load videos');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
+
+  const loadMoreVideos = useCallback(() => {
+    if (loadingMore || !nextPageToken) return;
+    fetchVideos(activeCategory || undefined, currentQuery || undefined, nextPageToken);
+  }, [loadingMore, nextPageToken, activeCategory, currentQuery]);
+
+  // Setup intersection observer for infinite scroll
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && nextPageToken && !loadingMore) {
+          loadMoreVideos();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [nextPageToken, loadingMore, loadMoreVideos]);
 
   useEffect(() => {
     fetchVideos();
@@ -74,6 +123,8 @@ export function YouTubeHome({ onVideoSelect, onShortsClick, searchQuery, setSear
     e.preventDefault();
     if (searchQuery.trim()) {
       setActiveCategory(null);
+      setCurrentQuery(searchQuery);
+      setNextPageToken(null);
       fetchVideos(undefined, searchQuery);
     }
   };
@@ -81,7 +132,17 @@ export function YouTubeHome({ onVideoSelect, onShortsClick, searchQuery, setSear
   const handleCategoryClick = (categoryId: string) => {
     setActiveCategory(categoryId);
     setSearchQuery('');
+    setCurrentQuery('');
+    setNextPageToken(null);
     fetchVideos(categoryId);
+  };
+
+  const handleTrendingClick = () => {
+    setActiveCategory(null);
+    setSearchQuery('');
+    setCurrentQuery('');
+    setNextPageToken(null);
+    fetchVideos();
   };
 
   const formatViewCount = (count?: string) => {
@@ -131,13 +192,9 @@ export function YouTubeHome({ onVideoSelect, onShortsClick, searchQuery, setSear
       <div className="p-4 border-b border-border/30">
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <button
-            onClick={() => {
-              setActiveCategory(null);
-              setSearchQuery('');
-              fetchVideos();
-            }}
+            onClick={handleTrendingClick}
             className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-              !activeCategory ? 'bg-foreground text-background' : 'bg-muted/50 hover:bg-muted'
+              !activeCategory && !currentQuery ? 'bg-foreground text-background' : 'bg-muted/50 hover:bg-muted'
             }`}
           >
             <TrendingUp className="w-4 h-4" />
@@ -172,36 +229,53 @@ export function YouTubeHome({ onVideoSelect, onShortsClick, searchQuery, setSear
             <Loader2 className="w-8 h-8 animate-spin text-red-500" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {videos.map((video) => (
-              <button
-                key={video.id}
-                onClick={() => onVideoSelect(video.id)}
-                className="group text-left rounded-xl overflow-hidden bg-card/50 hover:bg-card transition-colors"
-              >
-                <div className="relative aspect-video overflow-hidden">
-                  <img
-                    src={video.thumbnail}
-                    alt={video.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                </div>
-                <div className="p-3">
-                  <h3 className="font-medium text-foreground line-clamp-2 text-sm mb-1 group-hover:text-red-500 transition-colors">
-                    {video.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mb-1">{video.channelTitle}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {video.viewCount && <span>{formatViewCount(video.viewCount)}</span>}
-                    {video.viewCount && video.publishedAt && <span>•</span>}
-                    {video.publishedAt && <span>{formatTimeAgo(video.publishedAt)}</span>}
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {videos.map((video, index) => (
+                <button
+                  key={`${video.id}-${index}`}
+                  onClick={() => onVideoSelect(video.id)}
+                  className="group text-left rounded-xl overflow-hidden bg-card/50 hover:bg-card transition-colors"
+                >
+                  <div className="relative aspect-video overflow-hidden">
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
                   </div>
-                </div>
-              </button>
-            ))}
-          </div>
+                  <div className="p-3">
+                    <h3 className="font-medium text-foreground line-clamp-2 text-sm mb-1 group-hover:text-red-500 transition-colors">
+                      {video.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mb-1">{video.channelTitle}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {video.viewCount && <span>{formatViewCount(video.viewCount)}</span>}
+                      {video.viewCount && video.publishedAt && <span>•</span>}
+                      {video.publishedAt && <span>{formatTimeAgo(video.publishedAt)}</span>}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Load more trigger */}
+            <div ref={loadMoreRef} className="py-8 flex justify-center">
+              {loadingMore && (
+                <Loader2 className="w-6 h-6 animate-spin text-red-500" />
+              )}
+              {!loadingMore && nextPageToken && (
+                <button
+                  onClick={loadMoreVideos}
+                  className="px-6 py-2 bg-muted/50 hover:bg-muted rounded-full text-sm text-foreground transition-colors"
+                >
+                  Load more
+                </button>
+              )}
+            </div>
+          </>
         )}
 
         {!loading && videos.length === 0 && (
