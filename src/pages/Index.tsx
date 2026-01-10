@@ -4,8 +4,8 @@ import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
 import { Announcements } from '@/components/Announcements';
-import { MusicPlayer } from '@/components/MusicPlayer';
-import { MusicPlayerProvider, PersistentMusicPlayer } from '@/components/PersistentMusicPlayer';
+import { YouTubeMusicPlayer } from '@/components/music/YouTubeMusicPlayer';
+import { YouTubeMusicProvider } from '@/contexts/YouTubeMusicContext';
 import { GameEmbed } from '@/components/GameEmbed';
 import { PipProvider, FloatingPipPlayer } from '@/components/YouTubePlayer';
 import { YouTubeApp } from '@/components/youtube/YouTubeApp';
@@ -123,9 +123,9 @@ const Index = () => {
   return (
     <SnowfallProvider>
       <PipProvider>
-        <MusicPlayerProvider>
+        <YouTubeMusicProvider>
           <IndexContent />
-        </MusicPlayerProvider>
+        </YouTubeMusicProvider>
       </PipProvider>
     </SnowfallProvider>
   );
@@ -472,7 +472,7 @@ function IndexInner() {
 
         {activeSection === 'music' && (
           <section className="h-[calc(100vh-80px)]">
-            <MusicPlayer />
+            <YouTubeMusicPlayer />
           </section>
         )}
 
@@ -508,9 +508,6 @@ function IndexInner() {
           </div>
         </div>
       </footer>
-
-      {/* Persistent Music Player */}
-      <PersistentMusicPlayer />
 
       {/* Floating YouTube PiP Player */}
       <FloatingPipPlayer />
