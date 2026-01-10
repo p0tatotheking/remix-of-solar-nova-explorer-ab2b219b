@@ -24,19 +24,42 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return shuffled;
 };
 
+// Different search queries for variety
+const searchQueries = [
+  'trending shorts',
+  'viral shorts 2024',
+  'funny shorts',
+  'satisfying shorts',
+  'amazing shorts',
+  'dance shorts',
+  'music shorts',
+  'comedy shorts'
+];
+
 export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
   const [shorts, setShorts] = useState<Short[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [muted, setMuted] = useState(false);
   const [liked, setLiked] = useState<Set<string>>(new Set());
+  const [queryIndex, setQueryIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isScrolling = useRef(false);
 
-  const fetchShorts = async () => {
-    setLoading(true);
+  const fetchShorts = async (isLoadMore = false) => {
+    if (isLoadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+    
     try {
+      // Use different query for variety when loading more
+      const query = searchQueries[queryIndex % searchQueries.length];
+      
       const { data, error } = await supabase.functions.invoke('youtube-api', {
-        body: { action: 'shorts', query: 'trending shorts', maxResults: 20 }
+        body: { action: 'shorts', query, maxResults: 20 }
       });
 
       if (error) throw error;
@@ -49,13 +72,25 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
         channelTitle: item.snippet?.channelTitle || '',
       }));
 
-      // Shuffle the shorts for random order
-      setShorts(shuffleArray(formattedShorts));
+      // Filter out duplicates and shuffle
+      const shuffled = shuffleArray(formattedShorts);
+      
+      if (isLoadMore) {
+        setShorts(prev => {
+          const existingIds = new Set(prev.map(s => s.id));
+          const newShorts = shuffled.filter(s => !existingIds.has(s.id));
+          return [...prev, ...newShorts];
+        });
+        setQueryIndex(prev => prev + 1);
+      } else {
+        setShorts(shuffled);
+      }
     } catch (error: any) {
       console.error('Error fetching shorts:', error);
       toast.error('Failed to load Shorts');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -63,7 +98,31 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
     fetchShorts();
   }, []);
 
+  // Lock body scroll when component mounts
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
+  // Load more when near the end
+  useEffect(() => {
+    if (currentIndex >= shorts.length - 3 && shorts.length > 0 && !loadingMore) {
+      fetchShorts(true);
+    }
+  }, [currentIndex, shorts.length, loadingMore]);
+
   const handleScroll = useCallback((direction: 'up' | 'down') => {
+    if (isScrolling.current) return;
+    
+    isScrolling.current = true;
+    setTimeout(() => {
+      isScrolling.current = false;
+    }, 300);
+
     setCurrentIndex(prev => {
       if (direction === 'up' && prev > 0) {
         return prev - 1;
@@ -74,27 +133,27 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
     });
   }, [shorts.length]);
 
-  // Handle keyboard navigation
+  // Handle keyboard navigation - capture at window level
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp') {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
-        handleScroll('up');
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        handleScroll('down');
+        e.stopPropagation();
+        
+        if (e.key === 'ArrowUp') {
+          handleScroll('up');
+        } else {
+          handleScroll('down');
+        }
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [handleScroll]);
 
-  // Handle wheel scroll - prevent page scroll and navigate shorts instead
+  // Handle wheel scroll - prevent ALL page scroll
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -106,8 +165,45 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
       }
     };
 
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
+    // Add to window with capture to catch all wheel events
+    window.addEventListener('wheel', handleWheel, { passive: false, capture: true });
+    return () => window.removeEventListener('wheel', handleWheel, { capture: true });
+  }, [handleScroll]);
+
+  // Handle touch scroll for mobile
+  useEffect(() => {
+    let touchStartY = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const touchEndY = e.changedTouches[0].clientY;
+      const diff = touchStartY - touchEndY;
+
+      if (Math.abs(diff) > 50) {
+        if (diff > 0) {
+          handleScroll('down');
+        } else {
+          handleScroll('up');
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
   }, [handleScroll]);
 
   const toggleLike = (id: string) => {
@@ -133,7 +229,7 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-black">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
         <Loader2 className="w-12 h-12 animate-spin text-white" />
       </div>
     );
@@ -142,7 +238,11 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
   const currentShort = shorts[currentIndex];
 
   return (
-    <div ref={containerRef} className="relative h-full bg-black flex items-center justify-center">
+    <div 
+      ref={containerRef} 
+      className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
+      style={{ touchAction: 'none' }}
+    >
       {/* Back Button */}
       <button
         onClick={onBack}
@@ -162,8 +262,7 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
         </button>
         <button
           onClick={() => handleScroll('down')}
-          disabled={currentIndex === shorts.length - 1}
-          className="p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors disabled:opacity-30"
+          className="p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
         >
           <ChevronDown className="w-6 h-6" />
         </button>
@@ -175,6 +274,7 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
           {/* Video Player */}
           <div className="absolute inset-0">
             <iframe
+              key={currentShort.id}
               src={`https://www.youtube.com/embed/${currentShort.id}?autoplay=1&loop=1&playlist=${currentShort.id}&controls=0&modestbranding=1&rel=0${muted ? '&mute=1' : ''}`}
               title={currentShort.title}
               className="w-full h-full"
@@ -234,24 +334,20 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
               </button>
             </div>
           </div>
-
-          {/* Progress Indicator */}
-          <div className="absolute top-2 left-4 right-4 flex gap-1">
-            {shorts.map((_, index) => (
-              <div
-                key={index}
-                className={`flex-1 h-1 rounded-full transition-colors ${
-                  index === currentIndex ? 'bg-white' : 'bg-white/30'
-                }`}
-              />
-            ))}
-          </div>
         </div>
       )}
 
-      {/* Counter */}
-      <div className="absolute bottom-4 left-4 text-white/70 text-sm">
-        {currentIndex + 1} / {shorts.length}
+      {/* Counter & Loading More Indicator */}
+      <div className="absolute bottom-4 left-4 flex items-center gap-3">
+        <span className="text-white/70 text-sm">
+          {currentIndex + 1} / {shorts.length}
+        </span>
+        {loadingMore && (
+          <span className="flex items-center gap-2 text-white/50 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading more...
+          </span>
+        )}
       </div>
     </div>
   );
