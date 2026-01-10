@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, ThumbsUp, ThumbsDown, Share2, Download, MoreHorizontal, Loader2, X } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, ThumbsDown, Share2, Download, MoreHorizontal, Loader2, X, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
+import { YouTubeWatchParty } from './YouTubeWatchParty';
 interface VideoDetails {
   id: string;
   title: string;
@@ -35,6 +35,7 @@ export function YouTubeWatch({ videoId, onBack, onVideoSelect }: YouTubeWatchPro
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
+  const [showWatchParty, setShowWatchParty] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchVideoDetails = async () => {
@@ -184,6 +185,14 @@ export function YouTubeWatch({ videoId, onBack, onVideoSelect }: YouTubeWatchPro
                   <Download className="w-5 h-5" />
                   Download
                 </Button>
+                <Button 
+                  variant="ghost" 
+                  className="gap-2 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-500"
+                  onClick={() => setShowWatchParty(true)}
+                >
+                  <Users className="w-5 h-5" />
+                  Watch Party
+                </Button>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <MoreHorizontal className="w-5 h-5" />
                 </Button>
@@ -253,6 +262,15 @@ export function YouTubeWatch({ videoId, onBack, onVideoSelect }: YouTubeWatchPro
           </div>
         </div>
       </div>
+
+      {/* Watch Party Overlay */}
+      {showWatchParty && (
+        <YouTubeWatchParty
+          onClose={() => setShowWatchParty(false)}
+          videoId={videoId}
+          videoTitle={video?.title}
+        />
+      )}
     </div>
   );
 }
