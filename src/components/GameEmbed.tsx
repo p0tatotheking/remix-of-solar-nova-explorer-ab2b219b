@@ -1,5 +1,7 @@
 import { X } from 'lucide-react';
 import { GameOverlayBar } from './GameOverlayBar';
+import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 
 interface GameEmbedProps {
   url: string;
@@ -8,6 +10,45 @@ interface GameEmbedProps {
 }
 
 export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Block navigation to streaming URL
+  useEffect(() => {
+    const checkForStreamingUrl = () => {
+      try {
+        const iframe = iframeRef.current;
+        if (iframe && iframe.contentWindow) {
+          try {
+            const currentUrl = iframe.contentWindow.location.href;
+            if (currentUrl.includes('/streaming')) {
+              toast.error('Unauthorized access attempt detected. Session terminated.');
+              setTimeout(() => {
+                window.location.href = 'https://www.google.com';
+              }, 500);
+            }
+          } catch {
+            // Cross-origin - can't access directly
+          }
+        }
+      } catch {
+        // Silent fail
+      }
+    };
+
+    const interval = setInterval(checkForStreamingUrl, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Also block if the initial URL is the streaming URL
+  useEffect(() => {
+    if (url.includes('/streaming')) {
+      toast.error('Unauthorized access attempt detected. Session terminated.');
+      setTimeout(() => {
+        window.location.href = 'https://www.google.com';
+      }, 500);
+    }
+  }, [url]);
+
   return (
     <div className="fixed inset-0 z-[100] bg-background">
       {/* Header */}
@@ -23,6 +64,7 @@ export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
 
       {/* Iframe */}
       <iframe
+        ref={iframeRef}
         src={url}
         title={title}
         className="w-full h-full pt-14"
