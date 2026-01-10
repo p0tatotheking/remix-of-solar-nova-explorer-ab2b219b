@@ -71,19 +71,19 @@ export function AgeVerificationModal({ onConfirm, onDeny }: AgeVerificationModal
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="p-6 pt-0 flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={onDeny}
-            className="flex-1 px-6 py-3 rounded-xl border border-border/50 bg-muted/30 hover:bg-muted/50 text-foreground font-medium transition-colors"
-          >
-            I am under 18
-          </button>
+        {/* Actions - Only confirm button, no cancel option */}
+        <div className="p-6 pt-0">
           <button
             onClick={onConfirm}
-            className="flex-1 px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors"
+            className="w-full px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors"
           >
-            I am 18 or older
+            I am 18 or older - Continue
+          </button>
+          <button
+            onClick={onDeny}
+            className="w-full mt-3 px-6 py-3 rounded-xl border border-destructive/50 bg-destructive/10 hover:bg-destructive/20 text-destructive font-medium transition-colors"
+          >
+            I am under 18 - Exit Site
           </button>
         </div>
 

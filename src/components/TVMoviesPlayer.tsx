@@ -1,9 +1,9 @@
-import { X, Users, AlertTriangle, Search, Shield } from 'lucide-react';
+import { X, Users, AlertTriangle, Shield } from 'lucide-react';
 import { GameOverlayBar } from './GameOverlayBar';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { WatchPartyOverlay } from './WatchPartyOverlay';
 import { AgeVerificationModal, useAgeVerification } from './AgeVerificationModal';
-import { validateSearch } from '@/lib/contentFilter';
+import { isBlockedContent } from '@/lib/blockedContentIds';
 import { toast } from 'sonner';
 
 interface TVMoviesPlayerProps {
@@ -15,13 +15,8 @@ export function TVMoviesPlayer({ onClose }: TVMoviesPlayerProps) {
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchOverlay, setShowSearchOverlay] = useState(true);
-  const [iframeUrl, setIframeUrl] = useState('https://mathepic.tuvnord.hk/streaming');
-  const [lastValidSearch, setLastValidSearch] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const { handleConfirm, handleDeny } = useAgeVerification();
 
   // Check age verification on mount
@@ -35,20 +30,64 @@ export function TVMoviesPlayer({ onClose }: TVMoviesPlayerProps) {
     }
   }, []);
 
-  // Real-time validation as user types
-  useEffect(() => {
-    if (searchQuery.length > 2) {
-      const result = validateSearch(searchQuery);
-      if (!result.valid) {
-        if (result.shouldClose) {
-          toast.error('Filter bypass attempt detected. Session terminated.');
-          setTimeout(() => {
-            window.location.href = 'https://www.google.com';
-          }, 1000);
+  // Monitor iframe URL changes for blocked content
+  const checkIframeUrl = useCallback(() => {
+    try {
+      const iframe = iframeRef.current;
+      if (iframe && iframe.contentWindow) {
+        // Try to get the current URL (may fail due to cross-origin)
+        try {
+          const currentUrl = iframe.contentWindow.location.href;
+          const result = isBlockedContent(currentUrl);
+          if (result.blocked) {
+            setIsBlocked(true);
+            setViolationCount(prev => {
+              const newCount = prev + 1;
+              if (newCount >= 3) {
+                toast.error('Multiple content policy violations. Session terminated.');
+                setTimeout(() => {
+                  window.location.href = 'https://www.google.com';
+                }, 1000);
+              } else {
+                toast.error(result.reason || 'This content is restricted');
+              }
+              return newCount;
+            });
+          } else {
+            setIsBlocked(false);
+          }
+        } catch {
+          // Cross-origin error - can't access iframe URL directly
         }
       }
+    } catch {
+      // Silent fail for cross-origin issues
     }
-  }, [searchQuery]);
+  }, []);
+
+  // Poll for URL changes (since we can't always detect cross-origin navigations)
+  useEffect(() => {
+    const interval = setInterval(checkIframeUrl, 2000);
+    return () => clearInterval(interval);
+  }, [checkIframeUrl]);
+
+  // Listen for messages from iframe (if the streaming site supports it)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Check if message contains navigation info
+      if (event.data && typeof event.data === 'object' && event.data.url) {
+        const result = isBlockedContent(event.data.url);
+        if (result.blocked) {
+          setIsBlocked(true);
+          setViolationCount(prev => prev + 1);
+          toast.error(result.reason || 'This content is restricted');
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   // Monitor for content filter violations
   useEffect(() => {
@@ -59,72 +98,6 @@ export function TVMoviesPlayer({ onClose }: TVMoviesPlayerProps) {
       }, 1500);
     }
   }, [violationCount]);
-
-  // Intercept keyboard to show search overlay
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // If user presses any letter/number key, show search overlay
-      if (!showSearchOverlay && e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
-        setShowSearchOverlay(true);
-        setSearchQuery(e.key);
-        setTimeout(() => searchInputRef.current?.focus(), 50);
-      }
-      
-      // Escape closes search overlay
-      if (e.key === 'Escape' && showSearchOverlay) {
-        setShowSearchOverlay(false);
-        setSearchQuery('');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showSearchOverlay]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!searchQuery.trim()) return;
-
-    const result = validateSearch(searchQuery);
-    
-    if (!result.valid) {
-      if (result.shouldClose) {
-        toast.error(result.message || 'Session terminated.');
-        setTimeout(() => {
-          window.location.href = 'https://www.google.com';
-        }, 1000);
-        return;
-      }
-      
-      setViolationCount(prev => prev + 1);
-      toast.error(result.message || 'This search is not allowed');
-      setSearchQuery('');
-      return;
-    }
-
-    // Valid search - update iframe URL with search
-    setLastValidSearch(searchQuery);
-    setIframeUrl(`https://mathepic.tuvnord.hk/streaming?search=${encodeURIComponent(searchQuery)}`);
-    setShowSearchOverlay(false);
-    setSearchQuery('');
-  };
-
-  const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    
-    // Real-time check for immediate violations
-    if (value.length > 2) {
-      const result = validateSearch(value);
-      if (result.shouldClose) {
-        toast.error('Filter bypass attempt detected. Session terminated.');
-        setTimeout(() => {
-          window.location.href = 'https://www.google.com';
-        }, 800);
-      }
-    }
-  };
 
   const handleAgeConfirm = () => {
     handleConfirm();
@@ -152,20 +125,6 @@ export function TVMoviesPlayer({ onClose }: TVMoviesPlayerProps) {
           </span>
         </div>
         
-        {/* Search button in header */}
-        <div className="flex-1 flex justify-center max-w-md mx-4">
-          <button
-            onClick={() => {
-              setShowSearchOverlay(true);
-              setTimeout(() => searchInputRef.current?.focus(), 50);
-            }}
-            className="w-full flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/30 hover:bg-muted/50 border border-border/30 text-muted-foreground text-sm transition-colors"
-          >
-            <Search className="w-4 h-4" />
-            <span>{lastValidSearch || 'Search movies & TV shows...'}</span>
-          </button>
-        </div>
-        
         <div className="flex items-center gap-2">
           {violationCount > 0 && (
             <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-destructive/20 text-destructive text-xs">
@@ -189,90 +148,37 @@ export function TVMoviesPlayer({ onClose }: TVMoviesPlayerProps) {
         </div>
       </div>
 
-      {/* Search Overlay */}
-      {showSearchOverlay && (
-        <div 
-          className="absolute inset-0 z-30 bg-background/95 backdrop-blur-lg flex flex-col items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowSearchOverlay(false);
-              setSearchQuery('');
-            }
-          }}
-        >
-          <div className="w-full max-w-2xl space-y-6">
-            {/* Search Header */}
-            <div className="text-center space-y-2">
-              <div className="flex items-center justify-center gap-2 text-primary">
-                <Shield className="w-6 h-6" />
-                <h2 className="text-2xl font-bold">Safe Search</h2>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                All searches are monitored for policy compliance
-              </p>
-            </div>
+      {/* Content Policy Banner */}
+      <div className="absolute top-14 left-0 right-0 bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 z-10">
+        <div className="flex items-center justify-center gap-2 text-amber-500 text-sm">
+          <Shield className="w-4 h-4" />
+          <span>Content is monitored. NSFW/explicit content is blocked.</span>
+        </div>
+      </div>
 
-            {/* Search Form */}
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={handleSearchInput}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
-                placeholder="Search movies & TV shows..."
-                className="w-full px-12 py-4 bg-muted/30 border border-border/50 rounded-xl text-foreground text-lg placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
-                autoFocus
-              />
-              <button
-                type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
-              >
-                Search
-              </button>
-            </form>
-
-            {/* Warning Box */}
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-semibold text-amber-500 mb-1">Content Policy</p>
-                  <p className="text-muted-foreground">
-                    Searching for adult, explicit, pornographic, or NSFW content is strictly prohibited. 
-                    Attempts to bypass content filters will result in immediate session termination. 
-                    This includes using spaces, special characters, or alternative spellings.
-                  </p>
-                </div>
-              </div>
+      {/* Blocked Content Overlay */}
+      {isBlocked && (
+        <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-lg flex items-center justify-center p-4">
+          <div className="max-w-md text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-destructive/20 flex items-center justify-center">
+              <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
-
-            {/* Quick Actions */}
-            <div className="flex items-center justify-center gap-4">
-              <button
-                onClick={() => {
-                  setShowSearchOverlay(false);
-                  setSearchQuery('');
-                }}
-                className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-              {lastValidSearch && (
-                <button
-                  onClick={() => {
-                    setIframeUrl('https://mathepic.tuvnord.hk/streaming');
-                    setLastValidSearch('');
-                    setShowSearchOverlay(false);
-                  }}
-                  className="px-4 py-2 text-primary hover:text-primary/80 transition-colors"
-                >
-                  Clear Search
-                </button>
-              )}
-            </div>
+            <h2 className="text-2xl font-bold text-foreground">Content Blocked</h2>
+            <p className="text-muted-foreground">
+              This content has been restricted due to our content policy. 
+              Please navigate to appropriate content.
+            </p>
+            <button
+              onClick={() => {
+                setIsBlocked(false);
+                if (iframeRef.current) {
+                  iframeRef.current.src = 'https://mathepic.tuvnord.hk/streaming';
+                }
+              }}
+              className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-medium transition-colors"
+            >
+              Go Back to Home
+            </button>
           </div>
         </div>
       )}
@@ -280,9 +186,9 @@ export function TVMoviesPlayer({ onClose }: TVMoviesPlayerProps) {
       {/* Iframe */}
       <iframe
         ref={iframeRef}
-        src={iframeUrl}
+        src="https://mathepic.tuvnord.hk/streaming"
         title="TV & Movies"
-        className="w-full h-full pt-14"
+        className="w-full h-full pt-24"
         allow="fullscreen; autoplay; encrypted-media"
         allowFullScreen
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
