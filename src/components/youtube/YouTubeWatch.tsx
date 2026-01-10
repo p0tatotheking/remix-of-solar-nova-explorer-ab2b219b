@@ -132,11 +132,11 @@ export function YouTubeWatch({ videoId, onBack, onVideoSelect }: YouTubeWatchPro
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-full overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-full overflow-y-auto lg:overflow-hidden">
       {/* Main Video Section */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 lg:overflow-y-auto">
         {/* Video Player */}
-        <div ref={containerRef} className="relative bg-black">
+        <div ref={containerRef} className="relative bg-black flex-shrink-0">
           <button
             onClick={onBack}
             className="absolute top-4 left-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
@@ -146,7 +146,7 @@ export function YouTubeWatch({ videoId, onBack, onVideoSelect }: YouTubeWatchPro
           
           <div className="aspect-video w-full">
             <iframe
-              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&controls=1`}
               title={video?.title}
               className="w-full h-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -224,7 +224,7 @@ export function YouTubeWatch({ videoId, onBack, onVideoSelect }: YouTubeWatchPro
       </div>
 
       {/* Related Videos Sidebar */}
-      <div className="w-full lg:w-96 border-l border-border/50 overflow-y-auto">
+      <div className="w-full lg:w-96 lg:border-l border-border/50 lg:overflow-y-auto flex-shrink-0">
         <div className="p-4">
           <h3 className="font-semibold text-foreground mb-4">Related Videos</h3>
           <div className="space-y-3">
