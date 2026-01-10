@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
 import { GameOverlayBar } from './GameOverlayBar';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 
 interface GameEmbedProps {
@@ -10,44 +10,40 @@ interface GameEmbedProps {
 }
 
 export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  // Block navigation to streaming URL
-  useEffect(() => {
-    const checkForStreamingUrl = () => {
-      try {
-        const iframe = iframeRef.current;
-        if (iframe && iframe.contentWindow) {
-          try {
-            const currentUrl = iframe.contentWindow.location.href;
-            if (currentUrl.includes('/streaming')) {
-              toast.error('Unauthorized access attempt detected. Session terminated.');
-              setTimeout(() => {
-                window.location.href = 'https://www.google.com';
-              }, 500);
-            }
-          } catch {
-            // Cross-origin - can't access directly
-          }
-        }
-      } catch {
-        // Silent fail
-      }
-    };
-
-    const interval = setInterval(checkForStreamingUrl, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Also block if the initial URL is the streaming URL
-  useEffect(() => {
-    if (url.includes('/streaming')) {
-      toast.error('Unauthorized access attempt detected. Session terminated.');
-      setTimeout(() => {
-        window.location.href = 'https://www.google.com';
-      }, 500);
+  // NOTE: We cannot reliably detect in-iframe navigation for cross-origin sites.
+  // So we hard-block this domain from being opened as a "game" embed.
+  const isRestrictedMathepicEmbed = useMemo(() => {
+    try {
+      const u = new URL(url);
+      return u.hostname === 'mathepic.tuvnord.hk';
+    } catch {
+      return false;
     }
   }, [url]);
+
+  useEffect(() => {
+    if (!isRestrictedMathepicEmbed) return;
+
+    toast.error('Restricted embed detected. Closing site.');
+    const t = window.setTimeout(() => {
+      window.location.replace('https://www.google.com');
+    }, 500);
+
+    return () => window.clearTimeout(t);
+  }, [isRestrictedMathepicEmbed]);
+
+  if (isRestrictedMathepicEmbed) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-2">
+          <h2 className="text-xl font-bold text-foreground">Restricted Embed</h2>
+          <p className="text-sm text-muted-foreground">
+            This site cannot be opened from Games. Please use the TV & Movies section instead. Closing…
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[100] bg-background">
@@ -64,7 +60,6 @@ export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
 
       {/* Iframe */}
       <iframe
-        ref={iframeRef}
         src={url}
         title={title}
         className="w-full h-full pt-14"
