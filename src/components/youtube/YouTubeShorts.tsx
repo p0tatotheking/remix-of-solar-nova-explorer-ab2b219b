@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, Heart, MessageCircle, Share2, MoreVertical, Volume2, VolumeX, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,6 +13,16 @@ interface Short {
 interface YouTubeShortsProps {
   onBack: () => void;
 }
+
+// Fisher-Yates shuffle algorithm
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
 
 export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
   const [shorts, setShorts] = useState<Short[]>([]);
@@ -39,7 +49,8 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
         channelTitle: item.snippet?.channelTitle || '',
       }));
 
-      setShorts(formattedShorts);
+      // Shuffle the shorts for random order
+      setShorts(shuffleArray(formattedShorts));
     } catch (error: any) {
       console.error('Error fetching shorts:', error);
       toast.error('Failed to load Shorts');
@@ -52,26 +63,52 @@ export function YouTubeShorts({ onBack }: YouTubeShortsProps) {
     fetchShorts();
   }, []);
 
-  const handleScroll = (direction: 'up' | 'down') => {
-    if (direction === 'up' && currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    } else if (direction === 'down' && currentIndex < shorts.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
+  const handleScroll = useCallback((direction: 'up' | 'down') => {
+    setCurrentIndex(prev => {
+      if (direction === 'up' && prev > 0) {
+        return prev - 1;
+      } else if (direction === 'down' && prev < shorts.length - 1) {
+        return prev + 1;
+      }
+      return prev;
+    });
+  }, [shorts.length]);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'ArrowUp') {
-      handleScroll('up');
-    } else if (e.key === 'ArrowDown') {
-      handleScroll('down');
-    }
-  };
-
+  // Handle keyboard navigation
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        handleScroll('up');
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        handleScroll('down');
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, shorts.length]);
+  }, [handleScroll]);
+
+  // Handle wheel scroll - prevent page scroll and navigate shorts instead
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (e.deltaY > 0) {
+        handleScroll('down');
+      } else if (e.deltaY < 0) {
+        handleScroll('up');
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [handleScroll]);
 
   const toggleLike = (id: string) => {
     setLiked(prev => {
