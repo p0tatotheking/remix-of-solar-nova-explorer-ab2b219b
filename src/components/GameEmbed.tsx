@@ -1,9 +1,10 @@
-import { X, AlertTriangle, Shield } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { GameOverlayBar } from './GameOverlayBar';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { AgeVerificationModal, useAgeVerification } from './AgeVerificationModal';
 import { isBlockedContent } from '@/lib/blockedContentIds';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface GameEmbedProps {
   url: string;
@@ -11,11 +12,15 @@ interface GameEmbedProps {
   onClose: () => void;
 }
 
+const GAME_SESSION_KEY = 'solarnova_game_sessions';
+
 export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
+  const { user } = useAuth();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [sessionStartTime] = useState(Date.now());
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { handleConfirm, handleDeny } = useAgeVerification();
 
@@ -28,6 +33,53 @@ export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
       return false;
     }
   }, [url]);
+
+  // Track game session - save play time when closing
+  const saveGameSession = useCallback(() => {
+    if (!user) return;
+    
+    const playTime = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const key = `${GAME_SESSION_KEY}_${user.id}`;
+    
+    try {
+      const stored = localStorage.getItem(key);
+      let sessions: { gameTitle: string; url: string; playTime: number; lastPlayed: string }[] = [];
+      
+      if (stored) {
+        sessions = JSON.parse(stored);
+      }
+      
+      // Find existing session for this game
+      const existingIndex = sessions.findIndex(s => s.url === url);
+      
+      if (existingIndex >= 0) {
+        // Update existing session
+        sessions[existingIndex].playTime += playTime;
+        sessions[existingIndex].lastPlayed = new Date().toISOString();
+      } else {
+        // Add new session
+        sessions.unshift({
+          gameTitle: title,
+          url,
+          playTime,
+          lastPlayed: new Date().toISOString(),
+        });
+      }
+      
+      // Keep last 50 sessions
+      sessions = sessions.slice(0, 50);
+      localStorage.setItem(key, JSON.stringify(sessions));
+    } catch (error) {
+      console.error('Error saving game session:', error);
+    }
+  }, [user, url, title, sessionStartTime]);
+
+  // Save session on unmount (when closing)
+  useEffect(() => {
+    return () => {
+      saveGameSession();
+    };
+  }, [saveGameSession]);
 
   // Check age verification on mount for mathepic
   useEffect(() => {
@@ -159,24 +211,14 @@ export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
         </div>
       </div>
 
-      {/* Content Policy Banner for mathepic */}
+      {/* Third-Party Disclaimer Banner for mathepic */}
       {isMathepicSite && (
-        <>
-          <div className="absolute top-14 left-0 right-0 bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 z-10">
-            <div className="flex items-center justify-center gap-2 text-amber-500 text-sm">
-              <Shield className="w-4 h-4" />
-              <span>Content is monitored. NSFW/explicit content is blocked.</span>
-            </div>
-          </div>
-
-          {/* Third-Party Disclaimer Banner */}
-          <div className="absolute top-[6.5rem] left-0 right-0 bg-muted/50 border-b border-border/30 px-4 py-2 z-10">
-            <p className="text-center text-xs text-muted-foreground">
-              <span className="font-medium">Disclaimer:</span> This content is provided through a third-party embedded service. Solarnova does not own, operate, or control the embedded website. 
-              We are not responsible for the content, availability, or any issues arising from the use of this third-party service.
-            </p>
-          </div>
-        </>
+        <div className="absolute top-14 left-0 right-0 bg-muted/50 border-b border-border/30 px-4 py-2 z-10">
+          <p className="text-center text-xs text-muted-foreground">
+            <span className="font-medium">Disclaimer:</span> This content is provided through a third-party embedded service. Solarnova does not own, operate, or control the embedded website. 
+            We are not responsible for the content, availability, or any issues arising from the use of this third-party service.
+          </p>
+        </div>
       )}
 
       {/* Blocked Content Overlay */}
@@ -211,7 +253,7 @@ export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
         ref={iframeRef}
         src={url}
         title={title}
-        className={`w-full h-full ${isMathepicSite ? 'pt-36' : 'pt-14'}`}
+        className={`w-full h-full ${isMathepicSite ? 'pt-24' : 'pt-14'}`}
         allow="fullscreen; autoplay; encrypted-media"
         allowFullScreen
       />

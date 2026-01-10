@@ -285,51 +285,57 @@ export function YouTubeMusicPlayer() {
     });
   };
 
-  const saveToMusicHistory = (video: YouTubeVideo) => {
+  const saveToMusicHistory = async (video: YouTubeVideo) => {
     if (!user) return;
     
     try {
-      const historyKey = `youtube_music_history_${user.id}`;
-      const stored = localStorage.getItem(historyKey);
-      let history: MusicHistoryItem[] = stored ? JSON.parse(stored) : [];
-      
-      const newEntry: MusicHistoryItem = {
-        id: `${video.id}-${Date.now()}`,
-        video_id: video.id,
-        title: video.title,
-        artist: video.channelTitle,
-        thumbnail: video.thumbnail,
-        listened_at: new Date().toISOString(),
-      };
-      
-      // Remove existing entry for same video and add to front
-      history = history.filter(h => h.video_id !== video.id);
-      history.unshift(newEntry);
-      
-      // Keep last 100 items
-      history = history.slice(0, 100);
-      
-      localStorage.setItem(historyKey, JSON.stringify(history));
+      // Check if already in history
+      const { data: existing } = await supabase
+        .from('youtube_music_history')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('video_id', video.id)
+        .single();
+
+      if (existing) {
+        // Update listened_at timestamp
+        await supabase
+          .from('youtube_music_history')
+          .update({ listened_at: new Date().toISOString() })
+          .eq('id', existing.id);
+      } else {
+        // Insert new entry
+        await supabase
+          .from('youtube_music_history')
+          .insert({
+            user_id: user.id,
+            video_id: video.id,
+            title: video.title,
+            artist: video.channelTitle,
+            thumbnail: video.thumbnail,
+          });
+      }
     } catch (error) {
       console.error('Error saving to music history:', error);
     }
   };
 
-  const fetchMusicHistory = () => {
+  const fetchMusicHistory = async () => {
     if (!user) return;
     
     try {
-      const historyKey = `youtube_music_history_${user.id}`;
-      const stored = localStorage.getItem(historyKey);
+      const { data, error } = await supabase
+        .from('youtube_music_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('listened_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
       
-      if (stored) {
-        const parsed = JSON.parse(stored) as MusicHistoryItem[];
-        setMusicHistory(parsed);
-        
-        // Get recommendations based on history
-        if (parsed.length > 0) {
-          fetchMusicRecommendations(parsed);
-        }
+      if (data && data.length > 0) {
+        setMusicHistory(data);
+        fetchMusicRecommendations(data);
       }
     } catch (error) {
       console.error('Error fetching music history:', error);
@@ -374,13 +380,22 @@ export function YouTubeMusicPlayer() {
     fetchMusicHistory();
   };
 
-  const clearMusicHistory = () => {
+  const clearMusicHistory = async () => {
     if (!user) return;
-    const historyKey = `youtube_music_history_${user.id}`;
-    localStorage.removeItem(historyKey);
-    setMusicHistory([]);
-    setRecommendations([]);
-    toast.success('Music history cleared');
+    
+    try {
+      await supabase
+        .from('youtube_music_history')
+        .delete()
+        .eq('user_id', user.id);
+      
+      setMusicHistory([]);
+      setRecommendations([]);
+      toast.success('Music history cleared');
+    } catch (error) {
+      console.error('Error clearing music history:', error);
+      toast.error('Failed to clear history');
+    }
   };
 
   const handlePlayPlaylistSong = (song: PlaylistSong) => {

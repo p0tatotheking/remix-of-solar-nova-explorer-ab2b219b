@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, TrendingUp, Flame, Music, Gamepad2, Film, Newspaper, Trophy, Loader2 } from 'lucide-react';
+import { Search, TrendingUp, Flame, Music, Gamepad2, Film, Newspaper, Trophy, Loader2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface Video {
@@ -13,6 +14,13 @@ interface Video {
   viewCount?: string;
   publishedAt: string;
   duration?: string;
+}
+
+interface WatchHistoryItem {
+  video_id: string;
+  title: string;
+  channel_title: string;
+  thumbnail: string;
 }
 
 interface YouTubeHomeProps {
@@ -31,12 +39,15 @@ const categories = [
 ];
 
 export function YouTubeHome({ onVideoSelect, onShortsClick, searchQuery, setSearchQuery }: YouTubeHomeProps) {
+  const { user } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
+  const [recommendedVideos, setRecommendedVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [currentQuery, setCurrentQuery] = useState<string>('');
+  const [showRecommended, setShowRecommended] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -115,9 +126,65 @@ export function YouTubeHome({ onVideoSelect, onShortsClick, searchQuery, setSear
     };
   }, [nextPageToken, loadingMore, loadMoreVideos]);
 
+  // Fetch trending videos and recommendations on mount
   useEffect(() => {
     fetchVideos();
-  }, []);
+    if (user) {
+      fetchRecommendations();
+    }
+  }, [user]);
+
+  // Fetch recommendations based on watch history
+  const fetchRecommendations = async () => {
+    if (!user) return;
+    
+    try {
+      // Get watch history from database
+      const { data: historyData, error: historyError } = await supabase
+        .from('youtube_watch_history')
+        .select('channel_title, video_id')
+        .eq('user_id', user.id)
+        .order('watched_at', { ascending: false })
+        .limit(10);
+
+      if (historyError || !historyData || historyData.length === 0) {
+        setShowRecommended(false);
+        return;
+      }
+
+      // Get unique channels from history
+      const channels = [...new Set(historyData.map(h => h.channel_title))].slice(0, 3);
+      const watchedIds = new Set(historyData.map(h => h.video_id));
+      const searchTerm = channels.join(' ');
+
+      const { data, error } = await supabase.functions.invoke('youtube-api', {
+        body: { action: 'search', query: searchTerm, maxResults: 16 }
+      });
+
+      if (error) throw error;
+
+      const items = data.items || [];
+      const formattedVideos: Video[] = items
+        .filter((item: any) => !watchedIds.has(item.id?.videoId || item.id))
+        .map((item: any) => ({
+          id: item.id?.videoId || item.id,
+          title: item.snippet?.title || '',
+          thumbnail: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || '',
+          channelTitle: item.snippet?.channelTitle || '',
+          viewCount: item.statistics?.viewCount,
+          publishedAt: item.snippet?.publishedAt || '',
+          duration: item.contentDetails?.duration,
+        }))
+        .slice(0, 8);
+
+      if (formattedVideos.length > 0) {
+        setRecommendedVideos(formattedVideos);
+        setShowRecommended(true);
+      }
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,6 +297,48 @@ export function YouTubeHome({ onVideoSelect, onShortsClick, searchQuery, setSear
           </div>
         ) : (
           <>
+            {/* Recommended Section - Only show on home/trending */}
+            {showRecommended && !activeCategory && !currentQuery && recommendedVideos.length > 0 && (
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-5 h-5 text-amber-500" />
+                  <h2 className="text-lg font-semibold text-foreground">Recommended for you</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {recommendedVideos.map((video, index) => (
+                    <button
+                      key={`rec-${video.id}-${index}`}
+                      onClick={() => onVideoSelect(video.id)}
+                      className="group text-left rounded-xl overflow-hidden bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-colors"
+                    >
+                      <div className="relative aspect-video overflow-hidden">
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                      </div>
+                      <div className="p-2">
+                        <h3 className="font-medium text-foreground line-clamp-2 text-xs mb-1 group-hover:text-amber-500 transition-colors">
+                          {video.title}
+                        </h3>
+                        <p className="text-xs text-muted-foreground truncate">{video.channelTitle}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Trending/Category Title */}
+            {!currentQuery && (
+              <h2 className="text-lg font-semibold text-foreground mb-4">
+                {activeCategory ? categories.find(c => c.id === activeCategory)?.name : 'Trending'}
+              </h2>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {videos.map((video, index) => (
                 <button

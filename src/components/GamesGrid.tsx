@@ -1,11 +1,19 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Play, Gamepad2, Music, Cpu, Car, Sparkles, Camera, Loader2 } from 'lucide-react';
+import { Search, Play, Gamepad2, Music, Cpu, Car, Sparkles, Camera, Loader2, Clock, Timer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 const STATS_KEY = 'solarnova_user_stats';
 const GAMES_HISTORY_KEY = 'solarnova_games_history';
+const GAME_SESSION_KEY = 'solarnova_game_sessions';
+
+interface GameSession {
+  gameTitle: string;
+  url: string;
+  playTime: number;
+  lastPlayed: string;
+}
 
 interface Game {
   id?: string;
@@ -139,13 +147,39 @@ const defaultGames: Game[] = [
 ];
 
 export function GamesGrid({ onGameClick }: GamesGridProps) {
+  const { isAdmin, user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [games, setGames] = useState<Game[]>(defaultGames);
   const [loading, setLoading] = useState(true);
   const [uploadingGameId, setUploadingGameId] = useState<string | null>(null);
+  const [recentSessions, setRecentSessions] = useState<GameSession[]>([]);
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
-  const { isAdmin, user } = useAuth();
+
+  // Load recent game sessions
+  useEffect(() => {
+    if (!user) return;
+    
+    const key = `${GAME_SESSION_KEY}_${user.id}`;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      try {
+        const sessions = JSON.parse(stored) as GameSession[];
+        setRecentSessions(sessions.slice(0, 5));
+      } catch (e) {
+        console.error('Error loading game sessions:', e);
+      }
+    }
+  }, [user]);
+
+  // Format play time
+  const formatPlayTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${mins}m`;
+  };
 
   const fetchGames = async () => {
     try {
