@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { YouTubeHome } from './YouTubeHome';
 import { YouTubeShorts } from './YouTubeShorts';
 import { YouTubeWatch } from './YouTubeWatch';
-import { Home, Flame, Film, Library, Youtube } from 'lucide-react';
+import { YouTubeHistory } from './YouTubeHistory';
+import { Home, Flame, Film, History, Youtube } from 'lucide-react';
 
-type View = 'home' | 'shorts' | 'watch';
+type View = 'home' | 'shorts' | 'watch' | 'history';
 
 interface YouTubeAppProps {
   onClose?: () => void;
@@ -21,7 +22,7 @@ export function YouTubeApp({ onClose }: YouTubeAppProps) {
   };
 
   const handleBack = () => {
-    if (view === 'shorts') {
+    if (view === 'shorts' || view === 'history') {
       setView('home');
     } else {
       setView('home');
@@ -77,10 +78,13 @@ export function YouTubeApp({ onClose }: YouTubeAppProps) {
               <span className="text-[10px]">Subs</span>
             </button>
             <button
-              className="flex flex-col items-center gap-1 p-3 rounded-xl transition-colors w-16 text-muted-foreground hover:bg-muted/50"
+              onClick={() => setView('history')}
+              className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors w-16 ${
+                view === 'history' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'
+              }`}
             >
-              <Library className="w-5 h-5" />
-              <span className="text-[10px]">Library</span>
+              <History className="w-5 h-5" />
+              <span className="text-[10px]">History</span>
             </button>
           </nav>
         )}
@@ -103,6 +107,12 @@ export function YouTubeApp({ onClose }: YouTubeAppProps) {
               videoId={currentVideoId}
               onBack={handleBack}
               onVideoSelect={handleVideoSelect}
+            />
+          )}
+          {view === 'history' && (
+            <YouTubeHistory
+              onVideoSelect={handleVideoSelect}
+              onBack={handleBack}
             />
           )}
         </main>
@@ -131,9 +141,14 @@ export function YouTubeApp({ onClose }: YouTubeAppProps) {
             <Film className="w-5 h-5" />
             <span className="text-[10px]">Subs</span>
           </button>
-          <button className="flex flex-col items-center gap-1 p-2 text-muted-foreground">
-            <Library className="w-5 h-5" />
-            <span className="text-[10px]">Library</span>
+          <button
+            onClick={() => setView('history')}
+            className={`flex flex-col items-center gap-1 p-2 ${
+              view === 'history' ? 'text-foreground' : 'text-muted-foreground'
+            }`}
+          >
+            <History className="w-5 h-5" />
+            <span className="text-[10px]">History</span>
           </button>
         </nav>
       )}

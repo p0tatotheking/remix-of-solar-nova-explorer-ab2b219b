@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Search, Music2, Play, Pause, SkipBack, SkipForward, 
   Volume2, VolumeX, Repeat, Loader2, Heart, Plus, ListMusic,
-  MoreHorizontal, Trash2, ChevronLeft
+  MoreHorizontal, Trash2, ChevronLeft, History, Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useYouTubeMusic } from '@/contexts/YouTubeMusicContext';
@@ -41,6 +41,15 @@ interface PlaylistSong {
   thumbnail: string;
 }
 
+interface MusicHistoryItem {
+  id: string;
+  video_id: string;
+  title: string;
+  artist: string;
+  thumbnail: string;
+  listened_at: string;
+}
+
 const MUSIC_CATEGORIES = [
   { id: 'trending', label: 'Trending', query: '' },
   { id: 'pop', label: 'Pop', query: 'pop music official video' },
@@ -64,7 +73,9 @@ export function YouTubeMusicPlayer() {
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
-  const [activeView, setActiveView] = useState<'browse' | 'playlist'>('browse');
+  const [activeView, setActiveView] = useState<'browse' | 'playlist' | 'history'>('browse');
+  const [musicHistory, setMusicHistory] = useState<MusicHistoryItem[]>([]);
+  const [recommendations, setRecommendations] = useState<YouTubeVideo[]>([]);
   
   const {
     currentTrack,
@@ -263,12 +274,113 @@ export function YouTubeMusicPlayer() {
   };
 
   const handlePlayVideo = (video: YouTubeVideo) => {
+    // Save to music history
+    saveToMusicHistory(video);
+    
     playTrack({
       id: video.id,
       title: video.title,
       artist: video.channelTitle,
       thumbnail: video.thumbnail,
     });
+  };
+
+  const saveToMusicHistory = (video: YouTubeVideo) => {
+    if (!user) return;
+    
+    try {
+      const historyKey = `youtube_music_history_${user.id}`;
+      const stored = localStorage.getItem(historyKey);
+      let history: MusicHistoryItem[] = stored ? JSON.parse(stored) : [];
+      
+      const newEntry: MusicHistoryItem = {
+        id: `${video.id}-${Date.now()}`,
+        video_id: video.id,
+        title: video.title,
+        artist: video.channelTitle,
+        thumbnail: video.thumbnail,
+        listened_at: new Date().toISOString(),
+      };
+      
+      // Remove existing entry for same video and add to front
+      history = history.filter(h => h.video_id !== video.id);
+      history.unshift(newEntry);
+      
+      // Keep last 100 items
+      history = history.slice(0, 100);
+      
+      localStorage.setItem(historyKey, JSON.stringify(history));
+    } catch (error) {
+      console.error('Error saving to music history:', error);
+    }
+  };
+
+  const fetchMusicHistory = () => {
+    if (!user) return;
+    
+    try {
+      const historyKey = `youtube_music_history_${user.id}`;
+      const stored = localStorage.getItem(historyKey);
+      
+      if (stored) {
+        const parsed = JSON.parse(stored) as MusicHistoryItem[];
+        setMusicHistory(parsed);
+        
+        // Get recommendations based on history
+        if (parsed.length > 0) {
+          fetchMusicRecommendations(parsed);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching music history:', error);
+    }
+  };
+
+  const fetchMusicRecommendations = async (historyItems: MusicHistoryItem[]) => {
+    try {
+      const artists = [...new Set(historyItems.slice(0, 5).map(h => h.artist))];
+      const searchTerm = artists.slice(0, 2).join(' ');
+      
+      const { data, error } = await supabase.functions.invoke('youtube-api', {
+        body: { 
+          action: 'search', 
+          query: searchTerm + ' official music video', 
+          maxResults: 12 
+        }
+      });
+
+      if (error) throw error;
+
+      const listenedIds = new Set(historyItems.map(h => h.video_id));
+      const items = (data.items || [])
+        .filter((item: any) => !listenedIds.has(item.id?.videoId || item.id))
+        .slice(0, 8);
+
+      const formatted: YouTubeVideo[] = items.map((item: any) => ({
+        id: item.id?.videoId || item.id,
+        title: item.snippet?.title || '',
+        channelTitle: item.snippet?.channelTitle || '',
+        thumbnail: item.snippet?.thumbnails?.medium?.url || '',
+      }));
+
+      setRecommendations(formatted);
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    }
+  };
+
+  const openHistory = () => {
+    setActiveView('history');
+    fetchMusicHistory();
+  };
+
+  const clearMusicHistory = () => {
+    if (!user) return;
+    const historyKey = `youtube_music_history_${user.id}`;
+    localStorage.removeItem(historyKey);
+    setMusicHistory([]);
+    setRecommendations([]);
+    toast.success('Music history cleared');
   };
 
   const handlePlayPlaylistSong = (song: PlaylistSong) => {
@@ -323,7 +435,7 @@ export function YouTubeMusicPlayer() {
       <div className="flex-shrink-0 p-4 border-b border-border/30">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            {activeView === 'playlist' && (
+            {(activeView === 'playlist' || activeView === 'history') && (
               <button
                 onClick={() => {
                   setActiveView('browse');
@@ -341,12 +453,16 @@ export function YouTubeMusicPlayer() {
               <h1 className="text-xl font-bold text-foreground">
                 {activeView === 'playlist' && selectedPlaylist 
                   ? selectedPlaylist.name 
-                  : 'YouTube Music'}
+                  : activeView === 'history'
+                    ? 'Listen History'
+                    : 'YouTube Music'}
               </h1>
               <p className="text-xs text-muted-foreground">
                 {activeView === 'playlist' 
                   ? `${playlistSongs.length} songs` 
-                  : 'Discover and play music videos'}
+                  : activeView === 'history'
+                    ? `${musicHistory.length} tracks`
+                    : 'Discover and play music videos'}
               </p>
             </div>
           </div>
@@ -368,6 +484,13 @@ export function YouTubeMusicPlayer() {
 
             {/* Categories & Playlists */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              <button
+                onClick={openHistory}
+                className="px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              >
+                <History className="w-4 h-4 inline mr-1" />
+                History
+              </button>
               <button
                 onClick={() => {
                   setActiveCategory('favorites');
@@ -482,7 +605,68 @@ export function YouTubeMusicPlayer() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {activeView === 'playlist' && selectedPlaylist ? (
+          {activeView === 'history' ? (
+            // History View
+            <div className="space-y-6">
+              {recommendations.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="w-4 h-4 text-yellow-500" />
+                    <h3 className="text-sm font-semibold text-foreground">Recommended for you</h3>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {recommendations.slice(0, 4).map((video) => (
+                      <button
+                        key={video.id}
+                        onClick={() => handlePlayVideo(video)}
+                        className="group text-left rounded-lg overflow-hidden bg-card/50 hover:bg-card transition-colors"
+                      >
+                        <div className="relative aspect-video overflow-hidden">
+                          <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="p-2">
+                          <p className="text-xs font-medium text-foreground line-clamp-1">{video.title}</p>
+                          <p className="text-[10px] text-muted-foreground">{video.channelTitle}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-foreground">Recently played</h3>
+                  {musicHistory.length > 0 && (
+                    <button onClick={clearMusicHistory} className="text-xs text-destructive hover:underline">
+                      Clear all
+                    </button>
+                  )}
+                </div>
+                {musicHistory.length === 0 ? (
+                  <div className="text-center py-8">
+                    <History className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No listen history yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {musicHistory.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handlePlayVideo({ id: item.video_id, title: item.title, channelTitle: item.artist, thumbnail: item.thumbnail })}
+                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors text-left"
+                      >
+                        <img src={item.thumbnail || '/placeholder.svg'} alt={item.title} className="w-10 h-10 rounded object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{item.artist}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : activeView === 'playlist' && selectedPlaylist ? (
             // Playlist View
             playlistSongs.length === 0 ? (
               <div className="text-center py-12">
