@@ -161,12 +161,22 @@ export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
 
       {/* Content Policy Banner for mathepic */}
       {isMathepicSite && (
-        <div className="absolute top-14 left-0 right-0 bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 z-10">
-          <div className="flex items-center justify-center gap-2 text-amber-500 text-sm">
-            <Shield className="w-4 h-4" />
-            <span>Content is monitored. NSFW/explicit content is blocked.</span>
+        <>
+          <div className="absolute top-14 left-0 right-0 bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 z-10">
+            <div className="flex items-center justify-center gap-2 text-amber-500 text-sm">
+              <Shield className="w-4 h-4" />
+              <span>Content is monitored. NSFW/explicit content is blocked.</span>
+            </div>
           </div>
-        </div>
+
+          {/* Third-Party Disclaimer Banner */}
+          <div className="absolute top-[6.5rem] left-0 right-0 bg-muted/50 border-b border-border/30 px-4 py-2 z-10">
+            <p className="text-center text-xs text-muted-foreground">
+              <span className="font-medium">Disclaimer:</span> This content is provided through a third-party embedded service. Solarnova does not own, operate, or control the embedded website. 
+              We are not responsible for the content, availability, or any issues arising from the use of this third-party service.
+            </p>
+          </div>
+        </>
       )}
 
       {/* Blocked Content Overlay */}
@@ -201,7 +211,7 @@ export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
         ref={iframeRef}
         src={url}
         title={title}
-        className={`w-full h-full ${isMathepicSite ? 'pt-24' : 'pt-14'}`}
+        className={`w-full h-full ${isMathepicSite ? 'pt-36' : 'pt-14'}`}
         allow="fullscreen; autoplay; encrypted-media"
         allowFullScreen
       />
