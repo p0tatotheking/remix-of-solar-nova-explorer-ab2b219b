@@ -39,6 +39,10 @@ export function Chatroom() {
       }
 
       setMessages(data || []);
+      // Scroll to bottom after initial load with a slight delay to ensure render
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' });
+      }, 100);
     };
 
     fetchMessages();
@@ -64,8 +68,11 @@ export function Chatroom() {
     };
   }, [step]);
 
+  // Scroll to bottom on new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
   }, [messages]);
 
   const handleVerifyPassword = async (e: React.FormEvent) => {
