@@ -778,6 +778,36 @@ export type Database = {
         }
         Relationships: []
       }
+      youtube_music_history: {
+        Row: {
+          artist: string
+          id: string
+          listened_at: string
+          thumbnail: string | null
+          title: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          artist: string
+          id?: string
+          listened_at?: string
+          thumbnail?: string | null
+          title: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          artist?: string
+          id?: string
+          listened_at?: string
+          thumbnail?: string | null
+          title?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
       youtube_music_playlists: {
         Row: {
           created_at: string
@@ -839,6 +869,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      youtube_watch_history: {
+        Row: {
+          channel_title: string
+          id: string
+          thumbnail: string | null
+          title: string
+          user_id: string
+          video_id: string
+          watched_at: string
+        }
+        Insert: {
+          channel_title: string
+          id?: string
+          thumbnail?: string | null
+          title: string
+          user_id: string
+          video_id: string
+          watched_at?: string
+        }
+        Update: {
+          channel_title?: string
+          id?: string
+          thumbnail?: string | null
+          title?: string
+          user_id?: string
+          video_id?: string
+          watched_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {

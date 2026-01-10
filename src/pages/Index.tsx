@@ -208,41 +208,24 @@ function IndexInner() {
   }, [activeSection]);
 
   const navItems = [
-    { id: 'home' as const, label: 'Home', icon: Home },
-    { id: 'games' as const, label: 'Games', icon: Gamepad2 },
-    { id: 'tv' as const, label: 'TV & Movies', icon: Tv },
-    { id: 'youtube' as const, label: 'YouTube', icon: Youtube },
-    { id: 'music' as const, label: 'Music', icon: Music },
-    { id: 'announcements' as const, label: 'Announce', icon: Megaphone },
-    { id: 'chatroom' as const, label: 'Chat', icon: MessageSquare },
-    { id: 'uno' as const, label: 'UNO', icon: Spade },
-    { id: 'proxy' as const, label: 'Proxy', icon: Globe },
-    { id: 'bugs' as const, label: 'Bugs', icon: Bug },
+    { id: 'home' as const, label: 'Home', icon: Home, disabled: false },
+    { id: 'games' as const, label: 'Games', icon: Gamepad2, disabled: false },
+    { id: 'tv' as const, label: 'TV & Movies', icon: Tv, disabled: false },
+    { id: 'youtube' as const, label: 'YouTube', icon: Youtube, disabled: false },
+    { id: 'music' as const, label: 'Music', icon: Music, disabled: false },
+    { id: 'announcements' as const, label: 'Announce', icon: Megaphone, disabled: false },
+    { id: 'chatroom' as const, label: 'Chat', icon: MessageSquare, disabled: false },
+    { id: 'uno' as const, label: 'UNO', icon: Spade, disabled: false },
+    { id: 'proxy' as const, label: 'Proxy (coming soon)', icon: Globe, disabled: true },
+    { id: 'bugs' as const, label: 'Bugs', icon: Bug, disabled: false },
   ];
 
-  const handleNavClick = (id: string) => {
+  const handleNavClick = (id: string, disabled?: boolean) => {
+    if (disabled) return;
+    
     if (id === 'proxy') {
-      // Open in cloaked new tab using about:blank
-      const newTab = window.open('about:blank', '_blank');
-      if (newTab) {
-        newTab.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>Google</title>
-              <link rel="icon" href="https://www.google.com/favicon.ico">
-              <style>
-                body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-                iframe { width: 100%; height: 100%; border: none; }
-              </style>
-            </head>
-            <body>
-              <iframe src="https://solarnova.online"></iframe>
-            </body>
-          </html>
-        `);
-        newTab.document.close();
-      }
+      // Proxy is disabled, do nothing
+      return;
     } else if (id === 'tv') {
       setShowTVPlayer(true);
     } else {
@@ -296,11 +279,14 @@ function IndexInner() {
           {navItems.slice(0, 6).map((item) => (
             <button
               key={item.id}
-              onClick={() => handleNavClick(item.id)}
+              onClick={() => handleNavClick(item.id, item.disabled)}
+              disabled={item.disabled}
               className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all ${
-                activeSection === item.id || (item.id === 'tv' && showTVPlayer)
-                  ? 'text-primary'
-                  : 'text-muted-foreground'
+                item.disabled
+                  ? 'text-muted-foreground/40 cursor-not-allowed'
+                  : activeSection === item.id || (item.id === 'tv' && showTVPlayer)
+                    ? 'text-primary'
+                    : 'text-muted-foreground'
               }`}
             >
               <item.icon className="w-4 h-4" />
@@ -336,11 +322,14 @@ function IndexInner() {
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleNavClick(item.id)}
+                onClick={() => handleNavClick(item.id, item.disabled)}
+                disabled={item.disabled}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                  activeSection === item.id
-                    ? 'bg-gradient-primary text-foreground'
-                    : 'text-muted-foreground hover:bg-muted/30'
+                  item.disabled
+                    ? 'text-muted-foreground/40 cursor-not-allowed'
+                    : activeSection === item.id
+                      ? 'bg-gradient-primary text-foreground'
+                      : 'text-muted-foreground hover:bg-muted/30'
                 }`}
               >
                 <item.icon className="w-4 h-4" />
@@ -403,11 +392,14 @@ function IndexInner() {
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleNavClick(item.id)}
+                onClick={() => handleNavClick(item.id, item.disabled)}
+                disabled={item.disabled}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
-                  activeSection === item.id
-                    ? 'bg-gradient-primary text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                  item.disabled
+                    ? 'text-muted-foreground/40 cursor-not-allowed'
+                    : activeSection === item.id
+                      ? 'bg-gradient-primary text-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                 }`}
               >
                 <item.icon className="w-4 h-4" />

@@ -128,9 +128,9 @@ const defaultGames: Game[] = [
     thumbnail: '/thumbnails/mathepic.png',
   },
   {
-    title: 'learnmath.top',
+    title: 'studymath.top',
     description: 'Educational math games and learning tools.',
-    url: 'https://learnmath.top',
+    url: 'https://studymath.top',
     preview: 'Math learning platform',
     embed: true,
     category: 'arcade',

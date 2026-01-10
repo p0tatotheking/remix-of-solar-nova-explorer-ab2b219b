@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { YouTubeWatchParty } from './YouTubeWatchParty';
+import { useAuth } from '@/contexts/AuthContext';
+
 interface VideoDetails {
   id: string;
   title: string;
@@ -30,6 +32,7 @@ interface YouTubeWatchProps {
 }
 
 export function YouTubeWatch({ videoId, onBack, onVideoSelect }: YouTubeWatchProps) {
+  const { user } = useAuth();
   const [video, setVideo] = useState<VideoDetails | null>(null);
   const [relatedVideos, setRelatedVideos] = useState<RelatedVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +40,38 @@ export function YouTubeWatch({ videoId, onBack, onVideoSelect }: YouTubeWatchPro
   const [showDescription, setShowDescription] = useState(false);
   const [showWatchParty, setShowWatchParty] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Save to watch history
+  const saveToHistory = (videoData: VideoDetails) => {
+    if (!user) return;
+    
+    try {
+      const historyKey = `youtube_watch_history_${user.id}`;
+      const stored = localStorage.getItem(historyKey);
+      let history: any[] = stored ? JSON.parse(stored) : [];
+      
+      // Create new entry
+      const newEntry = {
+        id: `${videoData.id}-${Date.now()}`,
+        video_id: videoData.id,
+        title: videoData.title,
+        channel_title: videoData.channelTitle,
+        thumbnail: videoData.thumbnail,
+        watched_at: new Date().toISOString(),
+      };
+      
+      // Remove existing entry for same video and add to front
+      history = history.filter(h => h.video_id !== videoData.id);
+      history.unshift(newEntry);
+      
+      // Keep last 50 items
+      history = history.slice(0, 50);
+      
+      localStorage.setItem(historyKey, JSON.stringify(history));
+    } catch (error) {
+      console.error('Error saving to history:', error);
+    }
+  };
 
   const fetchVideoDetails = async () => {
     setLoading(true);
@@ -49,7 +84,7 @@ export function YouTubeWatch({ videoId, onBack, onVideoSelect }: YouTubeWatchPro
 
       const item = data.items?.[0];
       if (item) {
-        setVideo({
+        const videoData = {
           id: item.id,
           title: item.snippet?.title || '',
           description: item.snippet?.description || '',
@@ -59,7 +94,11 @@ export function YouTubeWatch({ videoId, onBack, onVideoSelect }: YouTubeWatchPro
           likeCount: item.statistics?.likeCount || '0',
           publishedAt: item.snippet?.publishedAt || '',
           thumbnail: item.snippet?.thumbnails?.high?.url || '',
-        });
+        };
+        setVideo(videoData);
+        
+        // Save to watch history
+        saveToHistory(videoData);
       }
 
       // Fetch related videos using search
