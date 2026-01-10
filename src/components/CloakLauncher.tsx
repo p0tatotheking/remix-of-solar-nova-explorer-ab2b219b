@@ -1,13 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ExternalLink, Monitor, AlertTriangle } from 'lucide-react';
 
 interface CloakLauncherProps {
   onContinue: () => void;
 }
 
+// Check if we're running inside an about:blank cloak
+const isInCloak = (): boolean => {
+  try {
+    // If we're in an iframe and parent is about:blank, we're cloaked
+    if (window.parent !== window && window.parent.location.href === 'about:blank') {
+      return true;
+    }
+  } catch {
+    // Cross-origin access denied means we're likely in a cloak
+    if (window.parent !== window) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export function CloakLauncher({ onContinue }: CloakLauncherProps) {
   const [isLaunching, setIsLaunching] = useState(false);
   const [popupBlocked, setPopupBlocked] = useState(false);
+
+  // If we're already in a cloak, skip the launcher
+  useEffect(() => {
+    if (isInCloak()) {
+      onContinue();
+    }
+  }, [onContinue]);
+
+  // Don't render anything if we're in a cloak (will auto-continue)
+  if (isInCloak()) {
+    return null;
+  }
 
   const launchCloaked = () => {
     setIsLaunching(true);
@@ -30,7 +58,7 @@ export function CloakLauncher({ onContinue }: CloakLauncherProps) {
             </style>
           </head>
           <body>
-            <iframe src="${currentUrl}" allow="fullscreen; autoplay; encrypted-media"></iframe>
+            <iframe src="${currentUrl}" allow="fullscreen; autoplay; encrypted-media; clipboard-write; clipboard-read" allowfullscreen></iframe>
           </body>
         </html>
       `);
