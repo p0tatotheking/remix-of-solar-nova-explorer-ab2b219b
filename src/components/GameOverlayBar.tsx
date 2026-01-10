@@ -14,7 +14,7 @@ import {
   Users,
   ArrowLeft
 } from 'lucide-react';
-import { useMusicPlayer } from './PersistentMusicPlayer';
+import { useYouTubeMusic } from '@/contexts/YouTubeMusicContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { censorText } from '@/lib/profanityFilter';
@@ -63,6 +63,7 @@ export function GameOverlayBar({ onClose }: GameOverlayBarProps) {
 
   const { user } = useAuth();
   
+  // Use YouTube Music context instead of old music player
   const {
     currentTrack,
     isPlaying,
@@ -73,7 +74,7 @@ export function GameOverlayBar({ onClose }: GameOverlayBarProps) {
     setVolume,
     isMuted,
     setIsMuted,
-  } = useMusicPlayer();
+  } = useYouTubeMusic();
 
   // Fetch messages
   useEffect(() => {
@@ -280,13 +281,13 @@ export function GameOverlayBar({ onClose }: GameOverlayBarProps) {
                 {currentTrack ? (
                   <div className="flex items-center gap-4">
                     <img
-                      src={currentTrack.image || '/placeholder.svg'}
-                      alt={currentTrack.name}
+                      src={currentTrack.thumbnail || '/placeholder.svg'}
+                      alt={currentTrack.title}
                       className="w-16 h-16 rounded-lg object-cover"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-foreground font-medium truncate">{currentTrack.name}</p>
-                      <p className="text-muted-foreground text-sm truncate">{currentTrack.artist_name}</p>
+                      <p className="text-foreground font-medium truncate">{currentTrack.title}</p>
+                      <p className="text-muted-foreground text-sm truncate">{currentTrack.artist}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => setIsMuted(!isMuted)} className="p-2 hover:bg-muted/50 rounded-lg">
@@ -295,11 +296,11 @@ export function GameOverlayBar({ onClose }: GameOverlayBarProps) {
                       <input
                         type="range"
                         min="0"
-                        max="1"
-                        step="0.01"
+                        max="100"
+                        step="1"
                         value={isMuted ? 0 : volume}
                         onChange={(e) => {
-                          setVolume(parseFloat(e.target.value));
+                          setVolume(parseInt(e.target.value));
                           setIsMuted(false);
                         }}
                         className="w-20 accent-primary"
@@ -473,7 +474,7 @@ export function GameOverlayBar({ onClose }: GameOverlayBarProps) {
                     <SkipForward className="w-4 h-4" />
                   </button>
                   <span className="ml-2 text-xs text-muted-foreground truncate max-w-[120px]">
-                    {currentTrack.name}
+                    {currentTrack.title}
                   </span>
                 </div>
               )}
