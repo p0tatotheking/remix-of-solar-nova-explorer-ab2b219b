@@ -156,6 +156,14 @@ export function TVMoviesPlayer({ onClose }: TVMoviesPlayerProps) {
         </div>
       </div>
 
+      {/* Third-Party Disclaimer Banner */}
+      <div className="absolute top-[6.5rem] left-0 right-0 bg-muted/50 border-b border-border/30 px-4 py-2 z-10">
+        <p className="text-center text-xs text-muted-foreground">
+          <span className="font-medium">Disclaimer:</span> This content is provided through a third-party embedded service. Solarnova does not own, operate, or control the embedded website. 
+          We are not responsible for the content, availability, or any issues arising from the use of this third-party service.
+        </p>
+      </div>
+
       {/* Blocked Content Overlay */}
       {isBlocked && (
         <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-lg flex items-center justify-center p-4">
@@ -188,7 +196,7 @@ export function TVMoviesPlayer({ onClose }: TVMoviesPlayerProps) {
         ref={iframeRef}
         src="https://mathepic.tuvnord.hk/streaming"
         title="TV & Movies"
-        className="w-full h-full pt-24"
+        className="w-full h-full pt-36"
         allow="fullscreen; autoplay; encrypted-media"
         allowFullScreen
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
