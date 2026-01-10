@@ -85,8 +85,8 @@ export function YouTubeApp({ onClose }: YouTubeAppProps) {
           </nav>
         )}
 
-        {/* Content Area */}
-        <main className="flex-1 overflow-hidden">
+      {/* Content Area */}
+        <main className="flex-1 overflow-y-auto">
           {view === 'home' && !currentVideoId && (
             <YouTubeHome
               onVideoSelect={handleVideoSelect}
