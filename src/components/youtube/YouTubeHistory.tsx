@@ -42,17 +42,21 @@ export function YouTubeHistory({ onVideoSelect, onBack }: YouTubeHistoryProps) {
     if (!user) return;
     
     try {
-      // Using localStorage since we don't have auth.uid matching
-      const historyKey = `youtube_watch_history_${user.id}`;
-      const stored = localStorage.getItem(historyKey);
+      const { data, error } = await supabase
+        .from('youtube_watch_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('watched_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
       
-      if (stored) {
-        const parsed = JSON.parse(stored) as HistoryItem[];
-        setHistory(parsed);
+      if (data) {
+        setHistory(data);
         
         // Get recommendations based on history
-        if (parsed.length > 0) {
-          fetchRecommendations(parsed);
+        if (data.length > 0) {
+          fetchRecommendations(data);
         }
       }
     } catch (error) {
@@ -102,22 +106,40 @@ export function YouTubeHistory({ onVideoSelect, onBack }: YouTubeHistoryProps) {
     }
   };
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
     if (!user) return;
-    const historyKey = `youtube_watch_history_${user.id}`;
-    localStorage.removeItem(historyKey);
-    setHistory([]);
-    setRecommendations([]);
-    toast.success('History cleared');
+    
+    try {
+      await supabase
+        .from('youtube_watch_history')
+        .delete()
+        .eq('user_id', user.id);
+      
+      setHistory([]);
+      setRecommendations([]);
+      toast.success('History cleared');
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      toast.error('Failed to clear history');
+    }
   };
 
-  const removeFromHistory = (videoId: string) => {
+  const removeFromHistory = async (videoId: string) => {
     if (!user) return;
-    const historyKey = `youtube_watch_history_${user.id}`;
-    const updated = history.filter(h => h.video_id !== videoId);
-    localStorage.setItem(historyKey, JSON.stringify(updated));
-    setHistory(updated);
-    toast.success('Removed from history');
+    
+    try {
+      await supabase
+        .from('youtube_watch_history')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('video_id', videoId);
+      
+      setHistory(prev => prev.filter(h => h.video_id !== videoId));
+      toast.success('Removed from history');
+    } catch (error) {
+      console.error('Error removing from history:', error);
+      toast.error('Failed to remove');
+    }
   };
 
   const formatTimeAgo = (dateString: string) => {
