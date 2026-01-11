@@ -90,7 +90,7 @@ interface FriendNickname {
   nickname: string;
 }
 
-type ChatView = 'server' | 'friends' | 'dm' | 'settings';
+type ChatView = 'server' | 'friends' | 'dm';
 
 export function DiscordChat({ onClose }: DiscordChatProps) {
   const { user } = useAuth();
@@ -654,7 +654,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
       <div className={`w-48 md:w-60 bg-card/50 border-r border-border/30 flex flex-col ${
         (view === 'dm' && selectedDmUser) ? 'hidden md:flex' : 'flex'
       }`}>
-      {view === 'server' || view === 'settings' ? (
+      {view === 'server' ? (
           <>
             <div className="p-4 border-b border-border/30">
               <h2 className="font-bold text-foreground">Solarnova Server</h2>
@@ -668,17 +668,6 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
               >
                 <Hash className="w-4 h-4" />
                 <span>general</span>
-              </button>
-            </div>
-            <div className="p-2 border-t border-border/30">
-              <button 
-                onClick={() => setView('settings')}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                  view === 'settings' ? 'bg-muted/50 text-foreground' : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'
-                }`}
-              >
-                <Settings className="w-4 h-4" />
-                <span>Settings</span>
               </button>
             </div>
           </>
@@ -816,11 +805,6 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
               <Hash className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
               <span className="font-semibold text-sm md:text-base">general</span>
             </>
-          ) : view === 'settings' ? (
-            <>
-              <Settings className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
-              <span className="font-semibold text-sm md:text-base">Settings</span>
-            </>
           ) : view === 'dm' && selectedDmUser ? (
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
@@ -879,17 +863,9 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
           )}
         </div>
 
-        {/* Messages / Settings */}
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto">
-          {view === 'settings' ? (
-            <UserSettings
-              onClose={() => setView('server')}
-              friends={friends}
-              nicknames={nicknames}
-              onNicknamesChange={fetchNicknames}
-              onProfileChange={fetchProfiles}
-            />
-          ) : view === 'server' ? (
+          {view === 'server' ? (
             serverMessages.length === 0 ? (
               <div className="flex items-center justify-center h-full text-muted-foreground p-4">
                 <div className="text-center">

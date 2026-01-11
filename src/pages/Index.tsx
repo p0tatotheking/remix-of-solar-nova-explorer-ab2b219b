@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv, Sparkles } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv, Sparkles, Settings } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
 import { BugsSection } from '@/components/BugsSection';
@@ -13,18 +13,20 @@ import { YouTubeApp } from '@/components/youtube/YouTubeApp';
 import { UnoGame } from '@/components/UnoGame';
 import { TVMoviesPlayer } from '@/components/TVMoviesPlayer';
 import { StudyHelper } from '@/components/StudyHelper';
+import { SettingsPage } from '@/components/SettingsPage';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
 import { CloakLauncher } from '@/components/CloakLauncher';
 import { Snowfall } from '@/components/Snowfall';
 import { SnowfallProvider, useSnowfall } from '@/contexts/SnowfallContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { HomeDashboard } from '@/components/HomeDashboard';
 import { DisclaimerModal, useDisclaimer } from '@/components/DisclaimerModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
-type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar';
+type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings';
 
 const Index = () => {
   const { user, isLoading, logout, isAdmin } = useAuth();
@@ -124,26 +126,54 @@ const Index = () => {
   // Show disclaimer after login (handled in IndexInner)
 
   return (
-    <SnowfallProvider>
-      <PipProvider>
-        <YouTubeMusicProvider>
-          <IndexContent />
-        </YouTubeMusicProvider>
-      </PipProvider>
-    </SnowfallProvider>
+    <ThemeProvider>
+      <SnowfallProvider>
+        <PipProvider>
+          <YouTubeMusicProvider>
+            <IndexContent />
+          </YouTubeMusicProvider>
+        </PipProvider>
+      </SnowfallProvider>
+    </ThemeProvider>
   );
 };
 
 function IndexContent() {
   const { snowfallEnabled } = useSnowfall();
+  const { customBackground } = useTheme();
   
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Custom Background */}
+      {customBackground.type !== 'none' && (
+        <div className="fixed inset-0 z-0">
+          {customBackground.type === 'image' ? (
+            <img 
+              src={customBackground.url} 
+              alt="" 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <video 
+              src={customBackground.url} 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          )}
+          <div className="absolute inset-0 bg-background/70" />
+        </div>
+      )}
+
       {/* Snowfall effect */}
       {snowfallEnabled && <Snowfall />}
       
       {/* Background gradient overlay */}
-      <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
+      {customBackground.type === 'none' && (
+        <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
+      )}
       
       <IndexInner />
     </div>
@@ -220,6 +250,7 @@ function IndexInner() {
     { id: 'announcements' as const, label: 'Announce', icon: Megaphone, disabled: false },
     { id: 'chatroom' as const, label: 'Chat', icon: MessageSquare, disabled: false },
     { id: 'uno' as const, label: 'UNO', icon: Spade, disabled: false },
+    { id: 'settings' as const, label: 'Settings', icon: Settings, disabled: false },
     { id: 'proxy' as const, label: 'Proxy (coming soon)', icon: Globe, disabled: true },
     { id: 'bugs' as const, label: 'Bugs', icon: Bug, disabled: false },
   ];
@@ -499,6 +530,12 @@ function IndexInner() {
         {activeSection === 'solar' && (
           <section className="h-[calc(100vh-80px)]">
             <StudyHelper onClose={() => setActiveSection('home')} />
+          </section>
+        )}
+
+        {activeSection === 'settings' && (
+          <section className="py-8 md:py-16">
+            <SettingsPage />
           </section>
         )}
       </main>

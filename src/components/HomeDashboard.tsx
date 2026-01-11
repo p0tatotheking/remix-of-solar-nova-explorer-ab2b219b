@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, MessageSquare, Bell, Gamepad2, Timer, Shield, User, TrendingUp, Calendar, Zap, Trophy } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface HomeDashboardProps {
@@ -21,6 +22,7 @@ const GAMES_HISTORY_KEY = 'solarnova_games_history';
 
 export const HomeDashboard = ({ typewriterText, onNavigate }: HomeDashboardProps) => {
   const { user, isAdmin } = useAuth();
+  const { glassEnabled } = useTheme();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
   const [unreadMessage, setUnreadMessage] = useState<{ from: string; message: string } | null>(null);
@@ -195,11 +197,15 @@ export const HomeDashboard = ({ typewriterText, onNavigate }: HomeDashboardProps
     return `${secs}s`;
   };
 
-  const glassStyle = {
-    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 100%)',
+  const glassStyle = glassEnabled ? {
+    background: 'rgba(255, 255, 255, 0.05)',
     backdropFilter: 'blur(24px)',
-    border: '1px solid rgba(139, 92, 246, 0.15)',
-    boxShadow: '0 8px 32px rgba(139, 92, 246, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+  } : {
+    background: 'linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--primary) / 0.04) 100%)',
+    border: '1px solid hsl(var(--primary) / 0.15)',
   };
 
   return (
@@ -211,7 +217,7 @@ export const HomeDashboard = ({ typewriterText, onNavigate }: HomeDashboardProps
       </h1>
       <p className="text-center text-muted-foreground text-sm mb-2">Hub for all games • made by p0tato</p>
       <div className="flex justify-center mb-6">
-        <span className="inline-block px-3 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full border border-purple-400/30">
+        <span className="inline-block px-3 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
           ✨ Now with encrypted chatrooms
         </span>
       </div>
