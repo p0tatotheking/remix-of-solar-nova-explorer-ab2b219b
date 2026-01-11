@@ -21,6 +21,7 @@ import { Snowfall } from '@/components/Snowfall';
 import { SnowfallProvider, useSnowfall } from '@/contexts/SnowfallContext';
 import { HomeDashboard } from '@/components/HomeDashboard';
 import { DisclaimerModal, useDisclaimer } from '@/components/DisclaimerModal';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar';
@@ -158,6 +159,7 @@ function IndexInner() {
   const [typewriterText, setTypewriterText] = useState('');
   const [userViewMode, setUserViewMode] = useState(false);
   const [showTVPlayer, setShowTVPlayer] = useState(false);
+  const [showLoading, setShowLoading] = useState(true);
   const { hasAccepted, handleAccept, handleDeny } = useDisclaimer();
 
   // Effective admin status (false when in user view mode)
@@ -258,6 +260,11 @@ function IndexInner() {
   // Show login if not authenticated
   if (!user) {
     return <LoginPage />;
+  }
+
+  // Show loading screen after login, before disclaimer
+  if (showLoading) {
+    return <LoadingScreen onComplete={() => setShowLoading(false)} />;
   }
 
   // Show disclaimer if not accepted
