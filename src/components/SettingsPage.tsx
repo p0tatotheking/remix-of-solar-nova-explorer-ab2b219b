@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Settings, Snowflake, Palette, Image, Video, Monitor, X, Upload, Trash2, Sparkles, User, Camera, Save, Edit2 } from 'lucide-react';
 import { useSnowfall } from '@/contexts/SnowfallContext';
 import { useTheme, ThemePreset } from '@/contexts/ThemeContext';
@@ -85,11 +85,11 @@ export function SettingsPage({ friends = [], nicknames = [], onNicknamesChange, 
   const [activeTab, setActiveTab] = useState<'appearance' | 'profile' | 'friends'>('appearance');
 
   // Fetch profile on mount
-  useState(() => {
+  useEffect(() => {
     if (user) {
       fetchProfile();
     }
-  });
+  }, [user]);
 
   const fetchProfile = async () => {
     if (!user) return;
