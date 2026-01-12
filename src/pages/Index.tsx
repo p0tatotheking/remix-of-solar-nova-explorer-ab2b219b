@@ -480,64 +480,66 @@ function IndexInner() {
 
       {/* Main content */}
       <main className="relative pb-24 md:pb-20">
-        {activeSection === 'home' && (
-          <HomeDashboard 
-            typewriterText={typewriterText} 
-            onNavigate={(section) => setActiveSection(section as Section)}
-          />
-        )}
+        <div key={activeSection} className="animate-fade-in">
+          {activeSection === 'home' && (
+            <HomeDashboard 
+              typewriterText={typewriterText} 
+              onNavigate={(section) => setActiveSection(section as Section)}
+            />
+          )}
 
-        {activeSection === 'games' && (
-          <section className="py-16 px-4 sm:px-6 lg:px-8">
-            <GamesGrid onGameClick={handleGameClick} />
-          </section>
-        )}
+          {activeSection === 'games' && (
+            <section className="py-16 px-4 sm:px-6 lg:px-8">
+              <GamesGrid onGameClick={handleGameClick} />
+            </section>
+          )}
 
-        {activeSection === 'chatroom' && (
-          <DiscordChat onClose={() => setActiveSection('home')} />
-        )}
+          {activeSection === 'chatroom' && (
+            <DiscordChat onClose={() => setActiveSection('home')} />
+          )}
 
-        {activeSection === 'bugs' && (
-          <section className="py-16 px-4 sm:px-6 lg:px-8">
-            <BugsSection />
-          </section>
-        )}
+          {activeSection === 'bugs' && (
+            <section className="py-16 px-4 sm:px-6 lg:px-8">
+              <BugsSection />
+            </section>
+          )}
 
-        {activeSection === 'music' && (
-          <section className="h-[calc(100vh-80px)]">
-            <YouTubeMusicPlayer />
-          </section>
-        )}
+          {activeSection === 'music' && (
+            <section className="h-[calc(100vh-80px)] overflow-hidden">
+              <YouTubeMusicPlayer />
+            </section>
+          )}
 
-        {activeSection === 'announcements' && (
-          <section className="py-16 px-4 sm:px-6 lg:px-8">
-            <Announcements />
-          </section>
-        )}
+          {activeSection === 'announcements' && (
+            <section className="py-16 px-4 sm:px-6 lg:px-8">
+              <Announcements />
+            </section>
+          )}
 
-        {activeSection === 'youtube' && (
-          <section className="h-[calc(100vh-80px)]">
-            <YouTubeApp />
-          </section>
-        )}
+          {activeSection === 'youtube' && (
+            <section className="h-[calc(100vh-80px)] overflow-hidden">
+              <YouTubeApp />
+            </section>
+          )}
 
-        {activeSection === 'uno' && (
-          <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
-            <UnoGame />
-          </section>
-        )}
+          {activeSection === 'uno' && (
+            <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
+              <UnoGame />
+            </section>
+          )}
 
-        {activeSection === 'solar' && (
-          <section className="h-[calc(100vh-80px)]">
-            <StudyHelper onClose={() => setActiveSection('home')} />
-          </section>
-        )}
+          {activeSection === 'solar' && (
+            <section className="h-[calc(100vh-80px)]">
+              <StudyHelper onClose={() => setActiveSection('home')} />
+            </section>
+          )}
 
-        {activeSection === 'settings' && (
-          <section className="py-8 md:py-16">
-            <SettingsPage />
-          </section>
-        )}
+          {activeSection === 'settings' && (
+            <section className="py-8 md:py-16">
+              <SettingsPage />
+            </section>
+          )}
+        </div>
       </main>
 
       {/* Footer */}

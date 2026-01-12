@@ -10,7 +10,8 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    const duration = 2500; // 2.5 seconds
+    // Random duration between 1-3 seconds
+    const duration = 1000 + Math.random() * 2000;
     const interval = 30; // Update every 30ms
     const increment = 100 / (duration / interval);
 

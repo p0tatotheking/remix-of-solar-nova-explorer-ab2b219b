@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Plus, Users, Play, UserPlus, X, Clock, Layers, Crown } from 'lucide-react';
+import { Plus, Users, Play, UserPlus, X, Clock, Layers, Crown, Sparkles, Gamepad2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface UnoGame {
@@ -280,47 +280,77 @@ export function UnoLobby({ onJoinGame }: UnoLobbyProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gradient">UNO Multiplayer</h1>
-        {!myGame && !showCreateForm && (
-          <Button onClick={() => setShowCreateForm(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Create Game
-          </Button>
-        )}
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-red-500/20 via-yellow-500/20 via-green-500/20 to-blue-500/20 border border-white/10">
+          <Gamepad2 className="w-8 h-8 text-primary" />
+          <h1 className="text-3xl md:text-4xl font-black text-gradient">UNO Multiplayer</h1>
+          <Sparkles className="w-6 h-6 text-yellow-500" />
+        </div>
+        <p className="text-muted-foreground">Challenge your friends to a game of UNO!</p>
       </div>
+
+      {/* Create Game Button */}
+      {!myGame && !showCreateForm && (
+        <div className="flex justify-center">
+          <Button 
+            onClick={() => setShowCreateForm(true)} 
+            size="lg"
+            className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25"
+          >
+            <Plus className="w-5 h-5" />
+            Create New Game
+          </Button>
+        </div>
+      )}
 
       {/* Pending Invites */}
       {invites.length > 0 && (
-        <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 space-y-3">
-          <h3 className="font-semibold text-primary flex items-center gap-2">
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 rounded-2xl p-5 space-y-4 backdrop-blur-sm">
+          <h3 className="font-bold text-lg text-primary flex items-center gap-2">
             <UserPlus className="w-5 h-5" />
             Game Invites
           </h3>
-          {invites.map((invite) => (
-            <div key={invite.id} className="flex items-center justify-between bg-background/50 rounded-lg p-3">
-              <span>{invite.from_username} invited you to play UNO!</span>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => acceptInvite(invite)}>Accept</Button>
-                <Button size="sm" variant="outline" onClick={() => declineInvite(invite)}>Decline</Button>
+          <div className="space-y-3">
+            {invites.map((invite) => (
+              <div key={invite.id} className="flex items-center justify-between bg-background/60 rounded-xl p-4 backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center">
+                    <span className="text-sm font-bold text-primary-foreground">{invite.from_username[0].toUpperCase()}</span>
+                  </div>
+                  <span className="font-medium">{invite.from_username} invited you to play!</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => acceptInvite(invite)} className="bg-green-500 hover:bg-green-600">Accept</Button>
+                  <Button size="sm" variant="outline" onClick={() => declineInvite(invite)}>Decline</Button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
       {/* Create Game Form */}
       {showCreateForm && (
-        <div className="bg-muted/30 border border-border/30 rounded-lg p-6 space-y-4">
-          <h3 className="text-lg font-semibold">Create New Game</h3>
+        <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-2xl p-6 space-y-6 shadow-xl">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-yellow-500" />
+              Create New Game
+            </h3>
+            <button onClick={() => setShowCreateForm(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="stacking" className="flex items-center gap-2">
-                <Layers className="w-4 h-4" />
-                Allow Stacking (+2/+4)
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+              <Label htmlFor="stacking" className="flex items-center gap-2 text-base font-semibold">
+                <Layers className="w-5 h-5 text-blue-500" />
+                Allow Stacking
               </Label>
+              <p className="text-xs text-muted-foreground">Stack +2 and +4 cards</p>
               <Switch
                 id="stacking"
                 checked={allowStacking}
@@ -328,11 +358,12 @@ export function UnoLobby({ onJoinGame }: UnoLobbyProps) {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="timeLimit" className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Turn Time Limit (seconds)
+            <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+              <Label htmlFor="timeLimit" className="flex items-center gap-2 text-base font-semibold">
+                <Clock className="w-5 h-5 text-orange-500" />
+                Turn Time Limit
               </Label>
+              <p className="text-xs text-muted-foreground">Seconds per turn (optional)</p>
               <Input
                 id="timeLimit"
                 type="number"
@@ -341,14 +372,16 @@ export function UnoLobby({ onJoinGame }: UnoLobbyProps) {
                 onChange={(e) => setTurnTimeLimit(e.target.value ? parseInt(e.target.value) : null)}
                 min={10}
                 max={120}
+                className="bg-background/50"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="maxPlayers" className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
+            <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+              <Label htmlFor="maxPlayers" className="flex items-center gap-2 text-base font-semibold">
+                <Users className="w-5 h-5 text-green-500" />
                 Max Players
               </Label>
+              <p className="text-xs text-muted-foreground">2-8 players</p>
               <Input
                 id="maxPlayers"
                 type="number"
@@ -356,58 +389,96 @@ export function UnoLobby({ onJoinGame }: UnoLobbyProps) {
                 onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
                 min={2}
                 max={8}
+                className="bg-background/50"
               />
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={createGame}>Create Game</Button>
+          <div className="flex gap-3 justify-end">
             <Button variant="outline" onClick={() => setShowCreateForm(false)}>Cancel</Button>
+            <Button onClick={createGame} className="gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600">
+              <Play className="w-4 h-4" />
+              Create Game
+            </Button>
           </div>
         </div>
       )}
 
       {/* My Game Lobby */}
       {myGame && (
-        <div className="bg-muted/30 border border-border/30 rounded-lg p-6 space-y-4">
+        <div className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/50 rounded-2xl p-6 space-y-5 shadow-xl">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Crown className="w-5 h-5 text-yellow-500" />
-              Your Game Lobby
-            </h3>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/25">
+                <Crown className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Your Game Lobby</h3>
+                <p className="text-sm text-muted-foreground">Waiting for players...</p>
+              </div>
+            </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setShowInviteModal(true)}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Invite Friends
+              <Button size="sm" variant="outline" onClick={() => setShowInviteModal(true)} className="gap-2">
+                <UserPlus className="w-4 h-4" />
+                Invite
               </Button>
-              <Button size="sm" variant="destructive" onClick={leaveGame}>
-                <X className="w-4 h-4 mr-2" />
-                Cancel Game
+              <Button size="sm" variant="destructive" onClick={leaveGame} className="gap-2">
+                <X className="w-4 h-4" />
+                Cancel
               </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>Stacking: {myGame.allow_stacking ? 'On' : 'Off'}</span>
-            <span>Time Limit: {myGame.turn_time_limit ? `${myGame.turn_time_limit}s` : 'None'}</span>
-            <span>Max Players: {myGame.max_players}</span>
+          {/* Game Settings */}
+          <div className="flex flex-wrap gap-3">
+            <div className="px-3 py-1.5 rounded-full bg-blue-500/20 text-blue-400 text-sm font-medium">
+              <Layers className="w-3.5 h-3.5 inline mr-1.5" />
+              Stacking: {myGame.allow_stacking ? 'On' : 'Off'}
+            </div>
+            <div className="px-3 py-1.5 rounded-full bg-orange-500/20 text-orange-400 text-sm font-medium">
+              <Clock className="w-3.5 h-3.5 inline mr-1.5" />
+              Time: {myGame.turn_time_limit ? `${myGame.turn_time_limit}s` : 'Unlimited'}
+            </div>
+            <div className="px-3 py-1.5 rounded-full bg-green-500/20 text-green-400 text-sm font-medium">
+              <Users className="w-3.5 h-3.5 inline mr-1.5" />
+              Max: {myGame.max_players}
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <h4 className="font-medium">Players ({players.length}/{myGame.max_players})</h4>
-            <div className="flex flex-wrap gap-2">
+          {/* Players */}
+          <div className="space-y-3">
+            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+              Players ({players.length}/{myGame.max_players})
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {players.map((player) => (
                 <div
                   key={player.id}
-                  className="flex items-center gap-2 bg-background/50 rounded-lg px-3 py-2"
+                  className="flex items-center gap-3 bg-background/60 backdrop-blur-sm rounded-xl px-4 py-3 border border-border/30"
                 >
-                  {player.user_id === myGame.creator_id && (
-                    <Crown className="w-4 h-4 text-yellow-500" />
-                  )}
-                  <span>{player.username}</span>
-                  {player.is_ready && (
-                    <span className="text-xs text-green-500">Ready</span>
-                  )}
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center">
+                    {player.user_id === myGame.creator_id ? (
+                      <Crown className="w-4 h-4 text-yellow-400" />
+                    ) : (
+                      <span className="text-xs font-bold text-primary-foreground">{player.username[0].toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{player.username}</p>
+                    {player.is_ready && (
+                      <span className="text-xs text-green-500 font-medium">Ready</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {/* Empty slots */}
+              {Array.from({ length: myGame.max_players - players.length }).map((_, i) => (
+                <div
+                  key={`empty-${i}`}
+                  className="flex items-center justify-center gap-2 bg-muted/20 rounded-xl px-4 py-3 border border-dashed border-border/30"
+                >
+                  <Users className="w-4 h-4 text-muted-foreground/50" />
+                  <span className="text-sm text-muted-foreground/50">Empty</span>
                 </div>
               ))}
             </div>
@@ -416,9 +487,10 @@ export function UnoLobby({ onJoinGame }: UnoLobbyProps) {
           <Button
             onClick={startGame}
             disabled={players.length < 2}
-            className="w-full gap-2"
+            size="lg"
+            className="w-full gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg shadow-green-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Play className="w-4 h-4" />
+            <Play className="w-5 h-5" />
             Start Game ({players.length}/2 minimum)
           </Button>
         </div>
@@ -426,26 +498,39 @@ export function UnoLobby({ onJoinGame }: UnoLobbyProps) {
 
       {/* Invite Friends Modal */}
       {showInviteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background border border-border rounded-lg p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Invite Friends</h3>
-              <button onClick={() => setShowInviteModal(false)}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl animate-scale-in">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-primary" />
+                Invite Friends
+              </h3>
+              <button onClick={() => setShowInviteModal(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <ScrollArea className="h-64">
+            <ScrollArea className="h-72">
               {friends.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No friends to invite</p>
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No friends to invite</p>
+                  <p className="text-sm text-muted-foreground/70 mt-1">Add friends in the Chat section</p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {friends.map((friend) => (
                     <div
                       key={friend.id}
-                      className="flex items-center justify-between bg-muted/30 rounded-lg p-3"
+                      className="flex items-center justify-between bg-muted/30 hover:bg-muted/50 rounded-xl p-4 transition-colors"
                     >
-                      <span>{friend.username}</span>
-                      <Button size="sm" onClick={() => inviteFriend(friend)}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center">
+                          <span className="text-sm font-bold text-primary-foreground">{friend.username[0].toUpperCase()}</span>
+                        </div>
+                        <span className="font-medium">{friend.username}</span>
+                      </div>
+                      <Button size="sm" onClick={() => inviteFriend(friend)} className="gap-1.5">
+                        <UserPlus className="w-4 h-4" />
                         Invite
                       </Button>
                     </div>
@@ -460,30 +545,46 @@ export function UnoLobby({ onJoinGame }: UnoLobbyProps) {
       {/* Available Games */}
       {!myGame && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Users className="w-5 h-5" />
+          <h3 className="text-xl font-bold flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
             Available Games
           </h3>
           {games.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              No games available. Create one to start playing!
-            </p>
+            <div className="text-center py-12 bg-muted/20 rounded-2xl border border-border/30">
+              <Gamepad2 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <p className="text-lg font-medium text-muted-foreground">No games available</p>
+              <p className="text-sm text-muted-foreground/70 mt-1">Create one to start playing!</p>
+            </div>
           ) : (
             <div className="grid gap-4">
               {games.map((game) => (
                 <div
                   key={game.id}
-                  className="bg-muted/30 border border-border/30 rounded-lg p-4 flex items-center justify-between"
+                  className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-5 flex items-center justify-between hover:bg-card/70 transition-colors"
                 >
-                  <div>
-                    <p className="font-medium">{game.creator_username}'s Game</p>
-                    <p className="text-sm text-muted-foreground">
-                      Stacking: {game.allow_stacking ? 'On' : 'Off'} •
-                      Time: {game.turn_time_limit ? `${game.turn_time_limit}s` : 'None'} •
-                      Max: {game.max_players} players
-                    </p>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
+                      <Crown className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-lg">{game.creator_username}'s Game</p>
+                      <div className="flex gap-2 mt-1">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground">
+                          Stacking: {game.allow_stacking ? 'On' : 'Off'}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground">
+                          Time: {game.turn_time_limit ? `${game.turn_time_limit}s` : 'None'}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground">
+                          Max: {game.max_players}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <Button onClick={() => joinGame(game)}>Join</Button>
+                  <Button onClick={() => joinGame(game)} className="gap-2">
+                    <Play className="w-4 h-4" />
+                    Join
+                  </Button>
                 </div>
               ))}
             </div>
