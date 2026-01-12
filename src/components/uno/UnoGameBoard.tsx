@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { UnoCard, Card } from './UnoCard';
-import { ArrowLeft, RotateCcw, RotateCw } from 'lucide-react';
+import { ArrowLeft, RotateCcw, RotateCw, Trophy, Clock, Users, Sparkles } from 'lucide-react';
 
 interface UnoGame {
   id: string;
@@ -397,17 +397,36 @@ export function UnoGameBoard({ gameId, onLeave }: UnoGameBoardProps) {
   };
 
   if (!game) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading game...</p>
+        </div>
+      </div>
+    );
   }
 
   if (game.status === 'finished') {
     const winner = players.find(p => p.user_id === game.winner_id);
+    const isWinner = game.winner_id === user?.id;
+    
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <h2 className="text-3xl font-bold">Game Over!</h2>
-        <p className="text-xl">{winner?.username} wins! 🎉</p>
-        <Button onClick={onLeave}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 animate-fade-in">
+        <div className={`relative ${isWinner ? 'animate-bounce' : ''}`}>
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-2xl shadow-yellow-500/50">
+            <Trophy className="w-12 h-12 text-white" />
+          </div>
+          <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-yellow-400 animate-pulse" />
+        </div>
+        <div className="text-center space-y-2">
+          <h2 className="text-4xl font-black text-gradient">Game Over!</h2>
+          <p className="text-2xl font-bold">
+            {isWinner ? '🎉 You Won! 🎉' : `${winner?.username} wins!`}
+          </p>
+        </div>
+        <Button onClick={onLeave} size="lg" className="gap-2 mt-4">
+          <ArrowLeft className="w-5 h-5" />
           Back to Lobby
         </Button>
       </div>
@@ -416,95 +435,165 @@ export function UnoGameBoard({ gameId, onLeave }: UnoGameBoardProps) {
 
   if (game.status === 'lobby') {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <h2 className="text-2xl font-bold">Waiting for game to start...</h2>
-        <p className="text-muted-foreground">Players: {players.length}</p>
-        <Button variant="outline" onClick={onLeave}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Waiting for game to start...</h2>
+          <p className="text-muted-foreground flex items-center justify-center gap-2">
+            <Users className="w-4 h-4" />
+            {players.length} players joined
+          </p>
+        </div>
+        <Button variant="outline" onClick={onLeave} className="gap-2">
+          <ArrowLeft className="w-4 h-4" />
           Leave Game
         </Button>
       </div>
     );
   }
 
+  const currentColor = game.current_color;
+  const colorGradients: Record<string, string> = {
+    red: 'from-red-500/20 to-red-600/10',
+    blue: 'from-blue-500/20 to-blue-600/10',
+    green: 'from-emerald-500/20 to-emerald-600/10',
+    yellow: 'from-yellow-400/20 to-amber-500/10',
+  };
+
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className={`min-h-screen bg-gradient-to-b ${currentColor ? colorGradients[currentColor] : 'from-background to-background'} transition-colors duration-500`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <Button variant="outline" size="sm" onClick={onLeave}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Leave
-        </Button>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">
-            Direction: {game.direction === 1 ? <RotateCw className="inline w-4 h-4" /> : <RotateCcw className="inline w-4 h-4" />}
-          </span>
-          {timeLeft !== null && (
-            <span className="text-sm font-bold text-primary">{timeLeft}s</span>
-          )}
+      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <Button variant="ghost" size="sm" onClick={onLeave} className="gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Leave
+          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-sm">
+              <span className="text-muted-foreground">Direction:</span>
+              {game.direction === 1 ? (
+                <RotateCw className="w-4 h-4 text-primary" />
+              ) : (
+                <RotateCcw className="w-4 h-4 text-primary" />
+              )}
+            </div>
+            {timeLeft !== null && (
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-sm ${
+                timeLeft <= 5 ? 'bg-red-500/20 text-red-500 animate-pulse' : 'bg-primary/20 text-primary'
+              }`}>
+                <Clock className="w-4 h-4" />
+                {timeLeft}s
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Other players */}
-      <div className="flex justify-center gap-8 mb-8">
-        {players.filter(p => p.user_id !== user?.id).map((player) => (
-          <div
-            key={player.id}
-            className={`text-center p-3 rounded-lg ${
-              game.current_turn_player_id === player.user_id
-                ? 'bg-primary/20 ring-2 ring-primary'
-                : 'bg-muted/30'
-            }`}
-          >
-            <p className="font-medium">{player.username}</p>
-            <div className="flex justify-center gap-1 mt-2">
-              {Array.from({ length: player.hand.length }).map((_, i) => (
-                <UnoCard key={i} card={{ id: '', color: 'wild', value: '' }} faceDown small />
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">{player.hand.length} cards</p>
-          </div>
-        ))}
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="flex flex-wrap justify-center gap-4">
+          {players.filter(p => p.user_id !== user?.id).map((player) => {
+            const isCurrentTurn = game.current_turn_player_id === player.user_id;
+            return (
+              <div
+                key={player.id}
+                className={`text-center p-4 rounded-2xl transition-all duration-300 ${
+                  isCurrentTurn
+                    ? 'bg-gradient-to-b from-primary/30 to-primary/10 ring-2 ring-primary shadow-lg shadow-primary/25 scale-105'
+                    : 'bg-card/50 backdrop-blur-sm border border-border/30'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center">
+                    <span className="text-xs font-bold text-primary-foreground">{player.username[0].toUpperCase()}</span>
+                  </div>
+                  <p className="font-bold">{player.username}</p>
+                  {isCurrentTurn && (
+                    <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full animate-pulse">
+                      Playing
+                    </span>
+                  )}
+                </div>
+                <div className="flex justify-center -space-x-3">
+                  {player.hand.slice(0, 10).map((_, i) => (
+                    <div key={i} className="transform hover:translate-y-0" style={{ transform: `rotate(${(i - 2) * 5}deg)` }}>
+                      <UnoCard card={{ id: '', color: 'wild', value: '' }} faceDown small />
+                    </div>
+                  ))}
+                  {player.hand.length > 10 && (
+                    <div className="w-7 h-10 rounded-lg bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+                      +{player.hand.length - 10}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 font-medium">{player.hand.length} cards</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Play area */}
-      <div className="flex items-center justify-center gap-8 mb-8">
-        {/* Draw pile */}
-        <div className="text-center">
-          <button
-            onClick={drawCard}
-            disabled={!isMyTurn}
-            className="transition-transform hover:scale-105 disabled:opacity-50"
-          >
-            <UnoCard card={{ id: '', color: 'wild', value: '' }} faceDown />
-          </button>
-          <p className="text-xs text-muted-foreground mt-1">Draw ({game.draw_pile.length})</p>
-        </div>
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-center gap-12">
+          {/* Draw pile */}
+          <div className="text-center">
+            <button
+              onClick={drawCard}
+              disabled={!isMyTurn}
+              className="relative transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 group"
+            >
+              <div className="absolute -inset-2 bg-gradient-to-r from-primary/30 to-primary/10 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+              <UnoCard card={{ id: '', color: 'wild', value: '' }} faceDown />
+              {isMyTurn && (
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs text-primary font-medium animate-pulse">
+                  Click to draw
+                </div>
+              )}
+            </button>
+            <p className="text-xs text-muted-foreground mt-10">Draw ({game.draw_pile.length})</p>
+          </div>
 
-        {/* Discard pile */}
-        <div className="text-center">
-          {topCard && <UnoCard card={topCard} />}
-          <p className="text-xs text-muted-foreground mt-1">
-            Current: <span className="capitalize font-medium">{game.current_color}</span>
-          </p>
+          {/* Discard pile */}
+          <div className="text-center">
+            <div className="relative">
+              {topCard && <UnoCard card={topCard} />}
+              {/* Current color indicator */}
+              <div className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-2 border-background shadow-lg ${
+                currentColor === 'red' ? 'bg-red-500' :
+                currentColor === 'blue' ? 'bg-blue-500' :
+                currentColor === 'green' ? 'bg-emerald-500' :
+                'bg-yellow-400'
+              }`} />
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              <span className="capitalize font-bold" style={{
+                color: currentColor === 'red' ? '#ef4444' :
+                       currentColor === 'blue' ? '#3b82f6' :
+                       currentColor === 'green' ? '#10b981' :
+                       '#f59e0b'
+              }}>{currentColor}</span>
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Color selector for wild cards */}
       {selectingColor && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-center">Choose a color</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-card border border-border rounded-3xl p-8 shadow-2xl animate-scale-in">
+            <h3 className="text-xl font-bold mb-6 text-center">Choose a color</h3>
             <div className="flex gap-4">
               {['red', 'blue', 'green', 'yellow'].map((color) => (
                 <button
                   key={color}
                   onClick={() => selectColor(color)}
-                  className={`w-16 h-16 rounded-lg transition-transform hover:scale-110 ${
-                    color === 'red' ? 'bg-red-500' :
-                    color === 'blue' ? 'bg-blue-500' :
-                    color === 'green' ? 'bg-green-500' :
-                    'bg-yellow-400'
+                  className={`w-16 h-16 rounded-2xl transition-all duration-200 hover:scale-110 hover:shadow-xl ${
+                    color === 'red' ? 'bg-gradient-to-br from-red-400 to-red-600 hover:shadow-red-500/50' :
+                    color === 'blue' ? 'bg-gradient-to-br from-blue-400 to-blue-600 hover:shadow-blue-500/50' :
+                    color === 'green' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 hover:shadow-emerald-500/50' :
+                    'bg-gradient-to-br from-yellow-300 to-amber-500 hover:shadow-yellow-500/50'
                   }`}
                 />
               ))}
@@ -514,19 +603,45 @@ export function UnoGameBoard({ gameId, onLeave }: UnoGameBoardProps) {
       )}
 
       {/* My hand */}
-      <div className={`fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t border-border ${isMyTurn ? 'ring-2 ring-primary' : ''}`}>
-        <p className="text-center mb-2 text-sm font-medium">
-          {isMyTurn ? "Your turn!" : "Waiting for other players..."}
-        </p>
-        <div className="flex justify-center gap-2 overflow-x-auto pb-2">
-          {myHand.map((card) => (
-            <UnoCard
-              key={card.id}
-              card={card}
-              onClick={() => playCard(card)}
-              disabled={!isMyTurn || !canPlayCard(card)}
-            />
-          ))}
+      <div className={`fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t transition-all duration-300 ${
+        isMyTurn ? 'border-primary shadow-[0_-4px_20px_rgba(var(--primary),0.2)]' : 'border-border/30'
+      }`}>
+        <div className="max-w-5xl mx-auto px-4 py-4">
+          <div className="text-center mb-3">
+            <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
+              isMyTurn 
+                ? 'bg-primary text-primary-foreground animate-pulse' 
+                : 'bg-muted text-muted-foreground'
+            }`}>
+              {isMyTurn ? (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Your turn!
+                </>
+              ) : (
+                'Waiting for other players...'
+              )}
+            </span>
+          </div>
+          <div className="flex justify-center gap-1 overflow-x-auto pb-2 scrollbar-hide">
+            {myHand.map((card, index) => (
+              <div 
+                key={card.id} 
+                className="flex-shrink-0 transition-transform duration-200"
+                style={{ 
+                  transform: `rotate(${(index - myHand.length / 2) * 2}deg)`,
+                  transformOrigin: 'bottom center'
+                }}
+              >
+                <UnoCard
+                  card={card}
+                  onClick={() => playCard(card)}
+                  disabled={!isMyTurn || !canPlayCard(card)}
+                  highlight={isMyTurn && canPlayCard(card)}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -445,7 +445,7 @@ export function YouTubeMusicPlayer() {
     : videos;
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 p-4 border-b border-border/30">
         <div className="flex items-center justify-between mb-4">
@@ -619,7 +619,7 @@ export function YouTubeMusicPlayer() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4">
           {activeView === 'history' ? (
             // History View
             <div className="space-y-6">
