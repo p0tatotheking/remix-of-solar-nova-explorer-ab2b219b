@@ -445,7 +445,7 @@ export function YouTubeMusicPlayer() {
     : videos;
 
   return (
-    <div className="flex flex-col h-full bg-background overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-background overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 p-4 border-b border-border/30">
         <div className="flex items-center justify-between mb-4">

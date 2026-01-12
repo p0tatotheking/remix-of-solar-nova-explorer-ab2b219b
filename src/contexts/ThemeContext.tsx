@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type ThemePreset = 'purple' | 'blue' | 'green' | 'red' | 'orange' | 'pink' | 'cyan' | 'midnight';
 
@@ -91,40 +93,117 @@ interface ThemeContextType {
   glassEnabled: boolean;
   setGlassEnabled: (enabled: boolean) => void;
   themePresets: typeof THEME_PRESETS;
+  isLoading: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = 'solarnova_theme';
-const BG_STORAGE_KEY = 'solarnova_custom_bg';
-const GLASS_STORAGE_KEY = 'solarnova_glass_enabled';
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [currentTheme, setCurrentTheme] = useState<ThemePreset>('purple');
-  const [customBackground, setCustomBackground] = useState<CustomBackground>({ type: 'none', url: '' });
-  const [glassEnabled, setGlassEnabled] = useState(true);
+  const { user } = useAuth();
+  const [currentTheme, setCurrentThemeState] = useState<ThemePreset>('purple');
+  const [customBackground, setCustomBackgroundState] = useState<CustomBackground>({ type: 'none', url: '' });
+  const [glassEnabled, setGlassEnabledState] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
-  // Load saved settings on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as ThemePreset | null;
-    if (savedTheme && THEME_PRESETS[savedTheme]) {
-      setCurrentTheme(savedTheme);
+  // Load theme settings from user profile
+  const loadUserTheme = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
     }
 
-    const savedBg = localStorage.getItem(BG_STORAGE_KEY);
-    if (savedBg) {
-      try {
-        setCustomBackground(JSON.parse(savedBg));
-      } catch {
-        // Invalid JSON
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('theme_preset, custom_bg_type, custom_bg_url, glass_enabled')
+        .eq('user_id', user.id)
+        .single();
+
+      if (data) {
+        if (data.theme_preset && THEME_PRESETS[data.theme_preset as ThemePreset]) {
+          setCurrentThemeState(data.theme_preset as ThemePreset);
+        }
+        if (data.custom_bg_type) {
+          setCustomBackgroundState({
+            type: data.custom_bg_type as 'none' | 'image' | 'video',
+            url: data.custom_bg_url || '',
+          });
+        }
+        if (data.glass_enabled !== null) {
+          setGlassEnabledState(data.glass_enabled);
+        }
       }
+    } catch (error) {
+      console.error('Error loading theme settings:', error);
+    } finally {
+      setIsLoading(false);
+      setHasLoaded(true);
     }
+  }, [user]);
 
-    const savedGlass = localStorage.getItem(GLASS_STORAGE_KEY);
-    if (savedGlass !== null) {
-      setGlassEnabled(savedGlass === 'true');
+  // Load on user change
+  useEffect(() => {
+    loadUserTheme();
+  }, [loadUserTheme]);
+
+  // Save theme to database
+  const saveThemeSettings = useCallback(async (
+    theme: ThemePreset,
+    bg: CustomBackground,
+    glass: boolean
+  ) => {
+    if (!user || !hasLoaded) return;
+
+    try {
+      // Check if profile exists
+      const { data: existing } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      const themeData = {
+        theme_preset: theme,
+        custom_bg_type: bg.type,
+        custom_bg_url: bg.url,
+        glass_enabled: glass,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existing) {
+        await supabase
+          .from('user_profiles')
+          .update(themeData)
+          .eq('user_id', user.id);
+      } else {
+        await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: user.id,
+            ...themeData,
+          });
+      }
+    } catch (error) {
+      console.error('Error saving theme settings:', error);
     }
-  }, []);
+  }, [user, hasLoaded]);
+
+  // Wrapper functions that save to database
+  const setCurrentTheme = useCallback((theme: ThemePreset) => {
+    setCurrentThemeState(theme);
+    saveThemeSettings(theme, customBackground, glassEnabled);
+  }, [customBackground, glassEnabled, saveThemeSettings]);
+
+  const setCustomBackground = useCallback((bg: CustomBackground) => {
+    setCustomBackgroundState(bg);
+    saveThemeSettings(currentTheme, bg, glassEnabled);
+  }, [currentTheme, glassEnabled, saveThemeSettings]);
+
+  const setGlassEnabled = useCallback((enabled: boolean) => {
+    setGlassEnabledState(enabled);
+    saveThemeSettings(currentTheme, customBackground, enabled);
+  }, [currentTheme, customBackground, saveThemeSettings]);
 
   // Apply theme colors to CSS variables
   useEffect(() => {
@@ -149,19 +228,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.setProperty('--gradient-bg', `linear-gradient(to bottom right, hsl(${colors.primaryHue}, 50%, 15%, 0.2), hsl(0, 0%, 0%), hsl(${colors.secondaryHue}, 50%, 15%, 0.2))`);
     root.style.setProperty('--shadow-glow', `0 0 40px hsl(${colors.primary} / 0.4)`);
     root.style.setProperty('--shadow-card', `0 25px 50px -12px hsl(${colors.primary} / 0.5)`);
-
-    localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
   }, [currentTheme]);
-
-  // Save custom background
-  useEffect(() => {
-    localStorage.setItem(BG_STORAGE_KEY, JSON.stringify(customBackground));
-  }, [customBackground]);
-
-  // Save glass setting
-  useEffect(() => {
-    localStorage.setItem(GLASS_STORAGE_KEY, String(glassEnabled));
-  }, [glassEnabled]);
 
   return (
     <ThemeContext.Provider
@@ -173,6 +240,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         glassEnabled,
         setGlassEnabled,
         themePresets: THEME_PRESETS,
+        isLoading,
       }}
     >
       {children}

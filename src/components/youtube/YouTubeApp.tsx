@@ -37,7 +37,7 @@ export function YouTubeApp({ onClose }: YouTubeAppProps) {
   const isShorts = view === 'shorts';
 
   return (
-    <div className="h-full flex flex-col bg-background overflow-hidden">
+    <div className="h-full w-full flex flex-col bg-background overflow-hidden">
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-background/95 backdrop-blur-xl">
         <div className="flex items-center gap-3">
