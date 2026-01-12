@@ -478,71 +478,74 @@ function IndexInner() {
         </div>
       </nav>
 
-      {/* Main content */}
-      <main className="relative">
-        <div key={activeSection} className="animate-fade-in">
-          {activeSection === 'home' && (
-            <HomeDashboard 
-              typewriterText={typewriterText} 
-              onNavigate={(section) => setActiveSection(section as Section)}
-            />
-          )}
-
-          {activeSection === 'games' && (
-            <section className="py-16 px-4 sm:px-6 lg:px-8">
-              <GamesGrid onGameClick={handleGameClick} />
-            </section>
-          )}
-
-          {activeSection === 'chatroom' && (
-            <section className="fixed inset-0 z-40 bg-background">
-              <DiscordChat onClose={() => setActiveSection('home')} />
-            </section>
-          )}
-
-          {activeSection === 'bugs' && (
-            <section className="py-16 px-4 sm:px-6 lg:px-8">
-              <BugsSection />
-            </section>
-          )}
-
-          {activeSection === 'music' && (
-            <section className="fixed inset-0 z-40 bg-background">
-              <YouTubeMusicPlayer />
-            </section>
-          )}
-
-          {activeSection === 'announcements' && (
-            <section className="py-16 px-4 sm:px-6 lg:px-8">
-              <Announcements />
-            </section>
-          )}
-
-          {activeSection === 'youtube' && (
-            <section className="fixed inset-0 z-40 bg-background">
-              <YouTubeApp />
-            </section>
-          )}
-
-          {activeSection === 'uno' && (
-            <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
-              <UnoGame />
-            </section>
-          )}
-
-          {activeSection === 'solar' && (
-            <section className="h-[calc(100vh-80px)]">
-              <StudyHelper onClose={() => setActiveSection('home')} />
-            </section>
-          )}
-
-          {activeSection === 'settings' && (
-            <section className="py-8 md:py-16 pb-32 md:pb-16">
-              <SettingsPage />
-            </section>
-          )}
+      {/* Fullscreen sections - rendered outside main flow */}
+      {activeSection === 'chatroom' && (
+        <div className="fixed inset-0 z-40 bg-background animate-fade-in">
+          <DiscordChat onClose={() => setActiveSection('home')} />
         </div>
-      </main>
+      )}
+
+      {activeSection === 'music' && (
+        <div className="fixed inset-0 z-40 bg-background animate-fade-in">
+          <YouTubeMusicPlayer />
+        </div>
+      )}
+
+      {activeSection === 'youtube' && (
+        <div className="fixed inset-0 z-40 bg-background animate-fade-in">
+          <YouTubeApp />
+        </div>
+      )}
+
+      {/* Main content - only show for non-fullscreen sections */}
+      {!['chatroom', 'music', 'youtube'].includes(activeSection) && (
+        <main className="relative">
+          <div key={activeSection} className="animate-fade-in">
+            {activeSection === 'home' && (
+              <HomeDashboard 
+                typewriterText={typewriterText} 
+                onNavigate={(section) => setActiveSection(section as Section)}
+              />
+            )}
+
+            {activeSection === 'games' && (
+              <section className="py-16 px-4 sm:px-6 lg:px-8">
+                <GamesGrid onGameClick={handleGameClick} />
+              </section>
+            )}
+
+            {activeSection === 'bugs' && (
+              <section className="py-16 px-4 sm:px-6 lg:px-8">
+                <BugsSection />
+              </section>
+            )}
+
+            {activeSection === 'announcements' && (
+              <section className="py-16 px-4 sm:px-6 lg:px-8">
+                <Announcements />
+              </section>
+            )}
+
+            {activeSection === 'uno' && (
+              <section className="py-8 md:py-16 px-4 sm:px-6 lg:px-8">
+                <UnoGame />
+              </section>
+            )}
+
+            {activeSection === 'solar' && (
+              <section className="h-[calc(100vh-80px)]">
+                <StudyHelper onClose={() => setActiveSection('home')} />
+              </section>
+            )}
+
+            {activeSection === 'settings' && (
+              <section className="py-8 md:py-16 pb-32 md:pb-16">
+                <SettingsPage />
+              </section>
+            )}
+          </div>
+        </main>
+      )}
 
       {/* Footer - only show on pages that scroll */}
       {!['music', 'youtube', 'chatroom', 'solar'].includes(activeSection) && (
