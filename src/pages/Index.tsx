@@ -479,7 +479,7 @@ function IndexInner() {
       </nav>
 
       {/* Main content */}
-      <main className="relative pb-24 md:pb-20">
+      <main className="relative">
         <div key={activeSection} className="animate-fade-in">
           {activeSection === 'home' && (
             <HomeDashboard 
@@ -495,7 +495,9 @@ function IndexInner() {
           )}
 
           {activeSection === 'chatroom' && (
-            <DiscordChat onClose={() => setActiveSection('home')} />
+            <section className="fixed inset-0 z-40 bg-background">
+              <DiscordChat onClose={() => setActiveSection('home')} />
+            </section>
           )}
 
           {activeSection === 'bugs' && (
@@ -505,7 +507,7 @@ function IndexInner() {
           )}
 
           {activeSection === 'music' && (
-            <section className="h-[calc(100vh-80px)] overflow-hidden">
+            <section className="fixed inset-0 z-40 bg-background">
               <YouTubeMusicPlayer />
             </section>
           )}
@@ -517,7 +519,7 @@ function IndexInner() {
           )}
 
           {activeSection === 'youtube' && (
-            <section className="h-[calc(100vh-80px)] overflow-hidden">
+            <section className="fixed inset-0 z-40 bg-background">
               <YouTubeApp />
             </section>
           )}
@@ -535,26 +537,28 @@ function IndexInner() {
           )}
 
           {activeSection === 'settings' && (
-            <section className="py-8 md:py-16">
+            <section className="py-8 md:py-16 pb-32 md:pb-16">
               <SettingsPage />
             </section>
           )}
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border/30 bg-background/80 backdrop-blur-lg mt-12 md:mt-20 pb-24 md:pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-          <div className="text-center">
-            <p className="text-muted-foreground text-sm md:text-base">
-              © 2024 Solarnova Gaming. Crafted by p0tato
-            </p>
-            <p className="text-muted-foreground/60 text-xs md:text-sm mt-2">
-              Your hub for gaming excellence
-            </p>
+      {/* Footer - only show on pages that scroll */}
+      {!['music', 'youtube', 'chatroom', 'solar'].includes(activeSection) && (
+        <footer className="border-t border-border/30 bg-background/80 backdrop-blur-lg mt-12 md:mt-20 pb-24 md:pb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+            <div className="text-center">
+              <p className="text-muted-foreground text-sm md:text-base">
+                © 2024 Solarnova Gaming. Crafted by p0tato
+              </p>
+              <p className="text-muted-foreground/60 text-xs md:text-sm mt-2">
+                Your hub for gaming excellence
+              </p>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
 
       {/* Persistent YouTube Music Mini Player - shows when not in music tab */}
       {activeSection !== 'music' && (

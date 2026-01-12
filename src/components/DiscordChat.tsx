@@ -571,7 +571,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const pendingRequests = friendRequests.filter(fr => fr.to_user_id === user?.id && fr.status === 'pending');
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-background">
+    <div className="h-full w-full flex bg-background overflow-hidden">
       {/* Friend Request Notification */}
       {showNotification && (
         <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded-xl p-4 shadow-2xl animate-fade-in max-w-sm">

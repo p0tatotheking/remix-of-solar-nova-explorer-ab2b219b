@@ -705,24 +705,36 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          custom_bg_type: string | null
+          custom_bg_url: string | null
           display_name: string | null
+          glass_enabled: boolean | null
           id: string
+          theme_preset: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          custom_bg_type?: string | null
+          custom_bg_url?: string | null
           display_name?: string | null
+          glass_enabled?: boolean | null
           id?: string
+          theme_preset?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          custom_bg_type?: string | null
+          custom_bg_url?: string | null
           display_name?: string | null
+          glass_enabled?: boolean | null
           id?: string
+          theme_preset?: string | null
           updated_at?: string
           user_id?: string
         }
