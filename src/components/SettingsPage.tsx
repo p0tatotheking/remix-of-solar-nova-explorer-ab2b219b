@@ -181,7 +181,7 @@ export function SettingsPage({ friends = [], nicknames = [], onNicknamesChange, 
 
   const handleBgFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     const maxSize = type === 'image' ? 5 * 1024 * 1024 : 50 * 1024 * 1024;
     if (file.size > maxSize) {
@@ -189,10 +189,30 @@ export function SettingsPage({ friends = [], nicknames = [], onNicknamesChange, 
       return;
     }
 
-    // Create a local URL for the file
-    const url = URL.createObjectURL(file);
-    setCustomBackground({ type, url });
-    toast.success(`${type === 'image' ? 'Image' : 'Video'} background set!`);
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-bg-${Date.now()}.${fileExt}`;
+      const filePath = `backgrounds/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('backgrounds')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('backgrounds')
+        .getPublicUrl(filePath);
+
+      setCustomBackground({ type, url: publicUrl });
+      toast.success(`${type === 'image' ? 'Image' : 'Video'} background saved to profile!`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload background');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleBgUrlSet = () => {
