@@ -193,17 +193,38 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
     if (nextTrack) playTrack(nextTrack);
   }, [currentTrack, tracks, playTrack]);
 
-  // Handle when a song ends - either loop the same song or play next
+  // Handle when a song ends.
+  // If the player was started from a "single play" (no playlist set), replay the same song.
+  // If a playlist is set, continue to the next track (unless looping is enabled).
   const handleSongEnded = useCallback(() => {
-    if (isLooping && playerRef.current) {
-      // Loop the current song
-      playerRef.current.seekTo(0);
-      playerRef.current.playVideo();
-    } else {
-      // Auto-play next song in the playlist
-      playNextInternal();
+    if (!playerRef.current || !playerReady || !currentTrack) return;
+
+    // If loop is enabled OR there's no playlist context, replay the current track.
+    if (isLooping || tracks.length === 0) {
+      try {
+        playerRef.current.loadVideoById(currentTrack.id, 0);
+        // Occasionally needed right after reloading on some browsers.
+        setTimeout(() => {
+          try {
+            playerRef.current?.playVideo?.();
+          } catch {
+            // ignore
+          }
+        }, 50);
+      } catch {
+        try {
+          playerRef.current.seekTo(0, true);
+          playerRef.current.playVideo();
+        } catch {
+          // ignore
+        }
+      }
+      return;
     }
-  }, [isLooping, playNextInternal]);
+
+    // Otherwise, continue through the playlist.
+    playNextInternal();
+  }, [currentTrack, isLooping, playerReady, playNextInternal, tracks.length]);
 
   const playNext = useCallback(() => {
     playNextInternal();

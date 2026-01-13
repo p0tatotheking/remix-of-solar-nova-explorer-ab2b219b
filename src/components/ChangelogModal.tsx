@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, Bug, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -125,21 +125,10 @@ const CHANGELOG: ChangelogEntry[] = [
   },
 ];
 
-const CHANGELOG_VERSION_KEY = 'solarnova_last_changelog_version';
-
 export function ChangelogModal() {
-  const [isVisible, setIsVisible] = useState(false);
-  const currentVersion = CHANGELOG[0]?.version || '2.05';
-
-  useEffect(() => {
-    const lastSeenVersion = localStorage.getItem(CHANGELOG_VERSION_KEY);
-    if (lastSeenVersion !== currentVersion) {
-      setIsVisible(true);
-    }
-  }, [currentVersion]);
+  const [isVisible, setIsVisible] = useState(true);
 
   const handleDismiss = () => {
-    localStorage.setItem(CHANGELOG_VERSION_KEY, currentVersion);
     setIsVisible(false);
   };
 
@@ -164,7 +153,7 @@ export function ChangelogModal() {
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">✨ Changelog (v{currentVersion}) ✨</h2>
+                <h2 className="text-xl font-bold text-white">✨Changelog (ver starting from 2.05) ✨</h2>
                 <p className="text-sm text-white/80">See what's new in Solarnova</p>
               </div>
             </div>
