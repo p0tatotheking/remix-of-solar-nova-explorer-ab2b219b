@@ -286,7 +286,10 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
       events: {
         onReady: () => {
           setPlayerReady(true);
-          playerRef.current.setVolume(volume);
+          // Safely set volume after player is ready
+          if (playerRef.current?.setVolume) {
+            playerRef.current.setVolume(volume);
+          }
         },
         onStateChange: (event: any) => {
           if (event.data === window.YT.PlayerState.PLAYING) {
@@ -343,13 +346,13 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
 
   const setVolume = useCallback((vol: number) => {
     setVolumeState(vol);
-    if (playerRef.current && playerReady) {
+    if (playerRef.current?.setVolume && playerReady) {
       playerRef.current.setVolume(vol);
     }
   }, [playerReady]);
 
   useEffect(() => {
-    if (playerRef.current && playerReady) {
+    if (playerRef.current?.setVolume && playerReady) {
       playerRef.current.setVolume(isMuted ? 0 : volume);
     }
   }, [isMuted, volume, playerReady]);
