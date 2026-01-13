@@ -24,6 +24,7 @@ import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { HomeDashboard } from '@/components/HomeDashboard';
 import { DisclaimerModal, useDisclaimer } from '@/components/DisclaimerModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { ChangelogModal } from '@/components/ChangelogModal';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings';
@@ -313,7 +314,8 @@ function IndexInner() {
 
   return (
     <div className="relative z-10">
-      {/* Mobile bottom navigation */}
+      {/* Changelog Modal */}
+      <ChangelogModal />
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/30 safe-area-pb">
         <div className="flex items-center justify-around px-1 py-2">
           {navItems.slice(0, 6).map((item) => (
