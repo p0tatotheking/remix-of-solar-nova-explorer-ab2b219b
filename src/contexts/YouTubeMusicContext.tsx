@@ -134,12 +134,8 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
           } else if (event.data === window.YT.PlayerState.ENDED) {
             setIsPlaying(false);
             stopProgressTracking();
-            if (isLooping) {
-              playerRef.current.seekTo(0);
-              playerRef.current.playVideo();
-            } else {
-              playNextInternal();
-            }
+            // Always play next song - loop applies to the entire playlist
+            handleSongEnded();
           }
         },
       },
@@ -196,6 +192,18 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
     const nextTrack = tracks[(currentIndex + 1) % tracks.length];
     if (nextTrack) playTrack(nextTrack);
   }, [currentTrack, tracks, playTrack]);
+
+  // Handle when a song ends - either loop the same song or play next
+  const handleSongEnded = useCallback(() => {
+    if (isLooping && playerRef.current) {
+      // Loop the current song
+      playerRef.current.seekTo(0);
+      playerRef.current.playVideo();
+    } else {
+      // Auto-play next song in the playlist
+      playNextInternal();
+    }
+  }, [isLooping, playNextInternal]);
 
   const playNext = useCallback(() => {
     playNextInternal();
