@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Search, Music2, Play, Pause, SkipBack, SkipForward, 
-  Volume2, VolumeX, Repeat, Loader2, Heart, Plus, ListMusic,
-  MoreHorizontal, Trash2, ChevronLeft, History, Sparkles
+  Volume2, VolumeX, Repeat, Repeat1, Loader2, Heart, Plus, ListMusic,
+  MoreHorizontal, Trash2, ChevronLeft, History, Sparkles, Shuffle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useYouTubeMusic } from '@/contexts/YouTubeMusicContext';
+import { useYouTubeMusic, RepeatMode } from '@/contexts/YouTubeMusicContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -88,8 +88,10 @@ export function YouTubeMusicPlayer() {
     setVolume,
     isMuted,
     setIsMuted,
-    isLooping,
-    setIsLooping,
+    repeatMode,
+    setRepeatMode,
+    isShuffled,
+    setIsShuffled,
     progress,
     currentTime,
     duration,
@@ -97,6 +99,26 @@ export function YouTubeMusicPlayer() {
     setTracks,
     playerReady,
   } = useYouTubeMusic();
+
+  // Cycle through repeat modes: off -> all -> one -> off
+  const cycleRepeatMode = () => {
+    const modes: RepeatMode[] = ['off', 'all', 'one'];
+    const currentIndex = modes.indexOf(repeatMode);
+    const nextMode = modes[(currentIndex + 1) % modes.length];
+    setRepeatMode(nextMode);
+    
+    const modeLabels: Record<RepeatMode, string> = {
+      'off': 'Repeat Off',
+      'one': 'Repeat One',
+      'all': 'Repeat All'
+    };
+    toast.success(modeLabels[nextMode]);
+  };
+
+  const toggleShuffle = () => {
+    setIsShuffled(!isShuffled);
+    toast.success(isShuffled ? 'Shuffle Off' : 'Shuffle On');
+  };
 
   // Fetch playlists on mount
   useEffect(() => {
@@ -885,15 +907,36 @@ export function YouTubeMusicPlayer() {
             </div>
 
             {/* Controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
+              {/* Shuffle button */}
               <button
-                onClick={() => setIsLooping(!isLooping)}
+                onClick={toggleShuffle}
                 className={`p-2 rounded-lg transition-colors ${
-                  isLooping ? 'text-red-500 bg-red-500/10' : 'text-muted-foreground hover:text-foreground'
+                  isShuffled ? 'text-red-500 bg-red-500/10' : 'text-muted-foreground hover:text-foreground'
                 }`}
+                title={isShuffled ? 'Shuffle On' : 'Shuffle Off'}
               >
-                <Repeat className="w-4 h-4" />
+                <Shuffle className="w-4 h-4" />
               </button>
+              
+              {/* Repeat button with mode indicator */}
+              <button
+                onClick={cycleRepeatMode}
+                className={`p-2 rounded-lg transition-colors relative ${
+                  repeatMode !== 'off' ? 'text-red-500 bg-red-500/10' : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title={`Repeat: ${repeatMode === 'off' ? 'Off' : repeatMode === 'one' ? 'One' : 'All'}`}
+              >
+                {repeatMode === 'one' ? (
+                  <Repeat1 className="w-4 h-4" />
+                ) : (
+                  <Repeat className="w-4 h-4" />
+                )}
+                {repeatMode === 'all' && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full" />
+                )}
+              </button>
+              
               <button
                 onClick={playPrevious}
                 className="p-2 text-muted-foreground hover:text-foreground transition-colors"
