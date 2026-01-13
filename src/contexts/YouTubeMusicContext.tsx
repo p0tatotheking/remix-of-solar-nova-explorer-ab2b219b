@@ -162,19 +162,6 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const startProgressTracking = useCallback(() => {
-    stopProgressTracking();
-    progressInterval.current = setInterval(() => {
-      if (playerRef.current && playerRef.current.getCurrentTime) {
-        const current = playerRef.current.getCurrentTime();
-        const total = playerRef.current.getDuration();
-        setCurrentTime(current);
-        setDuration(total);
-        setProgress(total > 0 ? (current / total) * 100 : 0);
-      }
-    }, 500);
-  }, []);
-
   const stopProgressTracking = useCallback(() => {
     if (progressInterval.current) {
       clearInterval(progressInterval.current);
@@ -182,56 +169,100 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const playTrack = useCallback((track: YouTubeTrack) => {
-    setCurrentTrack(track);
-    if (playerRef.current && playerReady) {
-      playerRef.current.loadVideoById(track.id);
-    }
-  }, [playerReady]);
+  const startProgressTracking = useCallback(() => {
+    stopProgressTracking();
+    progressInterval.current = setInterval(() => {
+      const player = playerRef.current;
+      if (player?.getCurrentTime && player?.getDuration) {
+        const current = player.getCurrentTime();
+        const total = player.getDuration();
+        setCurrentTime(current);
+        setDuration(total);
+        setProgress(total > 0 ? (current / total) * 100 : 0);
+      }
+    }, 500);
+  }, [stopProgressTracking]);
 
-  const playNextInternal = useCallback(() => {
-    const activeList = getActiveTrackList();
-    if (!currentTrack || activeList.length === 0) return;
-    
-    const currentIndex = activeList.findIndex((t) => t.id === currentTrack.id);
-    const nextIndex = (currentIndex + 1) % activeList.length;
-    
-    // If we've looped back to start and repeat is off, stop
-    if (nextIndex === 0 && repeatMode === 'off' && currentIndex === activeList.length - 1) {
-      // End of playlist, don't auto-play
-      return;
-    }
-    
-    const nextTrack = activeList[nextIndex];
-    if (nextTrack) playTrack(nextTrack);
-  }, [currentTrack, getActiveTrackList, playTrack, repeatMode]);
+  // Keep the latest handler functions in refs so the YT player doesn't get destroyed
+  // and recreated every time state (like currentTrack) changes.
+  const handlersRef = useRef({
+    startProgress: () => {},
+    stopProgress: () => {},
+    onEnded: () => {},
+  });
 
   // Replay current track
   const replayCurrentTrack = useCallback(() => {
-    if (!playerRef.current || !playerReady || !currentTrack) return;
-    
+    const player = playerRef.current;
+    if (!player || !playerReady || !currentTrack) return;
+
     try {
-      playerRef.current.loadVideoById(currentTrack.id, 0);
+      player.loadVideoById?.(currentTrack.id, 0);
       setTimeout(() => {
         try {
-          playerRef.current?.playVideo?.();
+          player.playVideo?.();
         } catch {
           // ignore
         }
       }, 50);
     } catch {
       try {
-        playerRef.current.seekTo(0, true);
-        playerRef.current.playVideo();
+        player.seekTo?.(0, true);
+        player.playVideo?.();
       } catch {
         // ignore
       }
     }
   }, [currentTrack, playerReady]);
 
+  const playTrack = useCallback(
+    (track: YouTubeTrack) => {
+      setCurrentTrack(track);
+
+      // If the user clicked a track before the player is ready, remember it.
+      pendingTrackIdRef.current = track.id;
+      pendingAutoPlayRef.current = true;
+
+      const player = playerRef.current;
+      if (player && playerReady && player.loadVideoById) {
+        try {
+          player.loadVideoById(track.id);
+          // Ensure playback starts even if YouTube doesn't auto-start immediately.
+          setTimeout(() => {
+            try {
+              player.playVideo?.();
+            } catch {
+              // ignore
+            }
+          }, 0);
+        } catch {
+          // ignore
+        }
+      }
+    },
+    [playerReady]
+  );
+
+  const playNextInternal = useCallback(() => {
+    const activeList = getActiveTrackList();
+    if (!currentTrack || activeList.length === 0) return;
+
+    const currentIndex = activeList.findIndex((t) => t.id === currentTrack.id);
+    const nextIndex = (currentIndex + 1) % activeList.length;
+
+    // If we've looped back to start and repeat is off, stop
+    if (nextIndex === 0 && repeatMode === 'off' && currentIndex === activeList.length - 1) {
+      return;
+    }
+
+    const nextTrack = activeList[nextIndex];
+    if (nextTrack) playTrack(nextTrack);
+  }, [currentTrack, getActiveTrackList, playTrack, repeatMode]);
+
   // Handle when a song ends
   const handleSongEnded = useCallback(() => {
-    if (!playerRef.current || !playerReady || !currentTrack) return;
+    const player = playerRef.current;
+    if (!player || !playerReady || !currentTrack) return;
 
     const activeList = getActiveTrackList();
 
@@ -247,24 +278,35 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Check if we're at the end of the playlist
     const currentIndex = activeList.findIndex((t) => t.id === currentTrack.id);
     const isLastTrack = currentIndex === activeList.length - 1;
 
     if (isLastTrack) {
       if (repeatMode === 'all') {
-        // Loop back to first track
         playTrack(activeList[0]);
       }
-      // If repeatMode is 'off', just stop (don't auto-play)
       return;
     }
 
-    // Continue to next track
     playNextInternal();
   }, [currentTrack, getActiveTrackList, playNextInternal, playTrack, playerReady, repeatMode, replayCurrentTrack]);
 
-  // Initialize player when API is ready
+  // Keep handler refs in sync
+  useEffect(() => {
+    handlersRef.current.startProgress = startProgressTracking;
+    handlersRef.current.stopProgress = stopProgressTracking;
+    handlersRef.current.onEnded = handleSongEnded;
+  }, [handleSongEnded, startProgressTracking, stopProgressTracking]);
+
+  const volumeRef = useRef(volume);
+  const pendingTrackIdRef = useRef<string | null>(null);
+  const pendingAutoPlayRef = useRef(false);
+
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
+
+  // Initialize player when API is ready (MUST be stable: do not depend on currentTrack, etc.)
   useEffect(() => {
     if (!apiLoaded || !containerRef.current || playerRef.current) return;
 
@@ -284,25 +326,55 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
         modestbranding: 1,
       },
       events: {
-        onReady: () => {
+        onReady: (event: any) => {
+          // Use event.target as the authoritative player instance.
+          if (event?.target) playerRef.current = event.target;
           setPlayerReady(true);
+
+          // If a track was selected before the player finished initializing, load it now.
+          const pendingId = pendingTrackIdRef.current;
+          if (pendingId && playerRef.current?.loadVideoById) {
+            try {
+              playerRef.current.loadVideoById(pendingId);
+              if (pendingAutoPlayRef.current) {
+                setTimeout(() => {
+                  try {
+                    playerRef.current?.playVideo?.();
+                  } catch {
+                    // ignore
+                  }
+                }, 0);
+              }
+            } catch {
+              // ignore
+            }
+          }
+
           // Safely set volume after player is ready
-          if (playerRef.current?.setVolume) {
-            playerRef.current.setVolume(volume);
+          try {
+            playerRef.current?.setVolume?.(volumeRef.current);
+          } catch {
+            // ignore
           }
         },
         onStateChange: (event: any) => {
+          const player = event?.target || playerRef.current;
+
           if (event.data === window.YT.PlayerState.PLAYING) {
             setIsPlaying(true);
-            setDuration(playerRef.current.getDuration());
-            startProgressTracking();
+            try {
+              setDuration(player?.getDuration?.() ?? 0);
+            } catch {
+              // ignore
+            }
+            handlersRef.current.startProgress();
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
-            stopProgressTracking();
+            handlersRef.current.stopProgress();
           } else if (event.data === window.YT.PlayerState.ENDED) {
             setIsPlaying(false);
-            stopProgressTracking();
-            handleSongEnded();
+            handlersRef.current.stopProgress();
+            handlersRef.current.onEnded();
           }
         },
       },
@@ -310,12 +382,19 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
 
     return () => {
       stopProgressTracking();
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
+      if (playerRef.current?.destroy) {
+        try {
+          playerRef.current.destroy();
+        } catch {
+          // ignore
+        }
       }
+      playerRef.current = null;
     };
-  }, [apiLoaded, handleSongEnded, startProgressTracking, stopProgressTracking, volume]);
+  }, [apiLoaded, stopProgressTracking]);
+
+
+
 
   const togglePlayPause = useCallback(() => {
     if (!playerRef.current || !playerReady) return;
