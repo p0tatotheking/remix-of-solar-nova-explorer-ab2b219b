@@ -25,6 +25,9 @@ import { HomeDashboard } from '@/components/HomeDashboard';
 import { DisclaimerModal, useDisclaimer } from '@/components/DisclaimerModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ChangelogModal } from '@/components/ChangelogModal';
+import { TutorialProvider } from '@/contexts/TutorialContext';
+import { TutorialModal } from '@/components/TutorialModal';
+import { useAutoFriendAdmin } from '@/hooks/useAutoFriendAdmin';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings';
@@ -131,7 +134,9 @@ const Index = () => {
       <SnowfallProvider>
         <PipProvider>
           <YouTubeMusicProvider>
-            <IndexContent />
+            <TutorialProvider>
+              <IndexContent />
+            </TutorialProvider>
           </YouTubeMusicProvider>
         </PipProvider>
       </SnowfallProvider>
@@ -192,6 +197,9 @@ function IndexInner() {
   const [showTVPlayer, setShowTVPlayer] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
   const { hasAccepted, handleAccept, handleDeny } = useDisclaimer();
+
+  // Auto-friend with admin account for new users
+  useAutoFriendAdmin();
 
   // Effective admin status (false when in user view mode)
   const effectiveIsAdmin = isAdmin && !userViewMode;
@@ -314,6 +322,8 @@ function IndexInner() {
 
   return (
     <div className="relative z-10">
+      {/* Tutorial Modal */}
+      <TutorialModal />
       {/* Changelog Modal */}
       <ChangelogModal />
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/30 safe-area-pb">
