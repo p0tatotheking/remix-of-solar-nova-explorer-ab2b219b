@@ -1,12 +1,15 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface TutorialStep {
   id: string;
   title: string;
   description: string;
-  icon: string;
-  highlight?: string; // CSS selector or section name to highlight
+  action: string; // What the user needs to do
+  targetSelector?: string; // CSS selector for the element to highlight
+  position: 'left' | 'right' | 'top' | 'bottom' | 'center';
+  requiresAction: boolean; // Whether user must do something to proceed
+  actionType?: 'hover' | 'click' | 'navigate' | 'auto'; // Type of action required
 }
 
 interface TutorialContextType {
@@ -17,7 +20,13 @@ interface TutorialContextType {
   prevStep: () => void;
   skipTutorial: () => void;
   completeTutorial: () => void;
+  completeAction: () => void;
+  actionCompleted: boolean;
   hasCompletedTutorial: boolean;
+  setActiveSection: (section: string) => void;
+  activeSection: string;
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
 }
 
 const TutorialContext = createContext<TutorialContextType | undefined>(undefined);
@@ -28,87 +37,124 @@ export const tutorialSteps: TutorialStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to Solarnova! 🌟',
-    description: 'This quick tutorial will show you around the app. Let\'s get started!',
-    icon: '👋',
+    description: 'Let\'s take a quick tour of the app. Follow the instructions to learn how everything works!',
+    action: 'Click "Next" to begin',
+    position: 'center',
+    requiresAction: false,
+    actionType: 'auto',
   },
   {
-    id: 'sidebar',
+    id: 'sidebar-hover',
     title: 'Navigation Sidebar',
-    description: 'Hover over the left edge of the screen (or tap "More" on mobile) to reveal the sidebar. This is your main navigation hub for all sections.',
-    icon: '📱',
-    highlight: 'sidebar',
+    description: 'The sidebar is your main navigation hub. It\'s hidden by default to give you more space.',
+    action: '👈 Hover over the left edge of the screen to reveal the sidebar',
+    targetSelector: '.tutorial-sidebar-trigger',
+    position: 'right',
+    requiresAction: true,
+    actionType: 'hover',
   },
   {
-    id: 'home',
-    title: 'Home Dashboard',
-    description: 'The Home section shows your dashboard with quick stats and recent activity. It\'s your starting point every time you visit.',
-    icon: '🏠',
-    highlight: 'home',
+    id: 'sidebar-explore',
+    title: 'Sidebar Revealed!',
+    description: 'Great! You can see all the different sections here. Each icon takes you to a different part of the app.',
+    action: 'Click on "Games" in the sidebar',
+    targetSelector: '.tutorial-games-nav',
+    position: 'right',
+    requiresAction: true,
+    actionType: 'click',
   },
   {
-    id: 'games',
-    title: 'Games Section',
-    description: 'Browse and play a variety of games! Click on any game card to play. Some games open in a new tab, others are embedded right here.',
-    icon: '🎮',
-    highlight: 'games',
+    id: 'games-section',
+    title: 'Games Section 🎮',
+    description: 'This is where you\'ll find all the games. Click on any game card to play! Some games embed directly, others open in new tabs.',
+    action: 'Click "Next" to continue',
+    position: 'center',
+    requiresAction: false,
+    actionType: 'auto',
   },
   {
-    id: 'youtube',
-    title: 'YouTube & TV',
-    description: 'Watch YouTube videos and TV shows directly in the app. Use the search bar to find content.',
-    icon: '📺',
-    highlight: 'youtube',
+    id: 'nav-music',
+    title: 'Let\'s Check Out Music',
+    description: 'Open the sidebar again and navigate to the Music section.',
+    action: '👈 Hover the left edge, then click "Music"',
+    targetSelector: '.tutorial-sidebar-trigger',
+    position: 'right',
+    requiresAction: true,
+    actionType: 'navigate',
   },
   {
-    id: 'music',
-    title: 'Music Player',
-    description: 'Listen to music while browsing! The mini player stays visible so you can control playback from anywhere.',
-    icon: '🎵',
-    highlight: 'music',
+    id: 'music-section',
+    title: 'Music Player 🎵',
+    description: 'Listen to music while browsing! The mini player stays visible so you can control playback from anywhere in the app.',
+    action: 'Click "Next" to continue',
+    position: 'center',
+    requiresAction: false,
+    actionType: 'auto',
   },
   {
-    id: 'chatroom',
-    title: 'Chatroom & Friends',
-    description: 'Chat with other users in the public chatroom or send direct messages to friends. You can also create private group chats!',
-    icon: '💬',
-    highlight: 'chatroom',
+    id: 'nav-chatroom',
+    title: 'Now Let\'s Visit the Chatroom',
+    description: 'The chatroom is where you can talk with other users and make friends.',
+    action: '👈 Open the sidebar and click "Chat"',
+    targetSelector: '.tutorial-sidebar-trigger',
+    position: 'right',
+    requiresAction: true,
+    actionType: 'navigate',
   },
   {
-    id: 'friends-intro',
-    title: 'Friend System',
-    description: 'In the Chatroom, you can add friends, send direct messages, and see who\'s online. Let\'s learn how friend requests work!',
-    icon: '👥',
+    id: 'chatroom-section',
+    title: 'Chatroom & Friends 💬',
+    description: 'Chat with other users here! You can send messages, add friends, and have private conversations.',
+    action: 'Click "Next" to learn about friend requests',
+    position: 'center',
+    requiresAction: false,
+    actionType: 'auto',
   },
   {
-    id: 'friends-how',
-    title: 'Accepting Friend Requests',
-    description: 'When someone sends you a friend request, a notification will pop up in the top-right corner. Click the ✓ button to accept or ✗ to decline. You can also find pending requests in the sidebar of the Chatroom.',
-    icon: '✉️',
+    id: 'friend-requests',
+    title: 'Friend Requests ✉️',
+    description: 'When someone sends you a friend request, a notification pops up in the top-right. Click ✓ to accept or ✗ to decline. You can also find pending requests in the chatroom sidebar.',
+    action: 'Click "Next" to continue',
+    position: 'center',
+    requiresAction: false,
+    actionType: 'auto',
   },
   {
-    id: 'friends-admin',
-    title: 'You\'re Connected with Admin!',
-    description: 'Good news! You\'re already friends with the Admin account. This means you can message them directly if you need help or want to report issues.',
-    icon: '🤝',
+    id: 'admin-friend',
+    title: 'You\'re Friends with Admin! 🤝',
+    description: 'Good news! You\'ve been automatically added as a friend with the Admin account. You can message them directly if you need help!',
+    action: 'Click "Next" to continue',
+    position: 'center',
+    requiresAction: false,
+    actionType: 'auto',
   },
   {
-    id: 'settings',
-    title: 'Settings & Customization',
-    description: 'Personalize your experience in Settings! Change themes, set custom backgrounds, enable snowfall effects, and more.',
-    icon: '⚙️',
-    highlight: 'settings',
+    id: 'nav-settings',
+    title: 'Final Stop: Settings',
+    description: 'Let\'s check out the settings to customize your experience.',
+    action: '👈 Open the sidebar and click "Settings"',
+    targetSelector: '.tutorial-sidebar-trigger',
+    position: 'right',
+    requiresAction: true,
+    actionType: 'navigate',
+  },
+  {
+    id: 'settings-section',
+    title: 'Settings & Customization ⚙️',
+    description: 'Personalize everything here! Change themes, set custom backgrounds, enable snowfall effects, and more.',
+    action: 'Click "Next" to continue',
+    position: 'center',
+    requiresAction: false,
+    actionType: 'auto',
   },
   {
     id: 'keybinds',
-    title: 'Keyboard Shortcuts',
-    description: 'Press R for panic button (redirects to Google), G or F11 to exit fullscreen. These work everywhere except the chatroom.',
-    icon: '⌨️',
-  },
-  {
-    id: 'complete',
-    title: 'You\'re All Set! 🎉',
-    description: 'That\'s everything! Enjoy using Solarnova. If you ever need help, check the Announcements section or message the Admin.',
-    icon: '🚀',
+    title: 'Keyboard Shortcuts ⌨️',
+    description: 'Quick tip: Press R for panic button (redirects to Google), G or F11 to exit fullscreen. These work everywhere except in the chatroom.',
+    action: 'Click "Finish" to complete the tutorial',
+    position: 'center',
+    requiresAction: false,
+    actionType: 'auto',
   },
 ];
 
@@ -117,6 +163,9 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [hasCompletedTutorial, setHasCompletedTutorial] = useState(true);
+  const [actionCompleted, setActionCompleted] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Check if user has completed tutorial
   useEffect(() => {
@@ -127,9 +176,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     
     setHasCompletedTutorial(hasCompleted);
     
-    // Show tutorial if not completed
     if (!hasCompleted) {
-      // Small delay to let the app load first
       const timer = setTimeout(() => {
         setShowTutorial(true);
       }, 500);
@@ -137,7 +184,57 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const markTutorialComplete = () => {
+  // Watch for sidebar hover during step 1
+  useEffect(() => {
+    if (!showTutorial) return;
+    const step = tutorialSteps[currentStep];
+    
+    if (step.id === 'sidebar-hover' && sidebarOpen) {
+      setActionCompleted(true);
+    }
+  }, [currentStep, sidebarOpen, showTutorial]);
+
+  // Watch for navigation to games
+  useEffect(() => {
+    if (!showTutorial) return;
+    const step = tutorialSteps[currentStep];
+    
+    if (step.id === 'sidebar-explore' && activeSection === 'games') {
+      setActionCompleted(true);
+    }
+  }, [currentStep, activeSection, showTutorial]);
+
+  // Watch for navigation to music
+  useEffect(() => {
+    if (!showTutorial) return;
+    const step = tutorialSteps[currentStep];
+    
+    if (step.id === 'nav-music' && activeSection === 'music') {
+      setActionCompleted(true);
+    }
+  }, [currentStep, activeSection, showTutorial]);
+
+  // Watch for navigation to chatroom
+  useEffect(() => {
+    if (!showTutorial) return;
+    const step = tutorialSteps[currentStep];
+    
+    if (step.id === 'nav-chatroom' && activeSection === 'chatroom') {
+      setActionCompleted(true);
+    }
+  }, [currentStep, activeSection, showTutorial]);
+
+  // Watch for navigation to settings
+  useEffect(() => {
+    if (!showTutorial) return;
+    const step = tutorialSteps[currentStep];
+    
+    if (step.id === 'nav-settings' && activeSection === 'settings') {
+      setActionCompleted(true);
+    }
+  }, [currentStep, activeSection, showTutorial]);
+
+  const markTutorialComplete = useCallback(() => {
     if (!user) return;
     
     const completedUsers = JSON.parse(localStorage.getItem(TUTORIAL_STORAGE_KEY) || '[]');
@@ -148,29 +245,36 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     setHasCompletedTutorial(true);
     setShowTutorial(false);
     setCurrentStep(0);
-  };
+    setActiveSection('home');
+  }, [user]);
 
-  const nextStep = () => {
+  const nextStep = useCallback(() => {
     if (currentStep < tutorialSteps.length - 1) {
       setCurrentStep(prev => prev + 1);
+      setActionCompleted(false);
     } else {
-      completeTutorial();
+      markTutorialComplete();
     }
-  };
+  }, [currentStep, markTutorialComplete]);
 
-  const prevStep = () => {
+  const prevStep = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(prev => prev - 1);
+      setActionCompleted(false);
     }
-  };
+  }, [currentStep]);
 
-  const skipTutorial = () => {
+  const skipTutorial = useCallback(() => {
     markTutorialComplete();
-  };
+  }, [markTutorialComplete]);
 
-  const completeTutorial = () => {
+  const completeTutorial = useCallback(() => {
     markTutorialComplete();
-  };
+  }, [markTutorialComplete]);
+
+  const completeAction = useCallback(() => {
+    setActionCompleted(true);
+  }, []);
 
   return (
     <TutorialContext.Provider
@@ -182,7 +286,13 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         prevStep,
         skipTutorial,
         completeTutorial,
+        completeAction,
+        actionCompleted,
         hasCompletedTutorial,
+        setActiveSection,
+        activeSection,
+        sidebarOpen,
+        setSidebarOpen,
       }}
     >
       {children}

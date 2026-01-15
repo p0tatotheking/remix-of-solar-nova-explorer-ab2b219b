@@ -25,8 +25,8 @@ import { HomeDashboard } from '@/components/HomeDashboard';
 import { DisclaimerModal, useDisclaimer } from '@/components/DisclaimerModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ChangelogModal } from '@/components/ChangelogModal';
-import { TutorialProvider } from '@/contexts/TutorialContext';
-import { TutorialModal } from '@/components/TutorialModal';
+import { TutorialProvider, useTutorial } from '@/contexts/TutorialContext';
+import { TutorialOverlay } from '@/components/TutorialOverlay';
 import { useAutoFriendAdmin } from '@/hooks/useAutoFriendAdmin';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
@@ -188,18 +188,44 @@ function IndexContent() {
 
 function IndexInner() {
   const { user, isLoading, logout, isAdmin } = useAuth();
-  const [activeSection, setActiveSection] = useState<Section>('home');
+  const [activeSectionState, setActiveSectionState] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [showNav, setShowNav] = useState(false);
+  const [showNavState, setShowNavState] = useState(false);
   const [typewriterText, setTypewriterText] = useState('');
   const [userViewMode, setUserViewMode] = useState(false);
   const [showTVPlayer, setShowTVPlayer] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
   const { hasAccepted, handleAccept, handleDeny } = useDisclaimer();
+  
+  // Tutorial integration
+  const { 
+    showTutorial, 
+    setActiveSection: setTutorialActiveSection, 
+    setSidebarOpen: setTutorialSidebarOpen,
+    activeSection: tutorialActiveSection 
+  } = useTutorial();
 
   // Auto-friend with admin account for new users
   useAutoFriendAdmin();
+
+  // Use tutorial's active section when tutorial is active
+  const activeSection = showTutorial ? tutorialActiveSection as Section : activeSectionState;
+  const setActiveSection = (section: Section) => {
+    setActiveSectionState(section);
+    if (showTutorial) {
+      setTutorialActiveSection(section);
+    }
+  };
+
+  // Sync sidebar state with tutorial
+  const showNav = showNavState;
+  const setShowNav = (open: boolean) => {
+    setShowNavState(open);
+    if (showTutorial) {
+      setTutorialSidebarOpen(open);
+    }
+  };
 
   // Effective admin status (false when in user view mode)
   const effectiveIsAdmin = isAdmin && !userViewMode;
@@ -322,8 +348,8 @@ function IndexInner() {
 
   return (
     <div className="relative z-10">
-      {/* Tutorial Modal */}
-      <TutorialModal />
+      {/* Tutorial Overlay */}
+      <TutorialOverlay />
       {/* Changelog Modal */}
       <ChangelogModal />
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/30 safe-area-pb">
@@ -421,7 +447,7 @@ function IndexInner() {
 
       {/* Desktop hover trigger zone */}
       <div 
-        className="hidden md:block fixed top-0 left-0 bottom-0 w-4 z-50"
+        className="tutorial-sidebar-trigger hidden md:block fixed top-0 left-0 bottom-0 w-4 z-50"
         onMouseEnter={() => setShowNav(true)}
       />
 
@@ -446,7 +472,7 @@ function IndexInner() {
                 key={item.id}
                 onClick={() => handleNavClick(item.id, item.disabled)}
                 disabled={item.disabled}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                className={`tutorial-${item.id}-nav w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
                   item.disabled
                     ? 'text-muted-foreground/40 cursor-not-allowed'
                     : activeSection === item.id
