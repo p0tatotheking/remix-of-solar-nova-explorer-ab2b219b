@@ -51,7 +51,7 @@ export function TutorialOverlay() {
           step.position === 'center' 
             ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
             : step.position === 'right'
-              ? 'top-1/2 left-24 -translate-y-1/2'
+              ? 'top-1/2 left-[200px] -translate-y-1/2'
               : 'top-1/2 right-8 -translate-y-1/2'
         }`}
       >
