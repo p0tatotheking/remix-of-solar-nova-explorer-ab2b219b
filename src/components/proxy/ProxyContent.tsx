@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, forwardRef } from 'react';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useProxy } from '@/contexts/ProxyContext';
 import { ProxyStartPage } from './ProxyStartPage';
@@ -6,7 +6,7 @@ import { ProxySettings } from './ProxySettings';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 
-export function ProxyContent() {
+export const ProxyContent = forwardRef<HTMLDivElement, object>(function ProxyContent(_, ref) {
   const { 
     getActiveTab, 
     setTabContent, 
@@ -71,7 +71,7 @@ export function ProxyContent() {
 
   if (!activeTab) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div ref={ref} className="flex items-center justify-center h-full">
         <p className="text-muted-foreground">No active tab</p>
       </div>
     );
@@ -81,18 +81,26 @@ export function ProxyContent() {
 
   // Internal start page
   if (url === 'proxy://start') {
-    return <ProxyStartPage />;
+    return (
+      <div ref={ref as React.Ref<HTMLDivElement>} className="h-full">
+        <ProxyStartPage />
+      </div>
+    );
   }
 
   // Internal settings page
   if (url === 'proxy://settings') {
-    return <ProxySettings />;
+    return (
+      <div ref={ref as React.Ref<HTMLDivElement>} className="h-full">
+        <ProxySettings />
+      </div>
+    );
   }
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
+      <div ref={ref as React.Ref<HTMLDivElement>} className="flex flex-col items-center justify-center h-full gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
         <p className="text-muted-foreground">Loading {url}...</p>
       </div>
@@ -102,7 +110,7 @@ export function ProxyContent() {
   // Error state
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-6 p-8 text-center">
+      <div ref={ref as React.Ref<HTMLDivElement>} className="flex flex-col items-center justify-center h-full gap-6 p-8 text-center">
         <div className="p-4 rounded-full bg-destructive/10">
           <AlertCircle className="w-12 h-12 text-destructive" />
         </div>
@@ -182,19 +190,21 @@ export function ProxyContent() {
     `;
 
     return (
-      <iframe
-        ref={iframeRef}
-        srcDoc={iframeContent}
-        className="w-full h-full border-0 bg-white"
-        sandbox="allow-scripts allow-same-origin allow-forms"
-        title="Proxy Content"
-      />
+      <div ref={ref as React.Ref<HTMLDivElement>} className="w-full h-full">
+        <iframe
+          ref={iframeRef}
+          srcDoc={iframeContent}
+          className="w-full h-full border-0 bg-white"
+          sandbox="allow-scripts allow-same-origin allow-forms"
+          title="Proxy Content"
+        />
+      </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-center h-full">
+    <div ref={ref as React.Ref<HTMLDivElement>} className="flex items-center justify-center h-full">
       <p className="text-muted-foreground">No content</p>
     </div>
   );
-}
+});

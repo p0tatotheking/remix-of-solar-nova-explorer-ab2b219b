@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Globe, Gamepad2, Youtube, Music } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useProxy, SearchEngine } from '@/contexts/ProxyContext';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
@@ -86,17 +87,15 @@ export function ProxyStartPage() {
         <span className="text-sm text-muted-foreground">Search with:</span>
         <div className="flex gap-2">
           {searchEngines.map((engine) => (
-            <button
+            <Button
               key={engine.id}
+              variant={searchEngine === engine.id ? 'default' : 'ghost'}
+              size="sm"
               onClick={() => setSearchEngine(engine.id)}
-              className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                searchEngine === engine.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-              }`}
+              className="rounded-full"
             >
               {engine.name}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -106,16 +105,17 @@ export function ProxyStartPage() {
         <h2 className="text-sm font-medium text-muted-foreground mb-4 text-center">Quick Links</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {quickLinks.map((link) => (
-            <button
+            <Button
               key={link.name}
+              variant="ghost"
               onClick={() => navigate(link.url)}
-              className="flex flex-col items-center gap-3 p-4 rounded-xl bg-background/60 backdrop-blur-sm border border-border/30 hover:border-primary/30 hover:bg-background/80 transition-all group"
+              className="flex flex-col items-center gap-3 p-4 h-auto rounded-xl bg-background/60 backdrop-blur-sm border border-border/30 hover:border-primary/30 hover:bg-background/80 transition-all group"
             >
               <div className={`p-3 rounded-lg bg-gradient-to-br ${link.color} text-white group-hover:scale-110 transition-transform`}>
                 <link.icon className="w-6 h-6" />
               </div>
               <span className="text-sm font-medium">{link.name}</span>
-            </button>
+            </Button>
           ))}
         </div>
       </div>

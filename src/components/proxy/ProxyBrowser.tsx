@@ -110,33 +110,38 @@ export function ProxyBrowser({ onClose }: ProxyBrowserProps) {
           
           {/* Add Tab Button */}
           {tabs.length < 10 && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => addTab()}
-              className="flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors mb-1"
+              className="w-8 h-8 text-muted-foreground hover:text-foreground mb-1"
               title="New tab"
             >
               <Plus className="w-4 h-4" />
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Window Controls */}
         <div className="flex items-center gap-1 px-2">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={toggleFullscreen}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </button>
+          </Button>
           {onClose && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              className="hover:text-destructive hover:bg-destructive/10"
               title="Close proxy"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -145,37 +150,41 @@ export function ProxyBrowser({ onClose }: ProxyBrowserProps) {
       <div className="flex items-center gap-2 p-2 bg-background/80 backdrop-blur-sm border-b border-border/30">
         {/* Navigation Buttons */}
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => goBack()}
             disabled={!canGoBack}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title="Go back"
           >
             <ArrowLeft className="w-4 h-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => goForward()}
             disabled={!canGoForward}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title="Go forward"
           >
             <ArrowRight className="w-4 h-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => reload()}
             disabled={isInternal}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title="Reload"
           >
             <RotateCw className="w-4 h-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => goHome()}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             title="Home"
           >
             <Home className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
 
         {/* URL Bar */}
@@ -222,13 +231,14 @@ export function ProxyBrowser({ onClose }: ProxyBrowserProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => navigate('proxy://settings')}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             title="Settings"
           >
             <Settings className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
