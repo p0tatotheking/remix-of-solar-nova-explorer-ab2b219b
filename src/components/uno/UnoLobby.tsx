@@ -141,6 +141,33 @@ export function UnoLobby({ onJoinGame }: UnoLobbyProps) {
   const createGame = async () => {
     if (!user) return;
 
+    // Check if user already has an active game
+    if (myGame) {
+      toast.error('You already have an active game. Leave it first to create a new one.');
+      return;
+    }
+
+    // Double-check in database to prevent race conditions
+    const { data: existingGame } = await supabase
+      .from('uno_games')
+      .select('id')
+      .eq('creator_id', user.id)
+      .eq('status', 'lobby')
+      .single();
+
+    if (existingGame) {
+      toast.error('You already have an active game lobby.');
+      // Refresh to show the existing game
+      const { data: myGameData } = await supabase
+        .from('uno_games')
+        .select('*')
+        .eq('id', existingGame.id)
+        .single();
+      if (myGameData) setMyGame(myGameData);
+      setShowCreateForm(false);
+      return;
+    }
+
     try {
       const { data: game, error } = await supabase
         .from('uno_games')
@@ -235,6 +262,20 @@ export function UnoLobby({ onJoinGame }: UnoLobbyProps) {
     if (!user) return;
 
     try {
+      // Check if user is already in this game
+      const { data: existingPlayer } = await supabase
+        .from('uno_players')
+        .select('id')
+        .eq('game_id', game.id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingPlayer) {
+        // User is already in the game, just join
+        onJoinGame(game.id);
+        return;
+      }
+
       const { data: existingPlayers } = await supabase
         .from('uno_players')
         .select('*')
@@ -247,13 +288,19 @@ export function UnoLobby({ onJoinGame }: UnoLobbyProps) {
 
       const turnOrder = existingPlayers?.length || 0;
 
-      await supabase.from('uno_players').insert({
+      const { error } = await supabase.from('uno_players').insert({
         game_id: game.id,
         user_id: user.id,
         username: user.username,
         turn_order: turnOrder,
         is_ready: false,
       });
+
+      if (error) {
+        console.error('Error joining game:', error);
+        toast.error('Failed to join game');
+        return;
+      }
 
       onJoinGame(game.id);
     } catch (error) {
