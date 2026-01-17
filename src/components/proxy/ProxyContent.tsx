@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useProxy } from '@/contexts/ProxyContext';
 import { ProxyStartPage } from './ProxyStartPage';
@@ -6,26 +6,18 @@ import { ProxySettings } from './ProxySettings';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 
-// Get proxy URL for iframe
-const getProxyUrl = (targetUrl: string) => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hbhopyhvtedsiihaqthl.supabase.co';
-  return `${supabaseUrl}/functions/v1/proxy-fetch?url=${encodeURIComponent(targetUrl)}`;
-};
-
 export function ProxyContent() {
   const { 
     getActiveTab, 
     setTabContent, 
     setTabError, 
     setTabLoading,
-    navigate,
-    addTab
+    navigate 
   } = useProxy();
-  const activeTab = getActiveTab();
-  const [iframeSrc, setIframeSrc] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const activeTab = getActiveTab();
 
-  // Fetch metadata and set iframe when URL changes
+  // Fetch content when URL changes
   useEffect(() => {
     if (!activeTab) return;
 
@@ -34,68 +26,48 @@ export function ProxyContent() {
     // Handle internal pages
     if (url.startsWith('proxy://')) {
       setTabLoading(id, false);
-      setIframeSrc(null);
       return;
     }
 
-    // For external URLs
-    const loadPage = async () => {
+    // Fetch external content
+    const fetchContent = async () => {
       try {
         setTabLoading(id, true);
         setTabError(id, null);
 
-        // POST to get metadata (title, favicon)
         const { data, error } = await supabase.functions.invoke('proxy-fetch', {
           body: { url },
         });
 
         if (error) {
-          throw new Error(error.message || 'Failed to fetch page');
+          throw new Error(error.message || 'Failed to fetch content');
         }
 
         if (data.error) {
           throw new Error(data.error);
         }
 
-        // Set metadata
-        setTabContent(id, null, data.title, data.favicon);
-        
-        // Use the final URL (after redirects) for the iframe
-        const targetUrl = data.finalUrl || url;
-        setIframeSrc(getProxyUrl(targetUrl));
-        setTabLoading(id, false);
+        setTabContent(id, data.content, data.title, data.favicon);
       } catch (err) {
-        console.error('Proxy error:', err);
+        console.error('Proxy fetch error:', err);
         setTabError(id, err instanceof Error ? err.message : 'Failed to load page');
-        setIframeSrc(null);
       }
     };
 
-    loadPage();
+    fetchContent();
   }, [activeTab?.url, activeTab?.id]);
 
-  // Handle messages from iframe (navigation, new tabs)
+  // Handle link clicks within the iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'proxy-navigate' && event.data?.url) {
-        if (event.data.newTab) {
-          addTab(event.data.url);
-        } else {
-          navigate(event.data.url);
-        }
+        navigate(event.data.url);
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [navigate, addTab]);
-
-  // Handle iframe load event
-  const handleIframeLoad = () => {
-    if (activeTab && !activeTab.url.startsWith('proxy://')) {
-      setTabLoading(activeTab.id, false);
-    }
-  };
+  }, [navigate]);
 
   if (!activeTab) {
     return (
@@ -105,7 +77,7 @@ export function ProxyContent() {
     );
   }
 
-  const { url, isLoading, error } = activeTab;
+  const { url, content, isLoading, error } = activeTab;
 
   // Internal start page
   if (url === 'proxy://start') {
@@ -118,7 +90,7 @@ export function ProxyContent() {
   }
 
   // Loading state
-  if (isLoading && !iframeSrc) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -160,27 +132,63 @@ export function ProxyContent() {
     );
   }
 
-  // Render content using iframe
-  if (iframeSrc) {
+  // Render content in sandboxed iframe
+  if (content) {
+    const iframeContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            * { box-sizing: border-box; }
+            body { margin: 0; padding: 0; }
+          </style>
+        </head>
+        <body>
+          ${content}
+          <script>
+            // Intercept link clicks and send to parent
+            document.addEventListener('click', function(e) {
+              const link = e.target.closest('a');
+              if (link && link.href && !link.href.startsWith('javascript:')) {
+                e.preventDefault();
+                window.parent.postMessage({
+                  type: 'proxy-navigate',
+                  url: link.href
+                }, '*');
+              }
+            });
+            
+            // Intercept form submissions
+            document.addEventListener('submit', function(e) {
+              e.preventDefault();
+              const form = e.target;
+              if (form.action) {
+                const formData = new FormData(form);
+                const params = new URLSearchParams(formData).toString();
+                const url = form.method === 'get' 
+                  ? form.action + '?' + params 
+                  : form.action;
+                window.parent.postMessage({
+                  type: 'proxy-navigate',
+                  url: url
+                }, '*');
+              }
+            });
+          </script>
+        </body>
+      </html>
+    `;
+
     return (
-      <div className="relative w-full h-full">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        )}
-        <iframe
-          ref={iframeRef}
-          key={iframeSrc}
-          src={iframeSrc}
-          className="w-full h-full border-0 bg-white"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-popups-to-escape-sandbox allow-presentation"
-          title="Proxy Content"
-          referrerPolicy="no-referrer"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-          onLoad={handleIframeLoad}
-        />
-      </div>
+      <iframe
+        ref={iframeRef}
+        srcDoc={iframeContent}
+        className="w-full h-full border-0 bg-white"
+        sandbox="allow-scripts allow-same-origin allow-forms"
+        title="Proxy Content"
+      />
     );
   }
 
