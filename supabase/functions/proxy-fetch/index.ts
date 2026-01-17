@@ -8,7 +8,7 @@ const corsHeaders = {
 
 // Rate limiting
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = 200;
+const RATE_LIMIT = 300;
 const RATE_WINDOW = 60000;
 
 function checkRateLimit(clientId: string): boolean {
@@ -42,11 +42,12 @@ function isBlocked(url: string): boolean {
 
 function getProxyPrefix(req: Request): string {
   const url = new URL(req.url);
-  return `${url.origin}${url.pathname}?url=`;
+  // Always use HTTPS for the proxy prefix
+  return `https://${url.host}${url.pathname}?url=`;
 }
 
 function resolveUrl(path: string, base: string): string {
-  if (!path || path.startsWith('data:') || path.startsWith('javascript:') || path.startsWith('#') || path.startsWith('mailto:') || path.startsWith('tel:') || path.startsWith('blob:')) {
+  if (!path || path.startsWith('data:') || path.startsWith('javascript:') || path.startsWith('#') || path.startsWith('mailto:') || path.startsWith('tel:') || path.startsWith('blob:') || path.startsWith('about:')) {
     return path;
   }
   try {
@@ -61,14 +62,22 @@ function shouldProxy(url: string): boolean {
 }
 
 function rewriteHtml(html: string, baseUrl: string, proxyPrefix: string): string {
-  // Helper to create proxied URL
   const proxy = (url: string): string => {
     const resolved = resolveUrl(url, baseUrl);
     if (!shouldProxy(resolved)) return resolved;
     return proxyPrefix + encodeURIComponent(resolved);
   };
 
-  // Inject base tag first
+  // Parse base URL for origin
+  let baseOrigin = '';
+  try {
+    baseOrigin = new URL(baseUrl).origin;
+  } catch {}
+
+  // Remove existing base tags
+  html = html.replace(/<base[^>]*>/gi, '');
+
+  // Inject base tag
   const baseTag = `<base href="${baseUrl}">`;
   if (html.includes('<head>')) {
     html = html.replace('<head>', `<head>${baseTag}`);
@@ -76,35 +85,28 @@ function rewriteHtml(html: string, baseUrl: string, proxyPrefix: string): string
     html = html.replace(/<head\s/, `<head>${baseTag}<head `);
   } else if (html.includes('<html')) {
     html = html.replace(/<html[^>]*>/, `$&<head>${baseTag}</head>`);
+  } else {
+    html = baseTag + html;
   }
 
-  // Rewrite src attributes for img, script, iframe, video, audio, source, embed
-  html = html.replace(/<(img|script|iframe|video|audio|source|embed|input)([^>]*)\s(src)\s*=\s*["']([^"']+)["']/gi, 
-    (match, tag, before, attr, url) => {
-      const proxied = proxy(url);
-      return `<${tag}${before} ${attr}="${proxied}"`;
+  // Rewrite all src attributes
+  html = html.replace(/(<(?:img|script|iframe|video|audio|source|embed|input|track)[^>]*\s)src\s*=\s*(["'])([^"']*)\2/gi,
+    (match, before, quote, url) => {
+      if (!url || url.startsWith('data:') || url.startsWith('blob:')) return match;
+      return `${before}src=${quote}${proxy(url)}${quote}`;
     }
   );
 
-  // Also handle src without quotes
-  html = html.replace(/<(img|script|iframe|video|audio|source|embed)([^>]*)\ssrc\s*=\s*([^\s>"']+)/gi,
-    (match, tag, before, url) => {
-      if (url.startsWith('"') || url.startsWith("'")) return match;
-      const proxied = proxy(url);
-      return `<${tag}${before} src="${proxied}"`;
-    }
-  );
-
-  // Rewrite href for link tags (stylesheets)
-  html = html.replace(/<link([^>]*)\shref\s*=\s*["']([^"']+)["']/gi,
-    (match, attrs, url) => {
-      const proxied = proxy(url);
-      return `<link${attrs} href="${proxied}"`;
+  // Rewrite href for link/a tags
+  html = html.replace(/(<link[^>]*\s)href\s*=\s*(["'])([^"']*)\2/gi,
+    (match, before, quote, url) => {
+      if (!url || url.startsWith('data:')) return match;
+      return `${before}href=${quote}${proxy(url)}${quote}`;
     }
   );
 
   // Rewrite srcset
-  html = html.replace(/srcset\s*=\s*["']([^"']+)["']/gi, (match, srcset) => {
+  html = html.replace(/srcset\s*=\s*(["'])([^"']+)\1/gi, (match, quote, srcset) => {
     const parts = srcset.split(',').map((part: string) => {
       const trimmed = part.trim();
       const spaceIdx = trimmed.lastIndexOf(' ');
@@ -115,51 +117,62 @@ function rewriteHtml(html: string, baseUrl: string, proxyPrefix: string): string
       }
       return proxy(trimmed);
     });
-    return `srcset="${parts.join(', ')}"`;
+    return `srcset=${quote}${parts.join(', ')}${quote}`;
   });
 
-  // Rewrite poster attribute for video
-  html = html.replace(/poster\s*=\s*["']([^"']+)["']/gi, (match, url) => {
-    return `poster="${proxy(url)}"`;
+  // Rewrite poster
+  html = html.replace(/poster\s*=\s*(["'])([^"']*)\1/gi, (match, quote, url) => {
+    return `poster=${quote}${proxy(url)}${quote}`;
   });
 
-  // Rewrite url() in style attributes and style tags
-  html = html.replace(/url\(\s*["']?([^"')]+)["']?\s*\)/gi, (match, url) => {
+  // Rewrite url() in inline styles and style blocks
+  html = html.replace(/url\(\s*(["']?)([^"')]+)\1\s*\)/gi, (match, quote, url) => {
     if (url.startsWith('data:')) return match;
-    return `url("${proxy(url)}")`;
+    return `url(${quote}${proxy(url)}${quote})`;
   });
 
-  // Rewrite @import in style tags
-  html = html.replace(/@import\s+["']([^"']+)["']/gi, (match, url) => {
-    return `@import "${proxy(url)}"`;
+  // Rewrite @import
+  html = html.replace(/@import\s+(["'])([^"']+)\1/gi, (match, quote, url) => {
+    return `@import ${quote}${proxy(url)}${quote}`;
   });
 
-  // Rewrite @import url()
-  html = html.replace(/@import\s+url\(\s*["']?([^"')]+)["']?\s*\)/gi, (match, url) => {
-    return `@import url("${proxy(url)}")`;
+  html = html.replace(/@import\s+url\(\s*(["']?)([^"')]+)\1\s*\)/gi, (match, quote, url) => {
+    return `@import url(${quote}${proxy(url)}${quote})`;
   });
 
-  // Rewrite action in forms
-  html = html.replace(/<form([^>]*)\saction\s*=\s*["']([^"']+)["']/gi,
-    (match, attrs, url) => {
-      const proxied = proxy(url);
-      return `<form${attrs} action="${proxied}"`;
+  // Rewrite form actions
+  html = html.replace(/(<form[^>]*\s)action\s*=\s*(["'])([^"']*)\2/gi,
+    (match, before, quote, url) => {
+      return `${before}action=${quote}${proxy(url)}${quote}`;
     }
   );
 
-  // Add a script to intercept navigation
-  const navigationScript = `
-<script>
+  // Rewrite meta refresh
+  html = html.replace(/(<meta[^>]*content\s*=\s*["'][^"']*url=)([^"'\s;>]+)/gi,
+    (match, before, url) => {
+      return `${before}${proxy(url)}`;
+    }
+  );
+
+  // The client-side script to handle navigation, fetch, XHR, etc.
+  const clientScript = `
+<script data-proxy="true">
 (function() {
+  'use strict';
+  
   const PROXY_PREFIX = "${proxyPrefix}";
   const BASE_URL = "${baseUrl}";
+  const BASE_ORIGIN = "${baseOrigin}";
   
-  function proxyUrl(url) {
-    if (!url || url.startsWith('data:') || url.startsWith('javascript:') || url.startsWith('#') || url.startsWith('mailto:') || url.startsWith('tel:')) {
+  // Utility to proxy URLs
+  function proxyUrl(url, base) {
+    if (!url) return url;
+    if (typeof url !== 'string') url = String(url);
+    if (url.startsWith('data:') || url.startsWith('javascript:') || url.startsWith('blob:') || url.startsWith('about:') || url.startsWith('#') || url.startsWith('mailto:') || url.startsWith('tel:')) {
       return url;
     }
     try {
-      const absolute = new URL(url, BASE_URL).href;
+      const absolute = new URL(url, base || BASE_URL).href;
       if (absolute.includes('/proxy-fetch?url=')) return url;
       return PROXY_PREFIX + encodeURIComponent(absolute);
     } catch (e) {
@@ -167,9 +180,63 @@ function rewriteHtml(html: string, baseUrl: string, proxyPrefix: string): string
     }
   }
   
-  // Intercept clicks
+  // Override window.open
+  const origOpen = window.open;
+  window.open = function(url, target, features) {
+    if (url && !url.startsWith('javascript:')) {
+      try {
+        const absolute = new URL(url, BASE_URL).href;
+        window.parent.postMessage({ type: 'proxy-navigate', url: absolute, newTab: true }, '*');
+        return null;
+      } catch (e) {}
+    }
+    return origOpen.call(this, url, target, features);
+  };
+  
+  // Override fetch
+  const origFetch = window.fetch;
+  window.fetch = function(input, init) {
+    let url = input;
+    if (input instanceof Request) {
+      url = input.url;
+    }
+    if (typeof url === 'string' && url.startsWith('http') && !url.includes('/proxy-fetch?url=')) {
+      const proxiedUrl = proxyUrl(url);
+      if (input instanceof Request) {
+        input = new Request(proxiedUrl, input);
+      } else {
+        input = proxiedUrl;
+      }
+    }
+    return origFetch.call(this, input, init);
+  };
+  
+  // Override XMLHttpRequest
+  const origXHROpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
+    if (typeof url === 'string' && url.startsWith('http') && !url.includes('/proxy-fetch?url=')) {
+      url = proxyUrl(url);
+    }
+    return origXHROpen.call(this, method, url, async, user, pass);
+  };
+  
+  // Override Image src
+  const origImageDescriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+  if (origImageDescriptor) {
+    Object.defineProperty(HTMLImageElement.prototype, 'src', {
+      get: function() { return origImageDescriptor.get.call(this); },
+      set: function(val) {
+        if (val && !val.startsWith('data:') && !val.startsWith('blob:') && !val.includes('/proxy-fetch?url=')) {
+          val = proxyUrl(val);
+        }
+        origImageDescriptor.set.call(this, val);
+      }
+    });
+  }
+  
+  // Handle all clicks
   document.addEventListener('click', function(e) {
-    const link = e.target.closest('a');
+    const link = e.target.closest('a[href]');
     if (link) {
       const href = link.getAttribute('href');
       if (href && !href.startsWith('javascript:') && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
@@ -185,11 +252,13 @@ function rewriteHtml(html: string, baseUrl: string, proxyPrefix: string): string
     }
   }, true);
   
-  // Intercept form submissions
+  // Handle form submissions
   document.addEventListener('submit', function(e) {
     const form = e.target;
     if (form && form.tagName === 'FORM') {
       e.preventDefault();
+      e.stopPropagation();
+      
       const action = form.getAttribute('action') || BASE_URL;
       const method = (form.getAttribute('method') || 'GET').toUpperCase();
       
@@ -211,49 +280,57 @@ function rewriteHtml(html: string, baseUrl: string, proxyPrefix: string): string
         
         window.parent.postMessage({ type: 'proxy-navigate', url: targetUrl }, '*');
       } catch (err) {
-        console.error('Form error:', err);
+        console.error('Form submission error:', err);
       }
     }
   }, true);
-  
-  // Fix lazy-loaded images
-  document.querySelectorAll('img[data-src], img[data-lazy-src]').forEach(function(img) {
-    ['data-src', 'data-lazy-src', 'data-original'].forEach(function(attr) {
-      const val = img.getAttribute(attr);
-      if (val && !val.startsWith('data:')) {
-        img.setAttribute(attr, proxyUrl(val));
-      }
-    });
-  });
   
   // Observe DOM for new elements
   const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mut) {
       mut.addedNodes.forEach(function(node) {
         if (node.nodeType === 1) {
-          // Images
-          if (node.tagName === 'IMG' || node.querySelectorAll) {
-            const imgs = node.tagName === 'IMG' ? [node] : Array.from(node.querySelectorAll('img'));
-            imgs.forEach(function(img) {
-              const src = img.getAttribute('src');
-              if (src && !src.startsWith('data:') && !src.includes('/proxy-fetch?url=')) {
-                img.src = proxyUrl(src);
+          // Fix images
+          const imgs = node.tagName === 'IMG' ? [node] : (node.querySelectorAll ? Array.from(node.querySelectorAll('img')) : []);
+          imgs.forEach(function(img) {
+            const src = img.getAttribute('src');
+            if (src && !src.startsWith('data:') && !src.startsWith('blob:') && !src.includes('/proxy-fetch?url=')) {
+              img.setAttribute('src', proxyUrl(src));
+            }
+            // Handle data-src for lazy loading
+            ['data-src', 'data-lazy-src', 'data-original', 'data-srcset'].forEach(function(attr) {
+              const val = img.getAttribute(attr);
+              if (val && !val.startsWith('data:') && !val.includes('/proxy-fetch?url=')) {
+                img.setAttribute(attr, proxyUrl(val));
               }
             });
-          }
-          // Stylesheets
-          if (node.tagName === 'LINK') {
+          });
+          
+          // Fix video/audio sources
+          const media = node.querySelectorAll ? Array.from(node.querySelectorAll('video source, audio source')) : [];
+          media.forEach(function(el) {
+            const src = el.getAttribute('src');
+            if (src && !src.includes('/proxy-fetch?url=')) {
+              el.setAttribute('src', proxyUrl(src));
+            }
+          });
+          
+          // Fix stylesheets
+          if (node.tagName === 'LINK' && node.rel === 'stylesheet') {
             const href = node.getAttribute('href');
             if (href && !href.includes('/proxy-fetch?url=')) {
-              node.href = proxyUrl(href);
+              node.setAttribute('href', proxyUrl(href));
             }
           }
-          // Scripts
-          if (node.tagName === 'SCRIPT') {
-            const src = node.getAttribute('src');
-            if (src && !src.includes('/proxy-fetch?url=')) {
-              // Can't change script src after insertion, but log it
-              console.log('Dynamic script:', src);
+          
+          // Fix background images in inline styles
+          if (node.style && node.style.backgroundImage) {
+            const bg = node.style.backgroundImage;
+            if (bg.includes('url(') && !bg.includes('/proxy-fetch?url=') && !bg.includes('data:')) {
+              const match = bg.match(/url\\(["']?([^"')]+)["']?\\)/);
+              if (match && match[1]) {
+                node.style.backgroundImage = 'url("' + proxyUrl(match[1]) + '")';
+              }
             }
           }
         }
@@ -263,18 +340,34 @@ function rewriteHtml(html: string, baseUrl: string, proxyPrefix: string): string
   
   if (document.body) {
     observer.observe(document.body, { childList: true, subtree: true });
+  } else {
+    document.addEventListener('DOMContentLoaded', function() {
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
   }
   
-  console.log('Proxy handler initialized for:', BASE_URL);
+  // Disable service worker registration
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register = function() {
+      return Promise.reject(new Error('Service workers disabled in proxy'));
+    };
+  }
+  
+  console.log('[Proxy] Initialized for:', BASE_URL);
 })();
 </script>`;
 
-  // Inject the script before </body> or at the end
-  if (html.includes('</body>')) {
-    html = html.replace('</body>', `${navigationScript}</body>`);
+  // Inject script after <head> or at the beginning
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', `${clientScript}</head>`);
+  } else if (html.includes('<body')) {
+    html = html.replace(/<body[^>]*>/, `$&${clientScript}`);
   } else {
-    html += navigationScript;
+    html = clientScript + html;
   }
+
+  // Remove Content-Security-Policy meta tags that might block our scripts
+  html = html.replace(/<meta[^>]*http-equiv\s*=\s*["']?Content-Security-Policy["']?[^>]*>/gi, '');
 
   return html;
 }
@@ -287,21 +380,27 @@ function rewriteCss(css: string, baseUrl: string, proxyPrefix: string): string {
   };
 
   // Rewrite url()
-  css = css.replace(/url\(\s*["']?([^"')]+)["']?\s*\)/gi, (match, url) => {
+  css = css.replace(/url\(\s*(["']?)([^"')]+)\1\s*\)/gi, (match, quote, url) => {
     if (url.startsWith('data:')) return match;
-    return `url("${proxy(url)}")`;
+    return `url(${quote}${proxy(url)}${quote})`;
   });
 
   // Rewrite @import
-  css = css.replace(/@import\s+["']([^"']+)["']/gi, (match, url) => {
-    return `@import "${proxy(url)}"`;
+  css = css.replace(/@import\s+(["'])([^"']+)\1/gi, (match, quote, url) => {
+    return `@import ${quote}${proxy(url)}${quote}`;
   });
 
-  css = css.replace(/@import\s+url\(\s*["']?([^"')]+)["']?\s*\)/gi, (match, url) => {
-    return `@import url("${proxy(url)}")`;
+  css = css.replace(/@import\s+url\(\s*(["']?)([^"')]+)\1\s*\)/gi, (match, quote, url) => {
+    return `@import url(${quote}${proxy(url)}${quote})`;
   });
 
   return css;
+}
+
+function rewriteJs(js: string, baseUrl: string, proxyPrefix: string): string {
+  // For JavaScript, we wrap fetch/XHR calls - but the client script handles most of this
+  // Just pass through for now, as modifying JS is complex and error-prone
+  return js;
 }
 
 function extractTitle(html: string): string {
@@ -312,8 +411,8 @@ function extractTitle(html: string): string {
 function extractFavicon(html: string, baseUrl: string): string | null {
   try {
     const base = new URL(baseUrl);
-    const iconMatch = html.match(/<link[^>]*rel=["'](?:shortcut\s+)?icon["'][^>]*href=["']([^"']+)["'][^>]*>/i) ||
-                      html.match(/<link[^>]*href=["']([^"']+)["'][^>]*rel=["'](?:shortcut\s+)?icon["'][^>]*>/i);
+    const iconMatch = html.match(/<link[^>]*rel\s*=\s*["'](?:shortcut\s+)?icon["'][^>]*href\s*=\s*["']([^"']+)["'][^>]*>/i) ||
+                      html.match(/<link[^>]*href\s*=\s*["']([^"']+)["'][^>]*rel\s*=\s*["'](?:shortcut\s+)?icon["'][^>]*>/i);
     if (iconMatch) {
       return new URL(iconMatch[1], base).href;
     }
@@ -340,13 +439,11 @@ serve(async (req) => {
     let targetUrl: string | null = null;
     let mode: 'json' | 'raw' = 'json';
 
-    // GET request = raw resource fetch
+    // GET = raw resource, POST = JSON metadata
     if (req.method === 'GET') {
       targetUrl = reqUrl.searchParams.get('url');
       mode = 'raw';
-    } 
-    // POST request = navigation (returns JSON with metadata)
-    else if (req.method === 'POST') {
+    } else if (req.method === 'POST') {
       const body = await req.json();
       targetUrl = body.url;
       mode = 'json';
@@ -376,18 +473,23 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    console.log(`Proxy ${mode}: ${targetUrl}`);
+    console.log(`[Proxy] ${mode}: ${targetUrl}`);
 
     const proxyPrefix = getProxyPrefix(req);
 
     // Fetch with browser-like headers
     const response = await fetch(targetUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-        'Accept': req.headers.get('accept') || '*/*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': req.headers.get('accept') || 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate',
-        'Referer': new URL(targetUrl).origin,
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+        'Referer': parsed.origin,
       },
       redirect: 'follow',
     });
@@ -395,7 +497,7 @@ serve(async (req) => {
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
     const finalUrl = response.url || targetUrl;
 
-    // For raw mode (GET) - return resource directly
+    // RAW mode - return resource directly
     if (mode === 'raw') {
       // HTML
       if (contentType.includes('text/html') || contentType.includes('xhtml')) {
@@ -406,6 +508,7 @@ serve(async (req) => {
           headers: {
             ...corsHeaders,
             'Content-Type': 'text/html; charset=utf-8',
+            'X-Frame-Options': 'ALLOWALL',
           },
         });
       }
@@ -424,9 +527,10 @@ serve(async (req) => {
         });
       }
 
-      // JavaScript - pass through
+      // JavaScript
       if (contentType.includes('javascript') || contentType.includes('ecmascript')) {
-        const js = await response.text();
+        let js = await response.text();
+        js = rewriteJs(js, finalUrl, proxyPrefix);
         return new Response(js, {
           status: response.status,
           headers: {
@@ -437,14 +541,26 @@ serve(async (req) => {
         });
       }
 
-      // SVG - may need URL rewriting
+      // JSON - pass through
+      if (contentType.includes('application/json')) {
+        const data = await response.text();
+        return new Response(data, {
+          status: response.status,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+        });
+      }
+
+      // SVG
       if (contentType.includes('image/svg')) {
         let svg = await response.text();
-        // Rewrite xlink:href and href in SVG
-        svg = svg.replace(/xlink:href\s*=\s*["']([^"']+)["']/gi, (match, url) => {
+        svg = svg.replace(/xlink:href\s*=\s*(["'])([^"']+)\1/gi, (match, quote, url) => {
           if (url.startsWith('data:') || url.startsWith('#')) return match;
           const resolved = resolveUrl(url, finalUrl);
-          return `xlink:href="${proxyPrefix}${encodeURIComponent(resolved)}"`;
+          return `xlink:href=${quote}${proxyPrefix}${encodeURIComponent(resolved)}${quote}`;
         });
         return new Response(svg, {
           status: response.status,
@@ -456,40 +572,25 @@ serve(async (req) => {
         });
       }
 
-      // Fonts
-      if (contentType.includes('font') || contentType.includes('woff') || contentType.includes('ttf') || contentType.includes('otf') || contentType.includes('eot')) {
-        const data = await response.arrayBuffer();
-        return new Response(data, {
-          status: response.status,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': contentType,
-            'Cache-Control': 'public, max-age=86400',
-          },
-        });
-      }
-
-      // Images and other binary
+      // Binary content (images, fonts, etc.)
       const data = await response.arrayBuffer();
       return new Response(data, {
         status: response.status,
         headers: {
           ...corsHeaders,
           'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=3600',
+          'Cache-Control': 'public, max-age=86400',
         },
       });
     }
 
-    // For json mode (POST) - return structured response
+    // JSON mode - return metadata for POST requests
     if (contentType.includes('text/html') || contentType.includes('xhtml')) {
-      let html = await response.text();
+      const html = await response.text();
       const title = extractTitle(html);
       const favicon = extractFavicon(html, finalUrl);
-      html = rewriteHtml(html, finalUrl, proxyPrefix);
 
       return new Response(JSON.stringify({
-        content: html,
         title,
         favicon,
         finalUrl,
@@ -499,41 +600,17 @@ serve(async (req) => {
       });
     }
 
-    if (contentType.includes('application/json')) {
-      const text = await response.text();
-      return new Response(JSON.stringify({
-        content: `<pre style="padding:20px;background:#1a1a2e;color:#0f0;font-family:monospace;white-space:pre-wrap;overflow:auto;">${text.replace(/</g, '&lt;')}</pre>`,
-        title: 'JSON',
-        favicon: null,
-        finalUrl,
-        contentType: 'application/json',
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (contentType.includes('text/')) {
-      const text = await response.text();
-      return new Response(JSON.stringify({
-        content: `<pre style="padding:20px;background:#1a1a2e;color:#eee;font-family:monospace;white-space:pre-wrap;">${text.replace(/</g, '&lt;')}</pre>`,
-        title: 'Text',
-        favicon: null,
-        finalUrl,
-        contentType,
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     return new Response(JSON.stringify({ 
-      error: `Cannot display content type: ${contentType}` 
+      title: 'Page',
+      favicon: null,
+      finalUrl,
+      contentType,
     }), {
-      status: 415,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error: unknown) {
-    console.error('Proxy error:', error);
+    console.error('[Proxy] Error:', error);
     const msg = error instanceof Error ? error.message : 'Request failed';
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
