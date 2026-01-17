@@ -1,10 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useProxy } from '@/contexts/ProxyContext';
 import { ProxyStartPage } from './ProxyStartPage';
 import { ProxySettings } from './ProxySettings';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+
+// Get the proxy base URL
+const getProxyBaseUrl = () => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hbhopyhvtedsiihaqthl.supabase.co';
+  return `${supabaseUrl}/functions/v1/proxy-fetch`;
+};
 
 export function ProxyContent() {
   const { 
@@ -16,6 +22,7 @@ export function ProxyContent() {
   } = useProxy();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const activeTab = getActiveTab();
+  const [iframeKey, setIframeKey] = useState(0);
 
   // Fetch content when URL changes
   useEffect(() => {
@@ -48,6 +55,7 @@ export function ProxyContent() {
         }
 
         setTabContent(id, data.content, data.title, data.favicon);
+        setIframeKey(prev => prev + 1);
       } catch (err) {
         console.error('Proxy fetch error:', err);
         setTabError(id, err instanceof Error ? err.message : 'Failed to load page');
@@ -57,7 +65,7 @@ export function ProxyContent() {
     fetchContent();
   }, [activeTab?.url, activeTab?.id]);
 
-  // Handle link clicks within the iframe
+  // Handle messages from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'proxy-navigate' && event.data?.url) {
@@ -132,62 +140,174 @@ export function ProxyContent() {
     );
   }
 
-  // Render content in sandboxed iframe
+  // Render content in iframe
   if (content) {
+    const proxyBaseUrl = getProxyBaseUrl();
+    
+    // Inject scripts to handle navigation and make the page interactive
     const iframeContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>
-            * { box-sizing: border-box; }
-            body { margin: 0; padding: 0; }
-          </style>
-        </head>
-        <body>
-          ${content}
-          <script>
-            // Intercept link clicks and send to parent
-            document.addEventListener('click', function(e) {
-              const link = e.target.closest('a');
-              if (link && link.href && !link.href.startsWith('javascript:')) {
-                e.preventDefault();
-                window.parent.postMessage({
-                  type: 'proxy-navigate',
-                  url: link.href
-                }, '*');
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; font-src * data:; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval';">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+  </style>
+</head>
+<body>
+  ${content}
+  <script>
+    (function() {
+      const PROXY_BASE = "${proxyBaseUrl}";
+      
+      // Function to proxy a URL
+      function proxyUrl(url) {
+        if (!url || url.startsWith('data:') || url.startsWith('javascript:') || url.startsWith('#') || url.startsWith('mailto:') || url.startsWith('tel:')) {
+          return url;
+        }
+        try {
+          const absolute = new URL(url, window.location.href).href;
+          if (absolute.includes(PROXY_BASE)) return url;
+          return PROXY_BASE + '?url=' + encodeURIComponent(absolute);
+        } catch (e) {
+          return url;
+        }
+      }
+      
+      // Intercept link clicks
+      document.addEventListener('click', function(e) {
+        const link = e.target.closest('a');
+        if (link) {
+          const href = link.getAttribute('href');
+          if (href && !href.startsWith('javascript:') && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+              const absoluteUrl = new URL(href, window.location.href).href;
+              // Check if it's already a proxied URL
+              if (absoluteUrl.includes(PROXY_BASE)) {
+                const params = new URLSearchParams(absoluteUrl.split('?')[1]);
+                const actualUrl = params.get('url');
+                if (actualUrl) {
+                  window.parent.postMessage({ type: 'proxy-navigate', url: actualUrl }, '*');
+                  return;
+                }
               }
-            });
+              window.parent.postMessage({ type: 'proxy-navigate', url: absoluteUrl }, '*');
+            } catch (err) {
+              window.parent.postMessage({ type: 'proxy-navigate', url: href }, '*');
+            }
+          } else if (href && href.startsWith('#')) {
+            // Handle anchor links within the page
+            const target = document.querySelector(href);
+            if (target) {
+              target.scrollIntoView({ behavior: 'smooth' });
+            }
+          }
+        }
+      }, true);
+      
+      // Intercept form submissions
+      document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (form && form.tagName === 'FORM') {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const action = form.getAttribute('action') || window.location.href;
+          const method = (form.getAttribute('method') || 'GET').toUpperCase();
+          
+          try {
+            const formData = new FormData(form);
+            const params = new URLSearchParams();
+            for (const [key, value] of formData) {
+              if (typeof value === 'string') {
+                params.append(key, value);
+              }
+            }
             
-            // Intercept form submissions
-            document.addEventListener('submit', function(e) {
-              e.preventDefault();
-              const form = e.target;
-              if (form.action) {
-                const formData = new FormData(form);
-                const params = new URLSearchParams(formData).toString();
-                const url = form.method === 'get' 
-                  ? form.action + '?' + params 
-                  : form.action;
-                window.parent.postMessage({
-                  type: 'proxy-navigate',
-                  url: url
-                }, '*');
+            let targetUrl;
+            if (method === 'GET') {
+              const absoluteUrl = new URL(action, window.location.href);
+              params.forEach((value, key) => absoluteUrl.searchParams.append(key, value));
+              targetUrl = absoluteUrl.href;
+            } else {
+              targetUrl = new URL(action, window.location.href).href;
+            }
+            
+            window.parent.postMessage({ type: 'proxy-navigate', url: targetUrl }, '*');
+          } catch (err) {
+            console.error('Form submission error:', err);
+          }
+        }
+      }, true);
+      
+      // Fix dynamically loaded images
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) {
+              // Fix images
+              const images = node.tagName === 'IMG' ? [node] : node.querySelectorAll ? node.querySelectorAll('img') : [];
+              images.forEach(function(img) {
+                const src = img.getAttribute('src');
+                if (src && !src.startsWith('data:') && !src.includes(PROXY_BASE)) {
+                  img.src = proxyUrl(src);
+                }
+              });
+              
+              // Fix background images in style
+              if (node.style && node.style.backgroundImage) {
+                const bg = node.style.backgroundImage;
+                const urlMatch = bg.match(/url\\(["']?([^"')]+)["']?\\)/);
+                if (urlMatch && urlMatch[1] && !urlMatch[1].startsWith('data:') && !urlMatch[1].includes(PROXY_BASE)) {
+                  node.style.backgroundImage = 'url("' + proxyUrl(urlMatch[1]) + '")';
+                }
               }
-            });
-          </script>
-        </body>
-      </html>
+            }
+          });
+        });
+      });
+      
+      observer.observe(document.body, { childList: true, subtree: true });
+      
+      // Handle lazy-loaded images
+      document.querySelectorAll('img[data-src], img[data-lazy], img[loading="lazy"]').forEach(function(img) {
+        const lazySrc = img.getAttribute('data-src') || img.getAttribute('data-lazy');
+        if (lazySrc && !lazySrc.startsWith('data:') && !lazySrc.includes(PROXY_BASE)) {
+          img.setAttribute('data-src', proxyUrl(lazySrc));
+          img.setAttribute('data-lazy', proxyUrl(lazySrc));
+        }
+      });
+      
+      // Disable service workers which can cause issues
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          registrations.forEach(function(registration) {
+            registration.unregister();
+          });
+        });
+      }
+      
+      console.log('Proxy navigation handler initialized');
+    })();
+  </script>
+</body>
+</html>
     `;
 
     return (
       <iframe
+        key={iframeKey}
         ref={iframeRef}
         srcDoc={iframeContent}
         className="w-full h-full border-0 bg-white"
-        sandbox="allow-scripts allow-same-origin allow-forms"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
         title="Proxy Content"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       />
     );
   }
@@ -196,5 +316,5 @@ export function ProxyContent() {
     <div className="flex items-center justify-center h-full">
       <p className="text-muted-foreground">No content</p>
     </div>
-  );
+);
 }
