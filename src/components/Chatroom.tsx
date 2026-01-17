@@ -30,7 +30,8 @@ export function Chatroom() {
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
-        .order('created_at', { ascending: true })
+        // Pull the most recent messages (the old code fetched the oldest 100)
+        .order('created_at', { ascending: false })
         .limit(100);
 
       if (error) {
@@ -38,7 +39,8 @@ export function Chatroom() {
         return;
       }
 
-      setMessages(data || []);
+      // Reverse so the UI renders oldest -> newest
+      setMessages((data || []).slice().reverse());
       // Scroll to bottom after initial load with a slight delay to ensure render
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' });
@@ -58,7 +60,12 @@ export function Chatroom() {
         },
         (payload) => {
           const newMsg = payload.new as Message;
-          setMessages((prev) => [...prev, newMsg]);
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg].sort(
+              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+          });
         }
       )
       .subscribe();
