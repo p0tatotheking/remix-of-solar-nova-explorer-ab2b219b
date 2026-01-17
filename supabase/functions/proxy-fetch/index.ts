@@ -41,9 +41,11 @@ function isBlocked(url: string): boolean {
 }
 
 function getProxyPrefix(req: Request): string {
-  const url = new URL(req.url);
-  // Always use HTTPS for the proxy prefix
-  return `https://${url.host}${url.pathname}?url=`;
+  // IMPORTANT: inside the function runtime, req.url may point to an internal host/path.
+  // We must build the public-facing prefix explicitly so rewritten resources load.
+  const proto = req.headers.get('x-forwarded-proto') || 'https';
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || new URL(req.url).host;
+  return `${proto}://${host}/functions/v1/proxy-fetch?url=`;
 }
 
 function resolveUrl(path: string, base: string): string {
@@ -59,6 +61,18 @@ function resolveUrl(path: string, base: string): string {
 
 function shouldProxy(url: string): boolean {
   return url.startsWith('http://') || url.startsWith('https://');
+}
+
+function looksLikeHtml(text: string): boolean {
+  const head = text.trimStart().slice(0, 800).toLowerCase();
+  return (
+    head.startsWith('<!doctype') ||
+    head.startsWith('<html') ||
+    head.includes('<head') ||
+    head.includes('<body') ||
+    head.includes('<script') ||
+    head.includes('<meta')
+  );
 }
 
 function rewriteHtml(html: string, baseUrl: string, proxyPrefix: string): string {
