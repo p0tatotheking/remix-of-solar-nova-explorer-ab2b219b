@@ -110,32 +110,48 @@ export function GameOverlayBar({ onClose }: GameOverlayBarProps) {
   }, []);
 
   // Fetch friends
+  const fetchFriends = async () => {
+    if (!user) return;
+    
+    // First get friendships
+    const { data: friendships } = await supabase
+      .from('friendships')
+      .select('friend_id')
+      .eq('user_id', user.id);
+    
+    if (friendships && friendships.length > 0) {
+      const friendIds = friendships.map(f => f.friend_id);
+      
+      // Use the RPC function since app_users has restrictive RLS
+      const { data: allUsers } = await supabase.rpc('get_all_app_users');
+      
+      if (allUsers) {
+        const friendUsers = allUsers.filter((u: { id: string; username: string }) => 
+          friendIds.includes(u.id)
+        );
+        setFriends(friendUsers);
+      }
+    } else {
+      setFriends([]);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
     
-    const fetchFriends = async () => {
-      // First get friendships
-      const { data: friendships } = await supabase
-        .from('friendships')
-        .select('friend_id')
-        .eq('user_id', user.id);
-      
-      if (friendships && friendships.length > 0) {
-        const friendIds = friendships.map(f => f.friend_id);
-        
-        // Use the RPC function since app_users has restrictive RLS
-        const { data: allUsers } = await supabase.rpc('get_all_app_users');
-        
-        if (allUsers) {
-          const friendUsers = allUsers.filter((u: { id: string; username: string }) => 
-            friendIds.includes(u.id)
-          );
-          setFriends(friendUsers);
-        }
-      }
-    };
-    
     fetchFriends();
+
+    // Subscribe to friendship changes
+    const friendshipChannel = supabase
+      .channel('game-overlay-friendships')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => {
+        fetchFriends();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(friendshipChannel);
+    };
   }, [user]);
 
   // Fetch DMs for selected friend
@@ -157,16 +173,21 @@ export function GameOverlayBar({ onClose }: GameOverlayBarProps) {
     
     fetchDms();
     
-    // Subscribe to new DMs
+    // Subscribe to new DMs for this specific conversation
     const channel = supabase
-      .channel('game-overlay-dms')
+      .channel(`game-overlay-dms-${selectedFriend.id}`)
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'direct_messages' },
         (payload) => {
           const newDm = payload.new as DirectMessage;
+          // Only add if it's for THIS conversation
           if ((newDm.sender_id === user.id && newDm.receiver_id === selectedFriend.id) ||
               (newDm.sender_id === selectedFriend.id && newDm.receiver_id === user.id)) {
-            setDmMessages(prev => [...prev, newDm]);
+            setDmMessages(prev => {
+              // Prevent duplicates
+              if (prev.some(m => m.id === newDm.id)) return prev;
+              return [...prev, newDm];
+            });
           }
         }
       )

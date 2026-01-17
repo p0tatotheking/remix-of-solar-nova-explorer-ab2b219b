@@ -114,21 +114,28 @@ export function Chatroom() {
     if (!newMessage.trim() || isLoading || !user) return;
 
     setIsLoading(true);
+    setError('');
 
     const censoredMessage = censorText(newMessage.trim());
     
-    const { error } = await supabase.from('chat_messages').insert({
-      username: user.username,
-      message: censoredMessage,
-    });
+    try {
+      const { error } = await supabase.from('chat_messages').insert({
+        username: user.username,
+        message: censoredMessage,
+      });
 
-    if (error) {
-      console.error('Error sending message:', error);
+      if (error) {
+        console.error('Error sending message:', error);
+        setError('Failed to send message');
+      } else {
+        setNewMessage('');
+      }
+    } catch (err) {
+      console.error('Error sending message:', err);
       setError('Failed to send message');
+    } finally {
+      setIsLoading(false);
     }
-
-    setNewMessage('');
-    setIsLoading(false);
   };
 
   if (step === 'verify') {
