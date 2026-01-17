@@ -14,6 +14,8 @@ import { UnoGame } from '@/components/UnoGame';
 import { TVMoviesPlayer } from '@/components/TVMoviesPlayer';
 import { StudyHelper } from '@/components/StudyHelper';
 import { SettingsPage } from '@/components/SettingsPage';
+import { ProxyBrowser } from '@/components/proxy/ProxyBrowser';
+import { ProxyProvider } from '@/contexts/ProxyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -30,7 +32,7 @@ import { TutorialOverlay } from '@/components/TutorialOverlay';
 import { useAutoFriendAdmin } from '@/hooks/useAutoFriendAdmin';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
-type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings';
+type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings' | 'proxy';
 
 const Index = () => {
   const { user, isLoading, logout, isAdmin } = useAuth();
@@ -134,9 +136,11 @@ const Index = () => {
       <SnowfallProvider>
         <PipProvider>
           <YouTubeMusicProvider>
-            <TutorialProvider>
-              <IndexContent />
-            </TutorialProvider>
+            <ProxyProvider>
+              <TutorialProvider>
+                <IndexContent />
+              </TutorialProvider>
+            </ProxyProvider>
           </YouTubeMusicProvider>
         </PipProvider>
       </SnowfallProvider>
@@ -286,17 +290,14 @@ function IndexInner() {
     { id: 'chatroom' as const, label: 'Chat', icon: MessageSquare, disabled: false },
     { id: 'uno' as const, label: 'UNO', icon: Spade, disabled: false },
     { id: 'settings' as const, label: 'Settings', icon: Settings, disabled: false },
-    { id: 'proxy' as const, label: 'Proxy (coming soon)', icon: Globe, disabled: true },
+    { id: 'proxy' as const, label: 'Proxy', icon: Globe, disabled: false },
     { id: 'bugs' as const, label: 'Bugs', icon: Bug, disabled: false },
   ];
 
   const handleNavClick = (id: string, disabled?: boolean) => {
     if (disabled) return;
     
-    if (id === 'proxy') {
-      // Proxy is disabled, do nothing
-      return;
-    } else if (id === 'tv') {
+    if (id === 'tv') {
       setShowTVPlayer(true);
     } else {
       setActiveSection(id as Section);
@@ -535,8 +536,15 @@ function IndexInner() {
         </div>
       )}
 
+      {/* Proxy Browser - fullscreen */}
+      {activeSection === 'proxy' && (
+        <div className="fixed inset-0 z-40 bg-background animate-fade-in">
+          <ProxyBrowser onClose={() => setActiveSection('home')} />
+        </div>
+      )}
+
       {/* Main content - only show for non-fullscreen sections */}
-      {!['chatroom', 'music', 'youtube'].includes(activeSection) && (
+      {!['chatroom', 'music', 'youtube', 'proxy'].includes(activeSection) && (
         <main className="relative">
           <div key={activeSection} className="animate-fade-in">
             {activeSection === 'home' && (
@@ -586,7 +594,7 @@ function IndexInner() {
       )}
 
       {/* Footer - only show on pages that scroll */}
-      {!['music', 'youtube', 'chatroom', 'solar'].includes(activeSection) && (
+      {!['music', 'youtube', 'chatroom', 'solar', 'proxy'].includes(activeSection) && (
         <footer className="border-t border-border/30 bg-background/80 backdrop-blur-lg mt-12 md:mt-20 pb-24 md:pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
             <div className="text-center">
