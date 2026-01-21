@@ -210,7 +210,8 @@ export const ProxyContent = forwardRef<HTMLDivElement, object>(function ProxyCon
           ref={iframeRef}
           srcDoc={iframeContent}
           className="w-full h-full border-0 bg-white"
-          sandbox="allow-scripts allow-same-origin allow-forms"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+          allow="autoplay; fullscreen"
           title="Proxy Content"
         />
       </div>
