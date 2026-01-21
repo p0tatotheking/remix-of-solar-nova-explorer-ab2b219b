@@ -25,6 +25,7 @@ import { SnowfallProvider, useSnowfall } from '@/contexts/SnowfallContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { HomeDashboard } from '@/components/HomeDashboard';
 import { DisclaimerModal, useDisclaimer } from '@/components/DisclaimerModal';
+import { ProxyDisclaimerModal, useProxyDisclaimer } from '@/components/proxy/ProxyDisclaimerModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ChangelogModal } from '@/components/ChangelogModal';
 import { TutorialProvider, useTutorial } from '@/contexts/TutorialContext';
@@ -201,6 +202,8 @@ function IndexInner() {
   const [showTVPlayer, setShowTVPlayer] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
   const { hasAccepted, handleAccept, handleDeny } = useDisclaimer();
+  const { hasAccepted: proxyAccepted, handleAccept: acceptProxy, reset: resetProxyDisclaimer } = useProxyDisclaimer();
+  const [showProxyDisclaimer, setShowProxyDisclaimer] = useState(false);
   
   // Tutorial integration
   const { 
@@ -290,7 +293,7 @@ function IndexInner() {
     { id: 'chatroom' as const, label: 'Chat', icon: MessageSquare, disabled: false },
     { id: 'uno' as const, label: 'UNO', icon: Spade, disabled: false },
     { id: 'settings' as const, label: 'Settings', icon: Settings, disabled: false },
-    { id: 'proxy' as const, label: 'Proxy', icon: Globe, disabled: false },
+    { id: 'proxy' as const, label: 'Proxy (beta)', icon: Globe, disabled: false },
     { id: 'bugs' as const, label: 'Bugs', icon: Bug, disabled: false },
   ];
 
@@ -299,10 +302,27 @@ function IndexInner() {
     
     if (id === 'tv') {
       setShowTVPlayer(true);
+    } else if (id === 'proxy') {
+      // Check if proxy disclaimer has been accepted
+      if (proxyAccepted) {
+        setActiveSection('proxy');
+      } else {
+        setShowProxyDisclaimer(true);
+      }
     } else {
       setActiveSection(id as Section);
     }
     setShowNav(false);
+  };
+
+  const handleProxyAccept = () => {
+    acceptProxy();
+    setShowProxyDisclaimer(false);
+    setActiveSection('proxy');
+  };
+
+  const handleProxyDeny = () => {
+    setShowProxyDisclaimer(false);
   };
 
   const handleGameClick = (url: string, title: string, embed?: boolean, isTab?: string) => {
@@ -349,6 +369,10 @@ function IndexInner() {
 
   return (
     <div className="relative z-10">
+      {/* Proxy Disclaimer Modal */}
+      {showProxyDisclaimer && (
+        <ProxyDisclaimerModal onAccept={handleProxyAccept} onDeny={handleProxyDeny} />
+      )}
       {/* Tutorial Overlay */}
       <TutorialOverlay />
       {/* Changelog Modal */}
