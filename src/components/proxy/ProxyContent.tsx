@@ -109,17 +109,32 @@ export const ProxyContent = forwardRef<HTMLDivElement, object>(function ProxyCon
 
   // Error state
   if (error) {
+    const isBlocked = error.includes('blocks server requests') || error.includes('403');
+    
     return (
       <div ref={ref as React.Ref<HTMLDivElement>} className="flex flex-col items-center justify-center h-full gap-6 p-8 text-center">
-        <div className="p-4 rounded-full bg-destructive/10">
-          <AlertCircle className="w-12 h-12 text-destructive" />
+        <div className={`p-4 rounded-full ${isBlocked ? 'bg-accent/20' : 'bg-destructive/10'}`}>
+          <AlertCircle className={`w-12 h-12 ${isBlocked ? 'text-accent-foreground' : 'text-destructive'}`} />
         </div>
         <div>
-          <h2 className="text-xl font-semibold mb-2">Failed to load page</h2>
-          <p className="text-muted-foreground max-w-md mb-4">{error}</p>
+          <h2 className="text-xl font-semibold mb-2">
+            {isBlocked ? 'Website Blocked Access' : 'Failed to load page'}
+          </h2>
+          <p className="text-muted-foreground max-w-md mb-4">
+            {isBlocked 
+              ? 'This website has anti-bot protection that blocks proxy requests. Try a simpler website without heavy security measures.'
+              : error
+            }
+          </p>
           <p className="text-sm text-muted-foreground/60">
             URL: {url}
           </p>
+          {isBlocked && (
+            <div className="mt-4 p-3 bg-muted/30 rounded-lg text-sm text-muted-foreground">
+              <strong>Tip:</strong> Sites like Google, YouTube, Reddit, and social media often block proxies. 
+              Try news sites, wikis, or simpler web pages instead.
+            </div>
+          )}
         </div>
         <div className="flex gap-3">
           <Button
