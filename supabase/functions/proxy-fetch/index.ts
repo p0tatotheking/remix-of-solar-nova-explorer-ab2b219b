@@ -52,6 +52,25 @@ const blockedDomains = [
   '192.168.',
 ];
 
+// Trusted game sites where we allow scripts to run (needed for game loading)
+const trustedGameDomains = [
+  'kbhgames.com',
+  'poki.com',
+  'crazygames.com',
+  'silvergames.com',
+  'y8.com',
+];
+
+function isTrustedGameSite(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+    return trustedGameDomains.some(domain => hostname.includes(domain));
+  } catch {
+    return false;
+  }
+}
+
 function isBlockedDomain(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -93,7 +112,14 @@ function rewriteUrls(html: string, baseUrl: string): string {
   }
 }
 
-function sanitizeHtml(html: string): string {
+function sanitizeHtml(html: string, isTrusted: boolean = false): string {
+  // For trusted game sites, preserve scripts needed for game loading
+  if (isTrusted) {
+    // Only remove javascript: URLs for safety
+    html = html.replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
+    return html;
+  }
+  
   // Remove potentially dangerous elements and attributes
   // This is a basic sanitization - for production, consider using a proper library
   
@@ -235,11 +261,14 @@ serve(async (req) => {
     if (contentType.includes('text/html') || contentType.includes('application/xhtml+xml')) {
       let html = await response.text();
       
+      // Check if this is a trusted game site
+      const isTrusted = isTrustedGameSite(url);
+      
       // Rewrite URLs to absolute
       html = rewriteUrls(html, response.url);
       
-      // Sanitize HTML
-      html = sanitizeHtml(html);
+      // Sanitize HTML (preserves scripts for trusted game sites)
+      html = sanitizeHtml(html, isTrusted);
       
       // Extract metadata
       const title = extractTitle(html);
