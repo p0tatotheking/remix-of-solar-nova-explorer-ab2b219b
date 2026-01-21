@@ -71,6 +71,47 @@ function isTrustedGameSite(url: string): boolean {
   }
 }
 
+function isKbhGamesGamePage(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.includes('kbhgames.com') && parsed.pathname.startsWith('/game/');
+  } catch {
+    return false;
+  }
+}
+
+function extractKbhGameId(html: string): string | null {
+  // Extract game ID from data-id attribute on .playnowtext element
+  const match = html.match(/class="playnowtext"[^>]*data-id="(\d+)"/i);
+  return match ? match[1] : null;
+}
+
+function injectKbhGamePlayer(html: string, gameId: string): string {
+  // KBHGames loads games via f.kbhgames.com with the game ID
+  // We'll replace the playbutton with an iframe that loads the game directly
+  const gameIframe = `
+    <div id="game-container" style="width: 100%; max-width: 960px; margin: 0 auto; background: #000;">
+      <iframe 
+        src="https://f.kbhgames.com/RS/game.php?ID=${gameId}" 
+        style="width: 100%; height: 600px; border: none; display: block;"
+        allowfullscreen
+        allow="autoplay; fullscreen; gamepad"
+      ></iframe>
+    </div>
+  `;
+  
+  // Replace the playbutton div with the game iframe
+  html = html.replace(/<div class="playbutton">[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/i, gameIframe);
+  
+  // Also try alternative pattern
+  if (!html.includes('game-container')) {
+    html = html.replace(/<div id="game">[\s\S]*?<div class="playbutton">[\s\S]*?<\/div>\s*<\/div>/i, 
+      `<div id="game">${gameIframe}</div>`);
+  }
+  
+  return html;
+}
+
 function isBlockedDomain(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -263,6 +304,15 @@ serve(async (req) => {
       
       // Check if this is a trusted game site
       const isTrusted = isTrustedGameSite(url);
+      
+      // Special handling for KBHGames game pages - inject game player directly
+      if (isKbhGamesGamePage(url)) {
+        const gameId = extractKbhGameId(html);
+        if (gameId) {
+          console.log(`KBHGames game detected, ID: ${gameId}`);
+          html = injectKbhGamePlayer(html, gameId);
+        }
+      }
       
       // Rewrite URLs to absolute
       html = rewriteUrls(html, response.url);
