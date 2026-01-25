@@ -52,17 +52,8 @@ const getGameEmoji = (title: string, category: string) => {
   return '🎯';
 };
 
-// Fallback games if database is empty
+// Fallback games if database is empty (FNF games are in dedicated section)
 const defaultGames: Game[] = [
-  {
-    title: 'Friday Night Funkin',
-    description: 'Test your rhythm skills in epic rap battles with challenging beats.',
-    url: 'https://fnfcbn.wasmer.app/',
-    preview: 'Rhythm battle game',
-    embed: true,
-    category: 'rhythm',
-    thumbnail: '/thumbnails/friday-night-funkin.png',
-  },
   {
     title: 'Petezah Games',
     description: 'Access a massive collection of unblocked games all in one place.',
@@ -268,12 +259,14 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
   };
 
   const filteredGames = useMemo(() => {
-    return games.filter(game => {
-      const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           game.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = activeCategory === 'all' || game.category === activeCategory;
-      return matchesSearch && matchesCategory;
-    });
+    return games
+      .filter(game => game.category !== 'fnf') // FNF games are in dedicated section
+      .filter(game => {
+        const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                             game.description.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = activeCategory === 'all' || game.category === activeCategory;
+        return matchesSearch && matchesCategory;
+      });
   }, [games, searchQuery, activeCategory]);
 
   return (

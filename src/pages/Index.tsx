@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv, Sparkles, Settings } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv, Sparkles, Settings, Mic2 } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
+import { FNFSection } from '@/components/FNFSection';
 import { BugsSection } from '@/components/BugsSection';
 import { Announcements } from '@/components/Announcements';
 import { YouTubeMusicPlayer } from '@/components/music/YouTubeMusicPlayer';
@@ -33,7 +34,7 @@ import { TutorialOverlay } from '@/components/TutorialOverlay';
 import { useAutoFriendAdmin } from '@/hooks/useAutoFriendAdmin';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
-type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings' | 'proxy';
+type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings' | 'proxy' | 'fnf';
 
 const Index = () => {
   const { user, isLoading, logout, isAdmin } = useAuth();
@@ -285,6 +286,7 @@ function IndexInner() {
   const navItems = [
     { id: 'home' as const, label: 'Home', icon: Home, disabled: false },
     { id: 'games' as const, label: 'Games', icon: Gamepad2, disabled: false },
+    { id: 'fnf' as const, label: 'FNF Mods', icon: Mic2, disabled: false },
     { id: 'tv' as const, label: 'TV & Movies', icon: Tv, disabled: false },
     { id: 'youtube' as const, label: 'YouTube', icon: Youtube, disabled: false },
     { id: 'music' as const, label: 'Music', icon: Music, disabled: false },
@@ -581,6 +583,12 @@ function IndexInner() {
             {activeSection === 'games' && (
               <section className="py-16 px-4 sm:px-6 lg:px-8">
                 <GamesGrid onGameClick={handleGameClick} />
+              </section>
+            )}
+
+            {activeSection === 'fnf' && (
+              <section className="py-16 px-4 sm:px-6 lg:px-8">
+                <FNFSection onGameClick={handleGameClick} />
               </section>
             )}
 
