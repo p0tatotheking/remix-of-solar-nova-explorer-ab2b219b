@@ -13,6 +13,24 @@ interface ChangelogEntry {
 
 const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '2.13',
+    date: 'January 25, 2026',
+    highlights: ['Dedicated FNF Mods section with cool new design'],
+    features: [
+      'New FNF Mods section with microphone icon 🎤',
+      'Admin can add/delete/edit FNF games from Admin Panel',
+      'FNF games separated from main Games library',
+    ],
+    fixes: [
+      'Games now properly embed instead of opening in new tabs',
+      'Admin thumbnail upload works in FNF section',
+    ],
+    improvements: [
+      'Better game category management',
+      'Smoother game loading experience',
+    ],
+  },
+  {
     version: '2.12',
     date: 'January 13, 2026',
     highlights: ['Enhanced transitions and animations throughout the app'],
