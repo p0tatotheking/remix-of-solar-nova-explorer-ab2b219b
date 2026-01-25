@@ -17,7 +17,7 @@ interface Game {
   display_order: number;
 }
 
-const categories = ['rhythm', 'arcade', 'utility', 'racing'];
+const categories = ['fnf', 'rhythm', 'arcade', 'utility', 'racing'];
 
 export function GameManagement() {
   const { user } = useAuth();
