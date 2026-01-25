@@ -189,7 +189,7 @@ export function GamesGrid({ onGameClick }: GamesGridProps) {
           description: g.description,
           url: g.url,
           preview: g.preview,
-          embed: g.embed,
+          embed: g.embed ?? true, // Default to embed if not specified
           isTab: g.is_tab || undefined,
           category: g.category,
           thumbnail: g.thumbnail_url || undefined,
