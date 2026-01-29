@@ -4,23 +4,23 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { AgeVerificationModal, useAgeVerification } from './AgeVerificationModal';
 import { isBlockedContent } from '@/lib/blockedContentIds';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useGameProgress } from '@/hooks/useGameProgress';
 
 interface GameEmbedProps {
   url: string;
   title: string;
+  gameId?: string;
   onClose: () => void;
 }
 
-const GAME_SESSION_KEY = 'solarnova_game_sessions';
-
-export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
-  const { user } = useAuth();
+export function GameEmbed({ url, title, gameId, onClose }: GameEmbedProps) {
+  const { startGameSession, updatePlayTime } = useGameProgress();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
   const [sessionStartTime] = useState(Date.now());
+  const playTimeIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { handleConfirm, handleDeny } = useAgeVerification();
 
@@ -34,52 +34,28 @@ export function GameEmbed({ url, title, onClose }: GameEmbedProps) {
     }
   }, [url]);
 
-  // Track game session - save play time when closing
-  const saveGameSession = useCallback(() => {
-    if (!user) return;
-    
-    const playTime = Math.floor((Date.now() - sessionStartTime) / 1000);
-    const key = `${GAME_SESSION_KEY}_${user.id}`;
-    
-    try {
-      const stored = localStorage.getItem(key);
-      let sessions: { gameTitle: string; url: string; playTime: number; lastPlayed: string }[] = [];
-      
-      if (stored) {
-        sessions = JSON.parse(stored);
-      }
-      
-      // Find existing session for this game
-      const existingIndex = sessions.findIndex(s => s.url === url);
-      
-      if (existingIndex >= 0) {
-        // Update existing session
-        sessions[existingIndex].playTime += playTime;
-        sessions[existingIndex].lastPlayed = new Date().toISOString();
-      } else {
-        // Add new session
-        sessions.unshift({
-          gameTitle: title,
-          url,
-          playTime,
-          lastPlayed: new Date().toISOString(),
-        });
-      }
-      
-      // Keep last 50 sessions
-      sessions = sessions.slice(0, 50);
-      localStorage.setItem(key, JSON.stringify(sessions));
-    } catch (error) {
-      console.error('Error saving game session:', error);
-    }
-  }, [user, url, title, sessionStartTime]);
-
-  // Save session on unmount (when closing)
+  // Start game session when component mounts
   useEffect(() => {
+    startGameSession(url, title, gameId);
+    
+    // Update play time every 60 seconds
+    playTimeIntervalRef.current = setInterval(() => {
+      updatePlayTime(url, 60);
+    }, 60000);
+
     return () => {
-      saveGameSession();
+      // Save final play time on unmount
+      const playedSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const remainingSeconds = playedSeconds % 60; // Time not yet saved by interval
+      if (remainingSeconds > 10) { // Only save if played more than 10 seconds
+        updatePlayTime(url, remainingSeconds);
+      }
+      
+      if (playTimeIntervalRef.current) {
+        clearInterval(playTimeIntervalRef.current);
+      }
     };
-  }, [saveGameSession]);
+  }, [url, title, gameId, startGameSession, updatePlayTime, sessionStartTime]);
 
   // Check age verification on mount for mathepic
   useEffect(() => {
