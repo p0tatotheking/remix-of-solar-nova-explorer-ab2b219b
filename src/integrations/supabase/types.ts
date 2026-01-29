@@ -330,6 +330,53 @@ export type Database = {
         }
         Relationships: []
       }
+      game_progress: {
+        Row: {
+          created_at: string
+          custom_settings: Json | null
+          game_id: string | null
+          game_title: string
+          game_url: string
+          id: string
+          last_played: string
+          play_time: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_settings?: Json | null
+          game_id?: string | null
+          game_title: string
+          game_url: string
+          id?: string
+          last_played?: string
+          play_time?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_settings?: Json | null
+          game_id?: string | null
+          game_title?: string
+          game_url?: string
+          id?: string
+          last_played?: string
+          play_time?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_progress_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           category: string

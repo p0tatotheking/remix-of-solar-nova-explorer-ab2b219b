@@ -1,111 +1,245 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
-interface GameSession {
-  gameId: string;
-  gameTitle: string;
-  gameUrl: string;
-  lastPlayed: string;
-  playTime: number; // in seconds
+interface GameProgress {
+  id: string;
+  user_id: string;
+  game_id: string | null;
+  game_url: string;
+  game_title: string;
+  play_time: number;
+  last_played: string;
+  custom_settings: Json;
+  created_at: string;
+  updated_at: string;
 }
-
-const STORAGE_KEY = 'game_progress';
 
 export function useGameProgress() {
   const { user } = useAuth();
-  const [sessions, setSessions] = useState<GameSession[]>([]);
+  const [sessions, setSessions] = useState<GameProgress[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load sessions from localStorage on mount
+  // Load sessions from database on mount
   useEffect(() => {
-    if (!user) return;
-    
-    const key = `${STORAGE_KEY}_${user.id}`;
-    const stored = localStorage.getItem(key);
-    if (stored) {
+    if (!user) {
+      setSessions([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const loadProgress = async () => {
+      setIsLoading(true);
       try {
-        setSessions(JSON.parse(stored));
+        const { data, error } = await supabase
+          .from('game_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('last_played', { ascending: false });
+
+        if (error) {
+          console.error('Error loading game progress:', error);
+          return;
+        }
+
+        setSessions((data || []) as GameProgress[]);
       } catch (e) {
         console.error('Error loading game progress:', e);
+      } finally {
+        setIsLoading(false);
       }
+    };
+
+    loadProgress();
+
+    // Subscribe to realtime updates for cross-device sync
+    const channel = supabase
+      .channel('game_progress_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'game_progress',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setSessions((prev) => [payload.new as GameProgress, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setSessions((prev) =>
+              prev.map((s) =>
+                s.id === (payload.new as GameProgress).id
+                  ? (payload.new as GameProgress)
+                  : s
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setSessions((prev) =>
+              prev.filter((s) => s.id !== (payload.old as GameProgress).id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Start or update a game session
+  const startGameSession = useCallback(
+    async (gameUrl: string, gameTitle: string, gameId?: string) => {
+      if (!user) return null;
+
+      try {
+        // Check if session already exists
+        const existing = sessions.find((s) => s.game_url === gameUrl);
+
+        if (existing) {
+          // Update last played time
+          const { data, error } = await supabase
+            .from('game_progress')
+            .update({
+              last_played: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Error updating game session:', error);
+            return existing;
+          }
+
+          return data as GameProgress;
+        } else {
+          // Create new session
+          const { data, error } = await supabase
+            .from('game_progress')
+            .insert({
+              user_id: user.id,
+              game_url: gameUrl,
+              game_title: gameTitle,
+              game_id: gameId || null,
+              play_time: 0,
+              custom_settings: {},
+            })
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Error creating game session:', error);
+            return null;
+          }
+
+          return data as GameProgress;
+        }
+      } catch (e) {
+        console.error('Error in startGameSession:', e);
+        return null;
+      }
+    },
+    [user, sessions]
+  );
+
+  // Update play time for a game
+  const updatePlayTime = useCallback(
+    async (gameUrl: string, additionalSeconds: number) => {
+      if (!user) return;
+
+      const session = sessions.find((s) => s.game_url === gameUrl);
+      if (!session) return;
+
+      try {
+        await supabase
+          .from('game_progress')
+          .update({
+            play_time: session.play_time + additionalSeconds,
+            last_played: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', session.id);
+      } catch (e) {
+        console.error('Error updating play time:', e);
+      }
+    },
+    [user, sessions]
+  );
+
+  // Save custom settings for a game (keybindings, preferences, etc.)
+  const saveGameSettings = useCallback(
+    async (gameUrl: string, settings: Record<string, Json | undefined>) => {
+      if (!user) return;
+
+      const session = sessions.find((s) => s.game_url === gameUrl);
+      if (!session) return;
+
+      try {
+        const existingSettings = (typeof session.custom_settings === 'object' && session.custom_settings !== null && !Array.isArray(session.custom_settings)) 
+          ? session.custom_settings as Record<string, Json | undefined>
+          : {};
+        const mergedSettings = { ...existingSettings, ...settings };
+        await supabase
+          .from('game_progress')
+          .update({
+            custom_settings: mergedSettings,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', session.id);
+      } catch (e) {
+        console.error('Error saving game settings:', e);
+      }
+    },
+    [user, sessions]
+  );
+
+  // Get settings for a specific game
+  const getGameSettings = useCallback(
+    (gameUrl: string): Json => {
+      const session = sessions.find((s) => s.game_url === gameUrl);
+      return session?.custom_settings || {};
+    },
+    [sessions]
+  );
+
+  // Get recently played games
+  const getRecentlyPlayed = useCallback(
+    (limit = 10) => {
+      return sessions
+        .sort(
+          (a, b) =>
+            new Date(b.last_played).getTime() - new Date(a.last_played).getTime()
+        )
+        .slice(0, limit);
+    },
+    [sessions]
+  );
+
+  // Get specific game session
+  const getGameSession = useCallback(
+    (gameUrl: string) => {
+      return sessions.find((s) => s.game_url === gameUrl);
+    },
+    [sessions]
+  );
+
+  // Clear all game progress
+  const clearProgress = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      await supabase.from('game_progress').delete().eq('user_id', user.id);
+      setSessions([]);
+    } catch (e) {
+      console.error('Error clearing progress:', e);
     }
   }, [user]);
 
-  // Save session when starting a game
-  const startGameSession = useCallback((gameId: string, gameTitle: string, gameUrl: string) => {
-    if (!user) return;
-    
-    const key = `${STORAGE_KEY}_${user.id}`;
-    const newSession: GameSession = {
-      gameId,
-      gameTitle,
-      gameUrl,
-      lastPlayed: new Date().toISOString(),
-      playTime: 0,
-    };
-
-    setSessions(prev => {
-      // Check if game already exists
-      const existingIndex = prev.findIndex(s => s.gameId === gameId);
-      let updated: GameSession[];
-      
-      if (existingIndex >= 0) {
-        // Update existing session
-        updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          lastPlayed: new Date().toISOString(),
-        };
-      } else {
-        // Add new session
-        updated = [newSession, ...prev];
-      }
-      
-      // Keep last 50 sessions
-      updated = updated.slice(0, 50);
-      localStorage.setItem(key, JSON.stringify(updated));
-      return updated;
-    });
-
-    return newSession;
-  }, [user]);
-
-  // Update play time for current session
-  const updatePlayTime = useCallback((gameId: string, additionalSeconds: number) => {
-    if (!user) return;
-    
-    const key = `${STORAGE_KEY}_${user.id}`;
-    setSessions(prev => {
-      const updated = prev.map(s => 
-        s.gameId === gameId 
-          ? { ...s, playTime: s.playTime + additionalSeconds, lastPlayed: new Date().toISOString() }
-          : s
-      );
-      localStorage.setItem(key, JSON.stringify(updated));
-      return updated;
-    });
-  }, [user]);
-
-  // Get recently played games
-  const getRecentlyPlayed = useCallback((limit = 10) => {
-    return sessions
-      .sort((a, b) => new Date(b.lastPlayed).getTime() - new Date(a.lastPlayed).getTime())
-      .slice(0, limit);
-  }, [sessions]);
-
-  // Get specific game session
-  const getGameSession = useCallback((gameId: string) => {
-    return sessions.find(s => s.gameId === gameId);
-  }, [sessions]);
-
-  // Clear all game progress
-  const clearProgress = useCallback(() => {
-    if (!user) return;
-    const key = `${STORAGE_KEY}_${user.id}`;
-    localStorage.removeItem(key);
-    setSessions([]);
-  }, [user]);
-
-  // Format play time
+  // Format play time for display
   const formatPlayTime = useCallback((seconds: number) => {
     if (seconds < 60) return `${seconds}s`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
@@ -114,8 +248,11 @@ export function useGameProgress() {
 
   return {
     sessions,
+    isLoading,
     startGameSession,
     updatePlayTime,
+    saveGameSettings,
+    getGameSettings,
     getRecentlyPlayed,
     getGameSession,
     clearProgress,
