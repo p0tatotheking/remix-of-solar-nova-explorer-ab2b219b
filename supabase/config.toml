@@ -1,1 +1,4 @@
 project_id = "hbhopyhvtedsiihaqthl"
+
+[functions.itunes-search]
+verify_jwt = false

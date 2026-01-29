@@ -8,6 +8,15 @@ interface YouTubeTrack {
   artist: string;
   thumbnail: string;
   duration?: string;
+  fileUrl?: string; // For user-uploaded music
+}
+
+export interface UserUploadedSong {
+  id: string;
+  title: string;
+  artist: string;
+  thumbnail?: string;
+  fileUrl: string;
 }
 
 interface YouTubeMusicContextType {
@@ -16,6 +25,7 @@ interface YouTubeMusicContextType {
   currentTrack: YouTubeTrack | null;
   isPlaying: boolean;
   playTrack: (track: YouTubeTrack) => void;
+  playUserUploadedSong: (song: UserUploadedSong) => void;
   togglePlayPause: () => void;
   playNext: () => void;
   playPrevious: () => void;
@@ -32,6 +42,7 @@ interface YouTubeMusicContextType {
   duration: number;
   seekTo: (percent: number) => void;
   playerReady: boolean;
+  isPlayingUserUpload: boolean;
   // Legacy support
   isLooping: boolean;
   setIsLooping: (loop: boolean) => void;
@@ -86,8 +97,10 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [playerReady, setPlayerReady] = useState(false);
   const [apiLoaded, setApiLoaded] = useState(false);
+  const [isPlayingUserUpload, setIsPlayingUserUpload] = useState(false);
   
   const playerRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -437,10 +450,120 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
   }, [isMuted, volume, playerReady]);
 
   const seekTo = useCallback((percent: number) => {
-    if (playerRef.current && playerReady && duration) {
+    if (isPlayingUserUpload && audioRef.current) {
+      audioRef.current.currentTime = percent * audioRef.current.duration;
+    } else if (playerRef.current && playerReady && duration) {
       playerRef.current.seekTo(percent * duration, true);
     }
-  }, [duration, playerReady]);
+  }, [duration, playerReady, isPlayingUserUpload]);
+
+  // Play user-uploaded song via HTML5 Audio
+  const playUserUploadedSong = useCallback((song: UserUploadedSong) => {
+    // Pause YouTube player if playing
+    if (playerRef.current?.pauseVideo) {
+      try {
+        playerRef.current.pauseVideo();
+      } catch {
+        // ignore
+      }
+    }
+
+    setIsPlayingUserUpload(true);
+    setCurrentTrack({
+      id: song.id,
+      title: song.title,
+      artist: song.artist,
+      thumbnail: song.thumbnail || '',
+      fileUrl: song.fileUrl,
+    });
+
+    // Create or reuse audio element
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.addEventListener('ended', () => {
+        setIsPlaying(false);
+        // Could add repeat logic here
+      });
+      audioRef.current.addEventListener('timeupdate', () => {
+        if (audioRef.current) {
+          const current = audioRef.current.currentTime;
+          const total = audioRef.current.duration;
+          setCurrentTime(current);
+          setDuration(total);
+          setProgress(total > 0 ? (current / total) * 100 : 0);
+        }
+      });
+      audioRef.current.addEventListener('loadedmetadata', () => {
+        if (audioRef.current) {
+          setDuration(audioRef.current.duration);
+        }
+      });
+    }
+
+    audioRef.current.src = song.fileUrl;
+    audioRef.current.volume = isMuted ? 0 : volume / 100;
+    audioRef.current.play();
+    setIsPlaying(true);
+  }, [isMuted, volume]);
+
+  // Update audio volume when mute/volume changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume / 100;
+    }
+  }, [isMuted, volume]);
+
+  // Override togglePlayPause to handle user uploads
+  const togglePlayPauseEnhanced = useCallback(() => {
+    if (isPlayingUserUpload && audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+    } else if (playerRef.current && playerReady) {
+      if (isPlaying) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
+    }
+  }, [isPlaying, isPlayingUserUpload, playerReady]);
+
+  // When playing a YouTube track, stop user upload audio
+  const playTrackEnhanced = useCallback(
+    (track: YouTubeTrack) => {
+      // Stop user upload audio if playing
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+      setIsPlayingUserUpload(false);
+
+      setCurrentTrack(track);
+      pendingTrackIdRef.current = track.id;
+      pendingAutoPlayRef.current = true;
+
+      const player = playerRef.current;
+      if (player && playerReady && player.loadVideoById) {
+        try {
+          player.loadVideoById(track.id);
+          setTimeout(() => {
+            try {
+              player.playVideo?.();
+            } catch {
+              // ignore
+            }
+          }, 0);
+        } catch {
+          // ignore
+        }
+      }
+    },
+    [playerReady]
+  );
 
   return (
     <YouTubeMusicContext.Provider
@@ -449,8 +572,9 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
         setTracks,
         currentTrack,
         isPlaying,
-        playTrack,
-        togglePlayPause,
+        playTrack: playTrackEnhanced,
+        playUserUploadedSong,
+        togglePlayPause: togglePlayPauseEnhanced,
         playNext,
         playPrevious,
         volume,
@@ -466,6 +590,7 @@ export function YouTubeMusicProvider({ children }: { children: ReactNode }) {
         duration,
         seekTo,
         playerReady,
+        isPlayingUserUpload,
         // Legacy
         isLooping,
         setIsLooping,

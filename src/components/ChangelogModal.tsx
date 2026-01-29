@@ -13,6 +13,25 @@ interface ChangelogEntry {
 
 const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '2.14',
+    date: 'January 29, 2026',
+    highlights: ['Personal Music Uploads in YouTube Music', 'Cross-device game progress sync'],
+    features: [
+      'Upload your own MP3s to YouTube Music 🎵',
+      'Auto-fetch album art from iTunes/Apple Music',
+      'Personal music library synced across devices',
+      'Game progress now saves to cloud',
+      'Play time tracking for all games',
+    ],
+    fixes: [
+      'Game session data now persists across logins',
+    ],
+    improvements: [
+      'Better music player with user uploads support',
+      'Realtime sync for game progress',
+    ],
+  },
+  {
     version: '2.13',
     date: 'January 25, 2026',
     highlights: ['Dedicated FNF Mods section with cool new design'],
