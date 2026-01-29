@@ -724,6 +724,71 @@ export type Database = {
         }
         Relationships: []
       }
+      user_music_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          music_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          music_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          music_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_music_favorites_music_id_fkey"
+            columns: ["music_id"]
+            isOneToOne: false
+            referencedRelation: "user_uploaded_music"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_music_playlist_songs: {
+        Row: {
+          added_at: string
+          id: string
+          music_id: string
+          playlist_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          music_id: string
+          playlist_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          music_id?: string
+          playlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_music_playlist_songs_music_id_fkey"
+            columns: ["music_id"]
+            isOneToOne: false
+            referencedRelation: "user_uploaded_music"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_music_playlist_songs_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_music_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_playlists: {
         Row: {
           created_at: string

@@ -1,11 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, Music, Trash2, Play, Pause, Loader2, Search, X, Plus } from 'lucide-react';
+import { Upload, Music, Trash2, Play, Pause, Loader2, Search, X, Plus, Heart, ListMusic, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useYouTubeMusic, type UserUploadedSong } from '@/contexts/YouTubeMusicContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface UserMusic {
   id: string;
@@ -19,25 +28,35 @@ interface UserMusic {
   created_at: string;
 }
 
+interface Playlist {
+  id: string;
+  name: string;
+  user_id: string;
+}
+
 export function UserMusicUpload() {
   const { user } = useAuth();
-  const { playUserUploadedSong } = useYouTubeMusic();
+  const { playUserUploadedSong, currentTrack, isPlaying } = useYouTubeMusic();
   const [userMusic, setUserMusic] = useState<UserMusic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [playingId, setPlayingId] = useState<string | null>(null);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadArtist, setUploadArtist] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'favorites'>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load user's music on mount
+  // Load user's music and favorites on mount
   useEffect(() => {
     if (!user) return;
     loadUserMusic();
+    loadFavorites();
+    loadPlaylists();
   }, [user]);
 
   const loadUserMusic = async () => {
@@ -57,6 +76,102 @@ export function UserMusicUpload() {
       toast.error('Failed to load your music');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadFavorites = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_music_favorites')
+        .select('music_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      setFavorites(new Set((data || []).map(f => f.music_id)));
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  };
+
+  const loadPlaylists = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('youtube_music_playlists')
+        .select('id, name, user_id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPlaylists(data || []);
+    } catch (error) {
+      console.error('Error loading playlists:', error);
+    }
+  };
+
+  const toggleFavorite = async (musicId: string) => {
+    if (!user) return;
+
+    const isFavorited = favorites.has(musicId);
+
+    try {
+      if (isFavorited) {
+        // Remove from favorites
+        const { error } = await supabase
+          .from('user_music_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('music_id', musicId);
+
+        if (error) throw error;
+        setFavorites(prev => {
+          const next = new Set(prev);
+          next.delete(musicId);
+          return next;
+        });
+        toast.success('Removed from favorites');
+      } else {
+        // Add to favorites
+        const { error } = await supabase
+          .from('user_music_favorites')
+          .insert({ user_id: user.id, music_id: musicId });
+
+        if (error) throw error;
+        setFavorites(prev => new Set(prev).add(musicId));
+        toast.success('Added to favorites');
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error('Failed to update favorites');
+    }
+  };
+
+  const addToPlaylist = async (playlistId: string, music: UserMusic) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_music_playlist_songs')
+        .insert({
+          playlist_id: playlistId,
+          music_id: music.id,
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast.error('Song already in playlist');
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success('Added to playlist!');
+      }
+    } catch (error) {
+      console.error('Error adding to playlist:', error);
+      toast.error('Failed to add to playlist');
     }
   };
 
@@ -83,14 +198,13 @@ export function UserMusicUpload() {
       return;
     }
 
-    if (file.size > 50 * 1024 * 1024) { // 50MB limit
+    if (file.size > 50 * 1024 * 1024) {
       toast.error('File size must be less than 50MB');
       return;
     }
 
     setSelectedFile(file);
-    // Auto-fill title from filename
-    const fileName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+    const fileName = file.name.replace(/\.[^/.]+$/, '');
     setUploadTitle(fileName);
     setShowUploadForm(true);
   };
@@ -107,7 +221,6 @@ export function UserMusicUpload() {
     setUploadProgress(10);
 
     try {
-      // 1. Upload file to storage
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
@@ -121,12 +234,10 @@ export function UserMusicUpload() {
 
       setUploadProgress(60);
 
-      // 2. Fetch thumbnail from iTunes
       const thumbnail = await fetchThumbnailFromItunes(uploadTitle, uploadArtist);
       
       setUploadProgress(80);
 
-      // 3. Save to database
       const { data: publicUrlData } = supabase.storage
         .from('user-music')
         .getPublicUrl(fileName);
@@ -147,7 +258,6 @@ export function UserMusicUpload() {
       setUploadProgress(100);
       toast.success('Music uploaded successfully!');
       
-      // Reset form and reload
       setSelectedFile(null);
       setUploadTitle('');
       setUploadArtist('');
@@ -168,16 +278,13 @@ export function UserMusicUpload() {
     if (!user) return;
 
     try {
-      // Extract file path from URL for storage deletion
       const urlParts = music.file_path.split('/user-music/');
       const storagePath = urlParts[1];
 
-      // Delete from storage
       if (storagePath) {
         await supabase.storage.from('user-music').remove([storagePath]);
       }
 
-      // Delete from database
       const { error } = await supabase
         .from('user_uploaded_music')
         .delete()
@@ -187,6 +294,11 @@ export function UserMusicUpload() {
       if (error) throw error;
 
       setUserMusic(prev => prev.filter(m => m.id !== music.id));
+      setFavorites(prev => {
+        const next = new Set(prev);
+        next.delete(music.id);
+        return next;
+      });
       toast.success('Music deleted');
     } catch (error) {
       console.error('Delete error:', error);
@@ -195,24 +307,21 @@ export function UserMusicUpload() {
   };
 
   const handlePlay = (music: UserMusic) => {
-    if (playingId === music.id) {
-      setPlayingId(null);
-    } else {
-      setPlayingId(music.id);
-      playUserUploadedSong({
-        id: music.id,
-        title: music.title,
-        artist: music.artist,
-        thumbnail: music.thumbnail_url || undefined,
-        fileUrl: music.file_path,
-      });
-    }
+    playUserUploadedSong({
+      id: music.id,
+      title: music.title,
+      artist: music.artist,
+      thumbnail: music.thumbnail_url || undefined,
+      fileUrl: music.file_path,
+    });
   };
 
-  const filteredMusic = userMusic.filter(m => 
-    m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.artist.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredMusic = userMusic
+    .filter(m => 
+      m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.artist.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .filter(m => activeFilter === 'all' || favorites.has(m.id));
 
   if (!user) {
     return (
@@ -322,6 +431,31 @@ export function UserMusicUpload() {
         </div>
       )}
 
+      {/* Filters */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setActiveFilter('all')}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            activeFilter === 'all'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          All ({userMusic.length})
+        </button>
+        <button
+          onClick={() => setActiveFilter('favorites')}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${
+            activeFilter === 'favorites'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <Heart className={`w-4 h-4 ${activeFilter === 'favorites' ? 'fill-current' : ''}`} />
+          Favorites ({favorites.size})
+        </button>
+      </div>
+
       {/* Search */}
       {userMusic.length > 0 && (
         <div className="relative">
@@ -344,9 +478,13 @@ export function UserMusicUpload() {
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Upload className="w-12 h-12 text-muted-foreground mb-4" />
           <p className="text-muted-foreground">
-            {searchQuery ? 'No music matches your search' : 'No music uploaded yet'}
+            {searchQuery 
+              ? 'No music matches your search' 
+              : activeFilter === 'favorites'
+                ? 'No favorites yet'
+                : 'No music uploaded yet'}
           </p>
-          {!searchQuery && (
+          {!searchQuery && activeFilter === 'all' && (
             <p className="text-sm text-muted-foreground/60 mt-1">
               Click "Upload Music" to add your first song
             </p>
@@ -354,57 +492,100 @@ export function UserMusicUpload() {
         </div>
       ) : (
         <div className="grid gap-2">
-          {filteredMusic.map((music) => (
-            <div
-              key={music.id}
-              className="flex items-center gap-3 p-3 bg-muted/20 hover:bg-muted/40 rounded-xl transition-colors group"
-            >
-              {/* Thumbnail */}
-              <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                {music.thumbnail_url ? (
-                  <img
-                    src={music.thumbnail_url}
-                    alt={music.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Music className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground truncate">{music.title}</p>
-                <p className="text-sm text-muted-foreground truncate">{music.artist}</p>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="icon"
+          {filteredMusic.map((music) => {
+            const isCurrentTrack = currentTrack?.id === music.id;
+            
+            return (
+              <div
+                key={music.id}
+                className={`flex items-center gap-3 p-3 rounded-xl transition-colors group ${
+                  isCurrentTrack ? 'bg-primary/20' : 'bg-muted/20 hover:bg-muted/40'
+                }`}
+              >
+                {/* Thumbnail */}
+                <div 
+                  className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 cursor-pointer"
                   onClick={() => handlePlay(music)}
-                  className="h-9 w-9"
                 >
-                  {playingId === music.id ? (
-                    <Pause className="w-4 h-4" />
+                  {music.thumbnail_url ? (
+                    <img
+                      src={music.thumbnail_url}
+                      alt={music.title}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <Play className="w-4 h-4" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Music className="w-6 h-6 text-muted-foreground" />
+                    </div>
                   )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(music)}
-                  className="h-9 w-9 text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {isCurrentTrack && isPlaying ? (
+                      <Pause className="w-5 h-5 text-white" />
+                    ) : (
+                      <Play className="w-5 h-5 text-white" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handlePlay(music)}>
+                  <p className="font-medium text-foreground truncate">{music.title}</p>
+                  <p className="text-sm text-muted-foreground truncate">{music.artist}</p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1">
+                  {/* Favorite button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => toggleFavorite(music.id)}
+                    className="h-9 w-9"
+                  >
+                    <Heart 
+                      className={`w-4 h-4 ${favorites.has(music.id) ? 'fill-red-500 text-red-500' : ''}`} 
+                    />
+                  </Button>
+
+                  {/* More options dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {playlists.length > 0 && (
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <ListMusic className="w-4 h-4 mr-2" />
+                            Add to playlist
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {playlists.map((playlist) => (
+                              <DropdownMenuItem
+                                key={playlist.id}
+                                onClick={() => addToPlaylist(playlist.id, music)}
+                              >
+                                {playlist.name}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      )}
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(music)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
