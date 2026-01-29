@@ -837,6 +837,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_uploaded_music: {
+        Row: {
+          artist: string
+          created_at: string
+          duration: number | null
+          file_path: string
+          file_size: number | null
+          id: string
+          thumbnail_url: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          artist?: string
+          created_at?: string
+          duration?: number | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          thumbnail_url?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          artist?: string
+          created_at?: string
+          duration?: number | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          thumbnail_url?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       youtube_music_history: {
         Row: {
           artist: string

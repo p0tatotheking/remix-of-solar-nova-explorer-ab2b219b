@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Search, Music2, Play, Pause, SkipBack, SkipForward, 
   Volume2, VolumeX, Repeat, Repeat1, Loader2, Heart, Plus, ListMusic,
-  MoreHorizontal, Trash2, ChevronLeft, History, Sparkles, Shuffle
+  MoreHorizontal, Trash2, ChevronLeft, History, Sparkles, Shuffle, Upload
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { UserMusicUpload } from './UserMusicUpload';
 import { useYouTubeMusic, RepeatMode } from '@/contexts/YouTubeMusicContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -73,7 +74,7 @@ export function YouTubeMusicPlayer() {
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
-  const [activeView, setActiveView] = useState<'browse' | 'playlist' | 'history'>('browse');
+  const [activeView, setActiveView] = useState<'browse' | 'playlist' | 'history' | 'uploads'>('browse');
   const [musicHistory, setMusicHistory] = useState<MusicHistoryItem[]>([]);
   const [recommendations, setRecommendations] = useState<YouTubeVideo[]>([]);
   
@@ -472,7 +473,7 @@ export function YouTubeMusicPlayer() {
       <div className="flex-shrink-0 p-4 border-b border-border/30">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            {(activeView === 'playlist' || activeView === 'history') && (
+            {(activeView === 'playlist' || activeView === 'history' || activeView === 'uploads') && (
               <button
                 onClick={() => {
                   setActiveView('browse');
@@ -492,14 +493,18 @@ export function YouTubeMusicPlayer() {
                   ? selectedPlaylist.name 
                   : activeView === 'history'
                     ? 'Listen History'
-                    : 'YouTube Music'}
+                    : activeView === 'uploads'
+                      ? 'Your Uploads'
+                      : 'YouTube Music'}
               </h1>
               <p className="text-xs text-muted-foreground">
                 {activeView === 'playlist' 
                   ? `${playlistSongs.length} songs` 
                   : activeView === 'history'
                     ? `${musicHistory.length} tracks`
-                    : 'Discover and play music videos'}
+                    : activeView === 'uploads'
+                      ? 'Your personal music library'
+                      : 'Discover and play music videos'}
               </p>
             </div>
           </div>
@@ -521,6 +526,13 @@ export function YouTubeMusicPlayer() {
 
             {/* Categories & Playlists */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              <button
+                onClick={() => setActiveView('uploads')}
+                className="px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              >
+                <Upload className="w-4 h-4 inline mr-1" />
+                Your Uploads
+              </button>
               <button
                 onClick={openHistory}
                 className="px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -642,7 +654,10 @@ export function YouTubeMusicPlayer() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto overscroll-contain p-4">
-          {activeView === 'history' ? (
+          {activeView === 'uploads' ? (
+            // User Uploads View
+            <UserMusicUpload />
+          ) : activeView === 'history' ? (
             // History View
             <div className="space-y-6">
               {recommendations.length > 0 && (
