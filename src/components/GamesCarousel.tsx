@@ -1,0 +1,417 @@
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Search, Play, ChevronLeft, ChevronRight, Gamepad2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
+
+const STATS_KEY = 'solarnova_user_stats';
+const GAMES_HISTORY_KEY = 'solarnova_games_history';
+
+interface Game {
+  id?: string;
+  title: string;
+  description: string;
+  url: string;
+  preview: string;
+  embed?: boolean;
+  isTab?: string;
+  category: string;
+  thumbnail?: string;
+}
+
+interface GamesCarouselProps {
+  onGameClick: (url: string, title: string, embed?: boolean, isTab?: string) => void;
+}
+
+const getGameEmoji = (title: string, category: string) => {
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes('music') || titleLower.includes('funkin')) return '🎵';
+  if (titleLower.includes('car') || titleLower.includes('race')) return '🏎️';
+  if (titleLower.includes('cobra')) return '🐍';
+  if (titleLower.includes('lumi') || titleLower.includes('os')) return '💻';
+  if (titleLower.includes('petezah')) return '🎮';
+  if (titleLower.includes('umbrion')) return '⚡';
+  if (titleLower.includes('kermit')) return '🐸';
+  if (titleLower.includes('math')) return '🧮';
+  return '🎯';
+};
+
+// Fallback games if database is empty
+const defaultGames: Game[] = [
+  {
+    title: 'Petezah Games',
+    description: 'Access a massive collection of unblocked games all in one place.',
+    url: 'https://petezahstatic.wasmer.app',
+    preview: 'Game collection hub',
+    embed: true,
+    category: 'arcade',
+    thumbnail: '/thumbnails/petezah-games.png',
+  },
+  {
+    title: 'Solarnova Music',
+    description: 'Stream your favorite music with our sleek, feature-rich player.',
+    url: '',
+    preview: 'Music streaming',
+    isTab: 'music',
+    category: 'utility',
+    thumbnail: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Umbrion Games',
+    description: 'Explore creative indie game projects and unique experiences.',
+    url: 'https://umbrion.wasmer.app/projects.html',
+    preview: 'Indie game showcase',
+    embed: true,
+    category: 'arcade',
+    thumbnail: '/thumbnails/umbrion-games.png',
+  },
+  {
+    title: 'Lumi OS',
+    description: 'A complete web-based operating system in your browser.',
+    url: 'https://lumios.wasmer.app',
+    preview: 'Browser OS',
+    embed: true,
+    category: 'utility',
+    thumbnail: '/thumbnails/lumi-os.png',
+  },
+];
+
+export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
+  const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [games, setGames] = useState<Game[]>(defaultGames);
+  const [loading, setLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const fetchGames = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('games')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const mappedGames: Game[] = data.map(g => ({
+          id: g.id,
+          title: g.title,
+          description: g.description,
+          url: g.url,
+          preview: g.preview,
+          embed: g.embed ?? true,
+          isTab: g.is_tab || undefined,
+          category: g.category,
+          thumbnail: g.thumbnail_url || undefined,
+        }));
+        setGames(mappedGames);
+      }
+    } catch (error) {
+      console.error('Error fetching games:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGames();
+  }, []);
+
+  const filteredGames = useMemo(() => {
+    return games
+      .filter(game => game.category !== 'fnf')
+      .filter(game => {
+        const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                             game.description.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesSearch;
+      });
+  }, [games, searchQuery]);
+
+  // Reset index when search changes
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [searchQuery]);
+
+  const goToPrevious = useCallback(() => {
+    if (isAnimating || filteredGames.length === 0) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => (prev === 0 ? filteredGames.length - 1 : prev - 1));
+    setTimeout(() => setIsAnimating(false), 300);
+  }, [isAnimating, filteredGames.length]);
+
+  const goToNext = useCallback(() => {
+    if (isAnimating || filteredGames.length === 0) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => (prev === filteredGames.length - 1 ? 0 : prev + 1));
+    setTimeout(() => setIsAnimating(false), 300);
+  }, [isAnimating, filteredGames.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        goToPrevious();
+      } else if (e.key === 'ArrowRight') {
+        goToNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goToPrevious, goToNext]);
+
+  const handleGameClick = (game: Game) => {
+    // Save game to history
+    if (!game.isTab && user) {
+      const historyKey = `${GAMES_HISTORY_KEY}_${user.id}`;
+      const statsKey = `${STATS_KEY}_${user.id}`;
+      
+      const existing = localStorage.getItem(historyKey);
+      let history: { thumbnail: string; title: string; id: string }[] = [];
+      if (existing) {
+        try {
+          history = JSON.parse(existing);
+        } catch {}
+      }
+      
+      const newEntry = {
+        thumbnail: game.thumbnail || '',
+        title: game.title,
+        id: game.id || game.title
+      };
+      history = [newEntry, ...history.filter(g => g.id !== newEntry.id)].slice(0, 10);
+      localStorage.setItem(historyKey, JSON.stringify(history));
+      
+      const statsData = localStorage.getItem(statsKey);
+      if (statsData) {
+        try {
+          const stats = JSON.parse(statsData);
+          stats.gamesPlayed = (stats.gamesPlayed || 0) + 1;
+          localStorage.setItem(statsKey, JSON.stringify(stats));
+        } catch {}
+      }
+    }
+    onGameClick(game.url, game.title, game.embed, game.isTab);
+  };
+
+  const getCardStyle = (index: number) => {
+    const diff = index - currentIndex;
+    const totalGames = filteredGames.length;
+    
+    // Handle wraparound
+    let adjustedDiff = diff;
+    if (diff > totalGames / 2) adjustedDiff = diff - totalGames;
+    if (diff < -totalGames / 2) adjustedDiff = diff + totalGames;
+
+    const isCenter = adjustedDiff === 0;
+    const isLeft = adjustedDiff === -1 || (currentIndex === 0 && index === totalGames - 1 && totalGames > 2);
+    const isRight = adjustedDiff === 1 || (currentIndex === totalGames - 1 && index === 0 && totalGames > 2);
+
+    if (isCenter) {
+      return {
+        transform: 'translateX(0) scale(1)',
+        zIndex: 30,
+        opacity: 1,
+      };
+    } else if (isLeft) {
+      return {
+        transform: 'translateX(-120%) scale(0.75)',
+        zIndex: 20,
+        opacity: 0.6,
+      };
+    } else if (isRight) {
+      return {
+        transform: 'translateX(120%) scale(0.75)',
+        zIndex: 20,
+        opacity: 0.6,
+      };
+    } else {
+      return {
+        transform: 'translateX(0) scale(0.5)',
+        zIndex: 10,
+        opacity: 0,
+      };
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-muted-foreground">Loading games...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-4">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 text-gradient">
+          Game Library
+        </h2>
+        <p className="text-muted-foreground">
+          {filteredGames.length} games available
+        </p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative max-w-md mx-auto mb-10">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Search games..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-card/80 backdrop-blur-sm border border-border/50 rounded-full pl-12 pr-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+        />
+      </div>
+
+      {/* Carousel */}
+      {filteredGames.length === 0 ? (
+        <div className="text-center py-16">
+          <Gamepad2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+          <p className="text-muted-foreground text-lg">No games found</p>
+          <p className="text-muted-foreground/70 text-sm mt-1">Try a different search</p>
+        </div>
+      ) : (
+        <div className="relative" ref={containerRef}>
+          {/* Navigation Arrows */}
+          <button
+            onClick={goToPrevious}
+            className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 rounded-full bg-card/90 backdrop-blur-sm border border-border/50 text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shadow-lg hover:shadow-primary/20"
+            aria-label="Previous game"
+          >
+            <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
+          </button>
+
+          <button
+            onClick={goToNext}
+            className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 rounded-full bg-card/90 backdrop-blur-sm border border-border/50 text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shadow-lg hover:shadow-primary/20"
+            aria-label="Next game"
+          >
+            <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
+          </button>
+
+          {/* Cards Container */}
+          <div className="relative h-[400px] md:h-[450px] flex items-center justify-center overflow-hidden mx-12 md:mx-16">
+            {filteredGames.map((game, index) => {
+              const style = getCardStyle(index);
+              const emoji = getGameEmoji(game.title, game.category);
+              const isCenter = index === currentIndex;
+
+              return (
+                <div
+                  key={game.id || game.title}
+                  className={cn(
+                    "absolute w-[280px] md:w-[320px] transition-all duration-300 ease-out cursor-pointer",
+                    isCenter ? "pointer-events-auto" : "pointer-events-none"
+                  )}
+                  style={{
+                    transform: style.transform,
+                    zIndex: style.zIndex,
+                    opacity: style.opacity,
+                  }}
+                  onClick={() => isCenter && handleGameClick(game)}
+                >
+                  <div className={cn(
+                    "bg-card border border-border/40 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300",
+                    isCenter && "hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/20 ring-2 ring-primary/30"
+                  )}>
+                    {/* Thumbnail */}
+                    <div className="relative w-full h-[180px] md:h-[200px] overflow-hidden">
+                      {game.thumbnail ? (
+                        <img 
+                          src={game.thumbnail} 
+                          alt={game.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                          <span className="text-5xl md:text-6xl">{emoji}</span>
+                        </div>
+                      )}
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+                      
+                      {/* Play button overlay - only show on center card */}
+                      {isCenter && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 bg-black/30">
+                          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 transform hover:scale-110 transition-transform">
+                            <Play className="w-7 h-7 md:w-9 md:h-9 text-primary-foreground fill-primary-foreground ml-1" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Category badge */}
+                      <div className="absolute top-3 right-3">
+                        <span className="text-[10px] uppercase tracking-wider bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full text-foreground font-medium">
+                          {game.category}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4 md:p-5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xl">{emoji}</span>
+                        <h3 className="font-bold text-foreground text-lg md:text-xl truncate">
+                          {game.title}
+                        </h3>
+                      </div>
+                      <p className="text-xs text-primary/80 font-medium mb-2">{game.preview}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                        {game.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Dots indicator */}
+          <div className="flex justify-center gap-2 mt-6">
+            {filteredGames.slice(0, Math.min(filteredGames.length, 10)).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  if (!isAnimating) {
+                    setIsAnimating(true);
+                    setCurrentIndex(index);
+                    setTimeout(() => setIsAnimating(false), 300);
+                  }
+                }}
+                className={cn(
+                  "w-2 h-2 rounded-full transition-all",
+                  index === currentIndex 
+                    ? "bg-primary w-6" 
+                    : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                )}
+                aria-label={`Go to game ${index + 1}`}
+              />
+            ))}
+            {filteredGames.length > 10 && (
+              <span className="text-xs text-muted-foreground ml-2">+{filteredGames.length - 10}</span>
+            )}
+          </div>
+
+          {/* Current game indicator */}
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            {currentIndex + 1} of {filteredGames.length}
+          </p>
+        </div>
+      )}
+
+      {/* Keyboard hint */}
+      <div className="mt-8 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 text-muted-foreground text-sm">
+          <span>💡</span>
+          <span>Use arrow keys to navigate</span>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv, Sparkles, Settings, Mic2 } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
+import { GamesCarousel } from '@/components/GamesCarousel';
 import { FNFSection } from '@/components/FNFSection';
+import { FNFCarousel } from '@/components/FNFCarousel';
 import { BugsSection } from '@/components/BugsSection';
 import { Announcements } from '@/components/Announcements';
 import { YouTubeMusicPlayer } from '@/components/music/YouTubeMusicPlayer';
@@ -33,11 +35,13 @@ import { TutorialProvider, useTutorial } from '@/contexts/TutorialContext';
 import { TutorialOverlay } from '@/components/TutorialOverlay';
 import { useAutoFriendAdmin } from '@/hooks/useAutoFriendAdmin';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
+import { useGameLayout } from '@/contexts/GameLayoutContext';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings' | 'proxy' | 'fnf';
 
 const Index = () => {
   const { user, isLoading, logout, isAdmin } = useAuth();
+  const { layoutMode } = useGameLayout();
   const [activeSection, setActiveSection] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -194,6 +198,7 @@ function IndexContent() {
 
 function IndexInner() {
   const { user, isLoading, logout, isAdmin } = useAuth();
+  const { layoutMode } = useGameLayout();
   const [activeSectionState, setActiveSectionState] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -582,13 +587,21 @@ function IndexInner() {
 
             {activeSection === 'games' && (
               <section className="py-16 px-4 sm:px-6 lg:px-8">
-                <GamesGrid onGameClick={handleGameClick} />
+                {layoutMode === 'carousel' ? (
+                  <GamesCarousel onGameClick={handleGameClick} />
+                ) : (
+                  <GamesGrid onGameClick={handleGameClick} />
+                )}
               </section>
             )}
 
             {activeSection === 'fnf' && (
               <section className="py-16 px-4 sm:px-6 lg:px-8">
-                <FNFSection onGameClick={handleGameClick} />
+                {layoutMode === 'carousel' ? (
+                  <FNFCarousel onGameClick={handleGameClick} />
+                ) : (
+                  <FNFSection onGameClick={handleGameClick} />
+                )}
               </section>
             )}
 
