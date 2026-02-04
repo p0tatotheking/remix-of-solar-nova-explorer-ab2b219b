@@ -27,7 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedUser = localStorage.getItem('solarnova_user');
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        // Ensure role field exists, default to 'user' if missing
+        if (!parsed.role) {
+          parsed.role = 'user';
+        }
+        setUser(parsed);
       } catch {
         localStorage.removeItem('solarnova_user');
       }

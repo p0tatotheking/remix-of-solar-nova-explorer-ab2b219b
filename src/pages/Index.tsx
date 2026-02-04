@@ -443,7 +443,7 @@ function IndexInner() {
             ))}
 
             
-            {effectiveIsAdmin && (
+            {isAdmin && (
               <button
                 onClick={() => {
                   setShowAdminPanel(true);
@@ -517,7 +517,7 @@ function IndexInner() {
           <div className="border-t border-border/30 mx-4" />
 
           <div className="p-4 space-y-2">
-            {effectiveIsAdmin && (
+            {isAdmin && (
               <button
                 onClick={() => {
                   setShowAdminPanel(true);
