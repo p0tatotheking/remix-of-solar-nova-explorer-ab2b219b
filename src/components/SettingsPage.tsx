@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Settings, Snowflake, Palette, Image, Video, Monitor, X, Upload, Trash2, Sparkles, User, Camera, Save, Edit2 } from 'lucide-react';
+import { Settings, Snowflake, Palette, Image, Video, Monitor, X, Upload, Trash2, Sparkles, User, Camera, Save, Edit2, LayoutGrid, Gamepad2 } from 'lucide-react';
 import { useSnowfall } from '@/contexts/SnowfallContext';
 import { useTheme, ThemePreset } from '@/contexts/ThemeContext';
+import { useGameLayout } from '@/contexts/GameLayoutContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Switch } from '@/components/ui/switch';
@@ -61,6 +62,7 @@ export function SettingsPage({ friends = [], nicknames = [], onNicknamesChange, 
   const { user } = useAuth();
   const { snowfallEnabled, setSnowfallEnabled } = useSnowfall();
   const { currentTheme, setCurrentTheme, customBackground, setCustomBackground, glassEnabled, setGlassEnabled } = useTheme();
+  const { layoutMode, setLayoutMode } = useGameLayout();
 
   // Profile state
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -377,6 +379,51 @@ export function SettingsPage({ friends = [], nicknames = [], onNicknamesChange, 
                   </div>
                   <Switch checked={glassEnabled} onCheckedChange={setGlassEnabled} />
                 </div>
+              </div>
+            </div>
+
+            {/* Game Layout */}
+            <div className="rounded-2xl p-6" style={glassStyle}>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Gamepad2 className="w-5 h-5 text-primary" />
+                Game Browser Layout
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Choose how games are displayed in the Games and FNF sections
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setLayoutMode('grid')}
+                  className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-3 ${
+                    layoutMode === 'grid'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border/50 bg-muted/20 hover:border-primary/50'
+                  }`}
+                >
+                  <LayoutGrid className={`w-8 h-8 ${layoutMode === 'grid' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div className="text-center">
+                    <p className={`font-medium ${layoutMode === 'grid' ? 'text-primary' : 'text-foreground'}`}>Grid View</p>
+                    <p className="text-xs text-muted-foreground">Classic grid layout</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setLayoutMode('carousel')}
+                  className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-3 ${
+                    layoutMode === 'carousel'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border/50 bg-muted/20 hover:border-primary/50'
+                  }`}
+                >
+                  <div className={`flex items-center gap-1 ${layoutMode === 'carousel' ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <div className="w-4 h-6 rounded bg-current/30" />
+                    <div className="w-6 h-8 rounded bg-current" />
+                    <div className="w-4 h-6 rounded bg-current/30" />
+                  </div>
+                  <div className="text-center">
+                    <p className={`font-medium ${layoutMode === 'carousel' ? 'text-primary' : 'text-foreground'}`}>Carousel View</p>
+                    <p className="text-xs text-muted-foreground">Swipe through games</p>
+                  </div>
+                </button>
               </div>
             </div>
 

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DMNotificationProvider } from "@/contexts/DMNotificationContext";
 import { PresenceProvider } from "@/contexts/PresenceContext";
+import { GameLayoutProvider } from "@/contexts/GameLayoutContext";
 import { DMNotificationBanner } from "@/components/DMNotificationBanner";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -17,17 +18,19 @@ const App = () => (
     <AuthProvider>
       <PresenceProvider>
         <DMNotificationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <DMNotificationBanner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
+          <GameLayoutProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <DMNotificationBanner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </GameLayoutProvider>
         </DMNotificationProvider>
       </PresenceProvider>
     </AuthProvider>
