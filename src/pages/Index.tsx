@@ -36,8 +36,10 @@ import { TutorialOverlay } from '@/components/TutorialOverlay';
 import { useAutoFriendAdmin } from '@/hooks/useAutoFriendAdmin';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 import { useGameLayout } from '@/contexts/GameLayoutContext';
+import { useUserPreferences } from '@/contexts/UserPreferencesContext';
 
 type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings' | 'proxy' | 'fnf';
+
 
 const Index = () => {
   const { user, isLoading, logout, isAdmin } = useAuth();
@@ -199,6 +201,7 @@ function IndexContent() {
 function IndexInner() {
   const { user, isLoading, logout, isAdmin } = useAuth();
   const { layoutMode } = useGameLayout();
+  const { popupsDisabled } = useUserPreferences();
   const [activeSectionState, setActiveSectionState] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -357,7 +360,7 @@ function IndexInner() {
   }
 
   // Show loading screen after login, before disclaimer
-  if (showLoading) {
+  if (showLoading && !popupsDisabled) {
     return <LoadingScreen onComplete={() => setShowLoading(false)} />;
   }
 
@@ -370,7 +373,7 @@ function IndexInner() {
     );
   }
 
-  if (!hasAccepted) {
+  if (!hasAccepted && !popupsDisabled) {
     return <DisclaimerModal onAccept={handleAccept} onDeny={handleDeny} />;
   }
 
@@ -381,9 +384,9 @@ function IndexInner() {
         <ProxyDisclaimerModal onAccept={handleProxyAccept} onDeny={handleProxyDeny} />
       )}
       {/* Tutorial Overlay */}
-      <TutorialOverlay />
+      {!popupsDisabled && <TutorialOverlay />}
       {/* Changelog Modal */}
-      <ChangelogModal />
+      {!popupsDisabled && <ChangelogModal />}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/30 safe-area-pb">
         <div className="flex items-center justify-around px-1 py-2">
           {navItems.slice(0, 6).map((item) => (
