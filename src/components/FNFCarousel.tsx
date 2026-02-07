@@ -268,7 +268,7 @@ export function FNFCarousel({ onGameClick, onBack }: FNFCarouselProps) {
           </button>
 
           {/* Cards Container */}
-          <div className="relative h-[420px] md:h-[470px] flex items-center justify-center overflow-hidden mx-12 md:mx-16">
+          <div className="relative h-[480px] md:h-[520px] flex items-center justify-center overflow-hidden mx-12 md:mx-16">
             {filteredGames.map((game, index) => {
               const style = getCardStyle(index);
               const isCenter = index === currentIndex;
@@ -277,7 +277,7 @@ export function FNFCarousel({ onGameClick, onBack }: FNFCarouselProps) {
                 <div
                   key={game.id || game.title}
                   className={cn(
-                    "absolute w-[280px] md:w-[340px] transition-all duration-300 ease-out cursor-pointer",
+                    "absolute w-[220px] md:w-[260px] transition-all duration-300 ease-out cursor-pointer",
                     isCenter ? "pointer-events-auto" : "pointer-events-none"
                   )}
                   style={{
@@ -288,11 +288,11 @@ export function FNFCarousel({ onGameClick, onBack }: FNFCarouselProps) {
                   onClick={() => isCenter && handleGameClick(game)}
                 >
                   <div className={cn(
-                    "bg-card border border-border/40 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300",
+                    "bg-card border border-border/40 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col h-[420px] md:h-[460px]",
                     isCenter && "hover:border-primary/60 hover:shadow-2xl hover:shadow-cyan-500/20 ring-2 ring-cyan-500/30"
                   )}>
-                    {/* Thumbnail */}
-                    <div className="relative w-full h-[200px] md:h-[220px] overflow-hidden">
+                    {/* Thumbnail - top */}
+                    <div className="relative w-full h-[60%] overflow-hidden shrink-0">
                       {game.thumbnail ? (
                         <img 
                           src={game.thumbnail} 
@@ -304,34 +304,32 @@ export function FNFCarousel({ onGameClick, onBack }: FNFCarouselProps) {
                           <Mic2 className="w-16 h-16 text-primary" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
-                      
+                      {/* Play button overlay */}
                       {isCenter && (
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 bg-black/30">
-                          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/40 transform hover:scale-110 transition-transform">
-                            <Play className="w-7 h-7 md:w-9 md:h-9 text-white fill-white ml-1" />
+                          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/40 transform hover:scale-110 transition-transform">
+                            <Play className="w-6 h-6 text-white fill-white ml-0.5" />
                           </div>
                         </div>
                       )}
-
                       {/* FNF Badge */}
-                      <div className="absolute top-3 right-3">
+                      <div className="absolute top-2 right-2">
                         <span className="text-[10px] uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-purple-600 px-3 py-1 rounded-full text-white font-bold shadow-lg">
                           FNF
                         </span>
                       </div>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-5">
+                    {/* Content - bottom */}
+                    <div className="flex-1 p-4 flex flex-col justify-center min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xl">🎤</span>
-                        <h3 className="font-bold text-foreground text-lg md:text-xl truncate">
+                        <span className="text-lg shrink-0">🎤</span>
+                        <h3 className="font-bold text-foreground text-base md:text-lg truncate">
                           {game.title}
                         </h3>
                       </div>
-                      <p className="text-xs text-cyan-400/80 font-medium mb-2">{game.preview}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-cyan-400/80 font-medium mb-1">{game.preview}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                         {game.description}
                       </p>
                     </div>

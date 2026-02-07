@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { Settings, Snowflake, Palette, Image, Video, Monitor, X, Upload, Trash2, Sparkles, User, Camera, Save, Edit2, LayoutGrid, Gamepad2 } from 'lucide-react';
+import { Settings, Snowflake, Palette, Image, Video, Monitor, X, Upload, Trash2, Sparkles, User, Camera, Save, Edit2, LayoutGrid, Gamepad2, BellOff, Zap } from 'lucide-react';
 import { useSnowfall } from '@/contexts/SnowfallContext';
 import { useTheme, ThemePreset } from '@/contexts/ThemeContext';
 import { useGameLayout } from '@/contexts/GameLayoutContext';
+import { useUserPreferences } from '@/contexts/UserPreferencesContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Switch } from '@/components/ui/switch';
@@ -63,6 +64,7 @@ export function SettingsPage({ friends = [], nicknames = [], onNicknamesChange, 
   const { snowfallEnabled, setSnowfallEnabled } = useSnowfall();
   const { currentTheme, setCurrentTheme, customBackground, setCustomBackground, glassEnabled, setGlassEnabled } = useTheme();
   const { layoutMode, setLayoutMode } = useGameLayout();
+  const { popupsDisabled, setPopupsDisabled, transitionsDisabled, setTransitionsDisabled } = useUserPreferences();
 
   // Profile state
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -396,6 +398,42 @@ export function SettingsPage({ friends = [], nicknames = [], onNicknamesChange, 
                 <Switch
                   checked={layoutMode === 'carousel'}
                   onCheckedChange={(checked) => setLayoutMode(checked ? 'carousel' : 'grid')}
+                />
+              </div>
+            </div>
+
+            {/* Popups Toggle */}
+            <div className="rounded-2xl p-6" style={glassStyle}>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <BellOff className="w-5 h-5 text-primary" />
+                Popups
+              </h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Disable Popups</p>
+                  <p className="text-xs text-muted-foreground">Hide tutorial, changelog, and disclaimer on launch</p>
+                </div>
+                <Switch
+                  checked={popupsDisabled}
+                  onCheckedChange={setPopupsDisabled}
+                />
+              </div>
+            </div>
+
+            {/* Transitions Toggle */}
+            <div className="rounded-2xl p-6" style={glassStyle}>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-primary" />
+                Performance
+              </h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Disable Transitions</p>
+                  <p className="text-xs text-muted-foreground">Turn off animations for better performance</p>
+                </div>
+                <Switch
+                  checked={transitionsDisabled}
+                  onCheckedChange={setTransitionsDisabled}
                 />
               </div>
             </div>

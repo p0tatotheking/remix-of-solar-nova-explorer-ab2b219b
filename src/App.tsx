@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { DMNotificationProvider } from "@/contexts/DMNotificationContext";
 import { PresenceProvider } from "@/contexts/PresenceContext";
 import { GameLayoutProvider } from "@/contexts/GameLayoutContext";
+import { UserPreferencesProvider } from "@/contexts/UserPreferencesContext";
 import { DMNotificationBanner } from "@/components/DMNotificationBanner";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -19,17 +20,19 @@ const App = () => (
       <PresenceProvider>
         <DMNotificationProvider>
           <GameLayoutProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <DMNotificationBanner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
+            <UserPreferencesProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <DMNotificationBanner />
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </TooltipProvider>
+            </UserPreferencesProvider>
           </GameLayoutProvider>
         </DMNotificationProvider>
       </PresenceProvider>
