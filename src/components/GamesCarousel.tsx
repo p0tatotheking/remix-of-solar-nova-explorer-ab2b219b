@@ -200,7 +200,6 @@ export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
     const diff = index - currentIndex;
     const totalGames = filteredGames.length;
     
-    // Handle wraparound
     let adjustedDiff = diff;
     if (diff > totalGames / 2) adjustedDiff = diff - totalGames;
     if (diff < -totalGames / 2) adjustedDiff = diff + totalGames;
@@ -217,15 +216,15 @@ export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
       };
     } else if (isLeft) {
       return {
-        transform: 'translateX(-120%) scale(0.75)',
+        transform: 'translateX(-110%) scale(0.85)',
         zIndex: 20,
-        opacity: 0.6,
+        opacity: 0.5,
       };
     } else if (isRight) {
       return {
-        transform: 'translateX(120%) scale(0.75)',
+        transform: 'translateX(110%) scale(0.85)',
         zIndex: 20,
-        opacity: 0.6,
+        opacity: 0.5,
       };
     } else {
       return {
@@ -296,7 +295,7 @@ export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
           </button>
 
           {/* Cards Container */}
-          <div className="relative h-[400px] md:h-[450px] flex items-center justify-center overflow-hidden mx-12 md:mx-16">
+          <div className="relative h-[260px] md:h-[280px] flex items-center justify-center overflow-hidden mx-12 md:mx-16">
             {filteredGames.map((game, index) => {
               const style = getCardStyle(index);
               const emoji = getGameEmoji(game.title, game.category);
@@ -306,7 +305,7 @@ export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
                 <div
                   key={game.id || game.title}
                   className={cn(
-                    "absolute w-[280px] md:w-[320px] transition-all duration-300 ease-out cursor-pointer",
+                    "absolute w-[420px] md:w-[520px] lg:w-[600px] transition-all duration-300 ease-out cursor-pointer",
                     isCenter ? "pointer-events-auto" : "pointer-events-none"
                   )}
                   style={{
@@ -317,11 +316,11 @@ export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
                   onClick={() => isCenter && handleGameClick(game)}
                 >
                   <div className={cn(
-                    "bg-card border border-border/40 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300",
+                    "bg-card border border-border/40 rounded-2xl overflow-hidden transition-all duration-300 flex flex-row h-[200px] md:h-[220px]",
                     isCenter && "hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/20 ring-2 ring-primary/30"
                   )}>
-                    {/* Thumbnail */}
-                    <div className="relative w-full h-[180px] md:h-[200px] overflow-hidden">
+                    {/* Thumbnail - left side */}
+                    <div className="relative w-[45%] h-full overflow-hidden shrink-0">
                       {game.thumbnail ? (
                         <img 
                           src={game.thumbnail} 
@@ -330,39 +329,35 @@ export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                          <span className="text-5xl md:text-6xl">{emoji}</span>
+                          <span className="text-5xl">{emoji}</span>
                         </div>
                       )}
-                      {/* Overlay gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
-                      
-                      {/* Play button overlay - only show on center card */}
+                      {/* Play button overlay */}
                       {isCenter && (
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 bg-black/30">
-                          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 transform hover:scale-110 transition-transform">
-                            <Play className="w-7 h-7 md:w-9 md:h-9 text-primary-foreground fill-primary-foreground ml-1" />
+                          <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 transform hover:scale-110 transition-transform">
+                            <Play className="w-6 h-6 text-primary-foreground fill-primary-foreground ml-0.5" />
                           </div>
                         </div>
                       )}
-
                       {/* Category badge */}
-                      <div className="absolute top-3 right-3">
+                      <div className="absolute top-2 left-2">
                         <span className="text-[10px] uppercase tracking-wider bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full text-foreground font-medium">
                           {game.category}
                         </span>
                       </div>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-4 md:p-5">
+                    {/* Content - right side */}
+                    <div className="flex-1 p-4 md:p-5 flex flex-col justify-center min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xl">{emoji}</span>
+                        <span className="text-xl shrink-0">{emoji}</span>
                         <h3 className="font-bold text-foreground text-lg md:text-xl truncate">
                           {game.title}
                         </h3>
                       </div>
                       <p className="text-xs text-primary/80 font-medium mb-2">{game.preview}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                      <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
                         {game.description}
                       </p>
                     </div>
