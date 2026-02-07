@@ -498,13 +498,13 @@ function IndexInner() {
 
           <div className="border-t border-border/30 mx-4" />
 
-          <div className="flex-1 py-4 px-3 space-y-1">
+          <div className="flex-1 min-h-0 py-4 px-3 overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent space-y-1">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id, item.disabled)}
                 disabled={item.disabled}
-                className={`tutorial-${item.id}-nav w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                className={`tutorial-${item.id}-nav w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-300 text-sm ${
                   item.disabled
                     ? 'text-muted-foreground/40 cursor-not-allowed'
                     : activeSection === item.id
@@ -512,11 +512,10 @@ function IndexInner() {
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                 }`}
               >
-                <item.icon className="w-4 h-4" />
+                <item.icon className="w-4 h-4 shrink-0" />
                 <span>{item.label}</span>
               </button>
             ))}
-
           </div>
 
           <div className="border-t border-border/30 mx-4" />
