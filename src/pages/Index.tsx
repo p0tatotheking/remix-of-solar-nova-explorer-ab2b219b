@@ -498,7 +498,7 @@ function IndexInner() {
 
           <div className="border-t border-border/30 mx-4" />
 
-          <div className="flex-1 min-h-0 py-4 px-3 overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent space-y-1">
+          <div className="flex-1 min-h-0 py-4 px-3 overflow-y-auto space-y-1" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
             {navItems.map((item) => (
               <button
                 key={item.id}
