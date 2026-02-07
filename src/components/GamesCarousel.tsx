@@ -295,7 +295,7 @@ export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
           </button>
 
           {/* Cards Container */}
-          <div className="relative h-[260px] md:h-[280px] flex items-center justify-center overflow-hidden mx-12 md:mx-16">
+          <div className="relative h-[480px] md:h-[520px] flex items-center justify-center overflow-hidden mx-12 md:mx-16">
             {filteredGames.map((game, index) => {
               const style = getCardStyle(index);
               const emoji = getGameEmoji(game.title, game.category);
@@ -305,7 +305,7 @@ export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
                 <div
                   key={game.id || game.title}
                   className={cn(
-                    "absolute w-[420px] md:w-[520px] lg:w-[600px] transition-all duration-300 ease-out cursor-pointer",
+                    "absolute w-[220px] md:w-[260px] transition-all duration-300 ease-out cursor-pointer",
                     isCenter ? "pointer-events-auto" : "pointer-events-none"
                   )}
                   style={{
@@ -316,11 +316,11 @@ export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
                   onClick={() => isCenter && handleGameClick(game)}
                 >
                   <div className={cn(
-                    "bg-card border border-border/40 rounded-2xl overflow-hidden transition-all duration-300 flex flex-row h-[200px] md:h-[220px]",
+                    "bg-card border border-border/40 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col h-[420px] md:h-[460px]",
                     isCenter && "hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/20 ring-2 ring-primary/30"
                   )}>
-                    {/* Thumbnail - left side */}
-                    <div className="relative w-[45%] h-full overflow-hidden shrink-0">
+                    {/* Thumbnail - top */}
+                    <div className="relative w-full h-[60%] overflow-hidden shrink-0">
                       {game.thumbnail ? (
                         <img 
                           src={game.thumbnail} 
@@ -341,23 +341,23 @@ export function GamesCarousel({ onGameClick }: GamesCarouselProps) {
                         </div>
                       )}
                       {/* Category badge */}
-                      <div className="absolute top-2 left-2">
+                      <div className="absolute top-2 right-2">
                         <span className="text-[10px] uppercase tracking-wider bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full text-foreground font-medium">
                           {game.category}
                         </span>
                       </div>
                     </div>
 
-                    {/* Content - right side */}
-                    <div className="flex-1 p-4 md:p-5 flex flex-col justify-center min-w-0">
+                    {/* Content - bottom */}
+                    <div className="flex-1 p-4 flex flex-col justify-center min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xl shrink-0">{emoji}</span>
-                        <h3 className="font-bold text-foreground text-lg md:text-xl truncate">
+                        <span className="text-lg shrink-0">{emoji}</span>
+                        <h3 className="font-bold text-foreground text-base md:text-lg truncate">
                           {game.title}
                         </h3>
                       </div>
-                      <p className="text-xs text-primary/80 font-medium mb-2">{game.preview}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                      <p className="text-xs text-primary/80 font-medium mb-1">{game.preview}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                         {game.description}
                       </p>
                     </div>
