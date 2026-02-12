@@ -822,7 +822,10 @@ export type Database = {
           display_name: string | null
           glass_enabled: boolean | null
           id: string
+          layout_mode: string | null
+          popups_disabled: boolean | null
           theme_preset: string | null
+          transitions_disabled: boolean | null
           updated_at: string
           user_id: string
         }
@@ -834,7 +837,10 @@ export type Database = {
           display_name?: string | null
           glass_enabled?: boolean | null
           id?: string
+          layout_mode?: string | null
+          popups_disabled?: boolean | null
           theme_preset?: string | null
+          transitions_disabled?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -846,7 +852,10 @@ export type Database = {
           display_name?: string | null
           glass_enabled?: boolean | null
           id?: string
+          layout_mode?: string | null
+          popups_disabled?: boolean | null
           theme_preset?: string | null
+          transitions_disabled?: boolean | null
           updated_at?: string
           user_id?: string
         }

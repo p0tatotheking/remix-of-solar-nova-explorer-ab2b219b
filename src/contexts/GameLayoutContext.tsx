@@ -16,51 +16,52 @@ export function GameLayoutProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [layoutMode, setLayoutModeState] = useState<GameLayoutMode>('grid');
   const [isLoading, setIsLoading] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
-  // Load layout preference from user profile
-  const loadUserLayout = useCallback(async () => {
-    if (!user) {
-      // Check localStorage for non-logged in users
-      const stored = localStorage.getItem('solarnova_game_layout');
-      if (stored === 'carousel' || stored === 'grid') {
-        setLayoutModeState(stored);
-      }
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const { data } = await supabase
-        .from('user_profiles')
-        .select('theme_preset')
-        .eq('user_id', user.id)
-        .single();
-
-      // We'll store layout preference in localStorage for now since we don't have a column for it
-      const stored = localStorage.getItem(`solarnova_game_layout_${user.id}`);
-      if (stored === 'carousel' || stored === 'grid') {
-        setLayoutModeState(stored);
-      }
-    } catch (error) {
-      console.error('Error loading layout settings:', error);
-    } finally {
-      setIsLoading(false);
-      setHasLoaded(true);
-    }
-  }, [user]);
-
+  // Load layout preference from DB or localStorage
   useEffect(() => {
-    loadUserLayout();
-  }, [loadUserLayout]);
+    const load = async () => {
+      if (user) {
+        try {
+          const { data } = await supabase
+            .from('user_profiles')
+            .select('layout_mode')
+            .eq('user_id', user.id)
+            .single();
+
+          if (data?.layout_mode === 'carousel' || data?.layout_mode === 'grid') {
+            setLayoutModeState(data.layout_mode as GameLayoutMode);
+            setIsLoading(false);
+            return;
+          }
+        } catch {}
+      }
+
+      // Fallback to localStorage
+      const key = user ? `solarnova_game_layout_${user.id}` : 'solarnova_game_layout';
+      const stored = localStorage.getItem(key);
+      if (stored === 'carousel' || stored === 'grid') {
+        setLayoutModeState(stored);
+      }
+      setIsLoading(false);
+    };
+
+    load();
+  }, [user]);
 
   const setLayoutMode = useCallback((mode: GameLayoutMode) => {
     setLayoutModeState(mode);
+    
     // Save to localStorage
+    const key = user ? `solarnova_game_layout_${user.id}` : 'solarnova_game_layout';
+    localStorage.setItem(key, mode);
+
+    // Save to DB if logged in
     if (user) {
-      localStorage.setItem(`solarnova_game_layout_${user.id}`, mode);
-    } else {
-      localStorage.setItem('solarnova_game_layout', mode);
+      supabase
+        .from('user_profiles')
+        .update({ layout_mode: mode })
+        .eq('user_id', user.id)
+        .then();
     }
   }, [user]);
 
