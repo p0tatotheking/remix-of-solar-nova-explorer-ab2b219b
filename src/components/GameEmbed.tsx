@@ -34,6 +34,15 @@ export function GameEmbed({ url, title, gameId, onClose }: GameEmbedProps) {
     }
   }, [url]);
 
+  const isAstraClient = useMemo(() => {
+    try {
+      const u = new URL(url);
+      return u.hostname === 'astraclient.com';
+    } catch {
+      return false;
+    }
+  }, [url]);
+
   // Start game session when component mounts
   useEffect(() => {
     startGameSession(url, title, gameId);
@@ -160,17 +169,8 @@ export function GameEmbed({ url, title, gameId, onClose }: GameEmbedProps) {
 
   return (
     <div className="fixed inset-0 z-[100] bg-background">
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 h-14 bg-background/90 backdrop-blur-lg border-b border-border/30 flex items-center justify-between px-4 z-20">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold text-foreground">{title}</h2>
-          {isMathepicSite && (
-            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-xs font-medium">
-              18+
-            </span>
-          )}
-        </div>
-        
+      {/* Header - transparent with just X */}
+      <div className="absolute top-0 left-0 right-0 h-14 flex items-center justify-end px-4 z-20">
         <div className="flex items-center gap-2">
           {isMathepicSite && violationCount > 0 && (
             <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-destructive/20 text-destructive text-xs">
@@ -180,9 +180,9 @@ export function GameEmbed({ url, title, gameId, onClose }: GameEmbedProps) {
           )}
           <button
             onClick={onClose}
-            className="p-2 rounded-lg bg-muted/30 hover:bg-muted/50 text-foreground transition-colors"
+            className="p-2 rounded-full bg-black/30 hover:bg-black/50 text-white transition-colors"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -229,13 +229,13 @@ export function GameEmbed({ url, title, gameId, onClose }: GameEmbedProps) {
         ref={iframeRef}
         src={url}
         title={title}
-        className={`w-full h-full ${isMathepicSite ? 'pt-24' : 'pt-14'}`}
+        className={`w-full h-full ${isMathepicSite ? 'pt-24' : ''}`}
         allow="fullscreen; autoplay; encrypted-media"
         allowFullScreen
       />
 
-      {/* Overlay bar for music and chat */}
-      <GameOverlayBar />
+      {/* Overlay bar for music and chat - hidden for Astra Client */}
+      {!isAstraClient && <GameOverlayBar />}
     </div>
   );
 }
