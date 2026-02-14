@@ -179,6 +179,54 @@ export type Database = {
           },
         ]
       }
+      community_whiteboard_meta: {
+        Row: {
+          id: string
+          last_reset_at: string
+        }
+        Insert: {
+          id?: string
+          last_reset_at?: string
+        }
+        Update: {
+          id?: string
+          last_reset_at?: string
+        }
+        Relationships: []
+      }
+      community_whiteboard_strokes: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          points: Json
+          size: number
+          tool: string
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          points: Json
+          size?: number
+          tool?: string
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          points?: Json
+          size?: number
+          tool?: string
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       direct_messages: {
         Row: {
           created_at: string
@@ -1084,6 +1132,10 @@ export type Database = {
         Returns: string
       }
       admin_exists: { Args: never; Returns: boolean }
+      clear_community_whiteboard: {
+        Args: { p_admin_id: string }
+        Returns: boolean
+      }
       create_announcement: {
         Args: { p_admin_id: string; p_content: string; p_title: string }
         Returns: string
