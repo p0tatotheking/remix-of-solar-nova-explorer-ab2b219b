@@ -29,12 +29,59 @@ interface Stroke {
 }
 
 export const CommunityWhiteboard = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<{ id: string; username: string; color: string }[]>([]);
+  const [loading, setLoading] = useState(true);
   const assignedColor = user ? getUserColor(user.id) : '#ffffff';
 
-  // Load strokes from channel on mount and listen for new ones
+  // Check 24h auto-reset & load persisted strokes
+  useEffect(() => {
+    const loadStrokes = async () => {
+      // Check last reset
+      const { data: meta } = await supabase
+        .from('community_whiteboard_meta')
+        .select('last_reset_at')
+        .eq('id', 'singleton')
+        .single();
+
+      if (meta) {
+        const lastReset = new Date(meta.last_reset_at).getTime();
+        const now = Date.now();
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+
+        if (now - lastReset > twentyFourHours && user && isAdmin) {
+          // Auto-reset if admin is viewing
+          await supabase.rpc('clear_community_whiteboard', {
+            p_admin_id: user.id,
+          });
+        }
+      }
+
+      // Load all strokes
+      const { data } = await supabase
+        .from('community_whiteboard_strokes')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (data) {
+        const loaded: Stroke[] = data.map(s => ({
+          points: s.points as any as { x: number; y: number }[],
+          color: s.color,
+          size: s.size,
+          tool: s.tool as 'pen' | 'eraser',
+          userId: s.user_id || undefined,
+          username: s.username || undefined,
+        }));
+        setStrokes(loaded);
+      }
+      setLoading(false);
+    };
+
+    loadStrokes();
+  }, []);
+
+  // Realtime: listen for new strokes and clears via broadcast
   useEffect(() => {
     const channel = supabase
       .channel('community-whiteboard')
@@ -67,22 +114,51 @@ export const CommunityWhiteboard = () => {
     };
   }, [user]);
 
-  const handleStroke = useCallback((stroke: Stroke) => {
+  const handleStroke = useCallback(async (stroke: Stroke) => {
+    // Broadcast to others
     supabase.channel('community-whiteboard').send({
       type: 'broadcast',
       event: 'stroke',
       payload: stroke,
     });
-  }, []);
 
-  const handleClear = useCallback(() => {
-    setStrokes([]);
-    supabase.channel('community-whiteboard').send({
-      type: 'broadcast',
-      event: 'clear',
-      payload: {},
+    // Persist to database
+    await supabase.from('community_whiteboard_strokes').insert({
+      points: stroke.points as any,
+      color: stroke.color,
+      size: stroke.size,
+      tool: stroke.tool,
+      user_id: stroke.userId || null,
+      username: stroke.username || null,
     });
   }, []);
+
+  const handleClear = useCallback(async () => {
+    if (!user || !isAdmin) return;
+
+    // Call admin clear function
+    const { error } = await supabase.rpc('clear_community_whiteboard', {
+      p_admin_id: user.id,
+    });
+
+    if (!error) {
+      setStrokes([]);
+      // Broadcast clear to everyone
+      supabase.channel('community-whiteboard').send({
+        type: 'broadcast',
+        event: 'clear',
+        payload: {},
+      });
+    }
+  }, [user, isAdmin]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <span className="text-muted-foreground">Loading whiteboard...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -90,7 +166,7 @@ export const CommunityWhiteboard = () => {
       <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2 text-sm">
         <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
         <span className="text-destructive">
-          <strong>Rules:</strong> No NSFW, offensive, or hateful content. No spam drawing. Violators will be banned.
+          <strong>Rules:</strong> No NSFW, offensive, or hateful content. No spam drawing. Violators will be banned. Board resets every 24 hours.
         </span>
       </div>
 
@@ -114,7 +190,7 @@ export const CommunityWhiteboard = () => {
           assignedColor={assignedColor}
           strokes={strokes}
           onStroke={handleStroke}
-          onClear={handleClear}
+          onClear={isAdmin ? handleClear : undefined}
         />
       </div>
     </div>
