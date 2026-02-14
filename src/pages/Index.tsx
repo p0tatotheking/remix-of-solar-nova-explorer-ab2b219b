@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv, Sparkles, Settings, Mic2 } from 'lucide-react';
+import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv, Sparkles, Settings, Mic2, Paintbrush } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import { GamesGrid } from '@/components/GamesGrid';
 import { GamesCarousel } from '@/components/GamesCarousel';
@@ -18,6 +18,7 @@ import { TVMoviesPlayer } from '@/components/TVMoviesPlayer';
 import { StudyHelper } from '@/components/StudyHelper';
 import { SettingsPage } from '@/components/SettingsPage';
 import { ProxyBrowser } from '@/components/proxy/ProxyBrowser';
+import { WhiteboardPage } from '@/components/whiteboard/WhiteboardPage';
 import { ProxyProvider } from '@/contexts/ProxyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
@@ -38,7 +39,7 @@ import solarnovaIcon from '@/assets/solarnova-icon.png';
 import { useGameLayout } from '@/contexts/GameLayoutContext';
 import { useUserPreferences } from '@/contexts/UserPreferencesContext';
 
-type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings' | 'proxy' | 'fnf';
+type Section = 'home' | 'games' | 'chatroom' | 'bugs' | 'music' | 'announcements' | 'youtube' | 'uno' | 'tv' | 'solar' | 'settings' | 'proxy' | 'fnf' | 'whiteboard';
 
 
 const Index = () => {
@@ -302,6 +303,7 @@ function IndexInner() {
     { id: 'announcements' as const, label: 'Announce', icon: Megaphone, disabled: false },
     { id: 'chatroom' as const, label: 'Chat', icon: MessageSquare, disabled: false },
     { id: 'uno' as const, label: 'UNO', icon: Spade, disabled: false },
+    { id: 'whiteboard' as const, label: 'Whiteboard', icon: Paintbrush, disabled: false },
     { id: 'settings' as const, label: 'Settings', icon: Settings, disabled: false },
     { id: 'proxy' as const, label: 'Proxy (beta)', icon: Globe, disabled: false },
     { id: 'bugs' as const, label: 'Bugs', icon: Bug, disabled: false },
@@ -628,6 +630,12 @@ function IndexInner() {
             {activeSection === 'solar' && (
               <section className="h-[calc(100vh-80px)]">
                 <StudyHelper onClose={() => setActiveSection('home')} />
+              </section>
+            )}
+
+            {activeSection === 'whiteboard' && (
+              <section className="py-0">
+                <WhiteboardPage />
               </section>
             )}
 
