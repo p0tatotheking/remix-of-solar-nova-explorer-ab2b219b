@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Youtube, Eye, EyeOff, Globe, Spade, Tv, Sparkles, Settings, Mic2, Paintbrush } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
+import { BootScreen } from '@/components/BootScreen';
+import { SolarTerminal } from '@/components/SolarTerminal';
 import { GamesGrid } from '@/components/GamesGrid';
 import { GamesCarousel } from '@/components/GamesCarousel';
 import { FNFSection } from '@/components/FNFSection';
@@ -47,6 +49,8 @@ const Index = () => {
   const { layoutMode } = useGameLayout();
   const [activeSection, setActiveSection] = useState<Section>('home');
   const [embeddedGame, setEmbeddedGame] = useState<{ url: string; title: string } | null>(null);
+  const [showBootScreen, setShowBootScreen] = useState(true);
+  const [showDevMode, setShowDevMode] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [hasChosenLaunchMethod, setHasChosenLaunchMethod] = useState(false);
   const [showNav, setShowNav] = useState(false);
@@ -128,7 +132,22 @@ const Index = () => {
     );
   }
 
-  // Show cloak launcher FIRST (before login)
+  // Show dev mode terminal
+  if (showDevMode) {
+    return <SolarTerminal onExit={() => setShowDevMode(false)} />;
+  }
+
+  // Show boot screen
+  if (showBootScreen && !hasChosenLaunchMethod) {
+    return (
+      <BootScreen 
+        onComplete={() => setShowBootScreen(false)} 
+        onDevMode={() => { setShowBootScreen(false); setShowDevMode(true); }}
+      />
+    );
+  }
+
+  // Show cloak launcher AFTER boot
   if (!hasChosenLaunchMethod) {
     return <CloakLauncher onContinue={() => setHasChosenLaunchMethod(true)} />;
   }
