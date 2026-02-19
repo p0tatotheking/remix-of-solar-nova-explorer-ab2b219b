@@ -149,7 +149,12 @@ const Index = () => {
 
   // Show cloak launcher AFTER boot
   if (!hasChosenLaunchMethod) {
-    return <CloakLauncher onContinue={() => setHasChosenLaunchMethod(true)} />;
+    return (
+      <CloakLauncher 
+        onContinue={() => setHasChosenLaunchMethod(true)} 
+        onDevMode={() => { setHasChosenLaunchMethod(true); setShowDevMode(true); }}
+      />
+    );
   }
 
   // Show login if not authenticated

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ExternalLink, Monitor, AlertTriangle } from 'lucide-react';
+import { ExternalLink, Monitor, AlertTriangle, Terminal } from 'lucide-react';
 
 interface CloakLauncherProps {
   onContinue: () => void;
+  onDevMode?: () => void;
 }
 
 // Check if we're running inside an about:blank cloak
@@ -21,7 +22,7 @@ const isInCloak = (): boolean => {
   return false;
 };
 
-export function CloakLauncher({ onContinue }: CloakLauncherProps) {
+export function CloakLauncher({ onContinue, onDevMode }: CloakLauncherProps) {
   const [isLaunching, setIsLaunching] = useState(false);
   const [popupBlocked, setPopupBlocked] = useState(false);
 
@@ -134,6 +135,26 @@ export function CloakLauncher({ onContinue }: CloakLauncherProps) {
               </div>
             </div>
           </button>
+
+          {/* Developer Mode Option */}
+          {onDevMode && (
+            <button
+              onClick={onDevMode}
+              className="w-full p-6 rounded-xl border border-border/50 bg-card hover:bg-accent/10 transition-all duration-300 group text-left"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  <Terminal className="w-6 h-6" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <h3 className="text-lg font-semibold text-foreground">Developer Mode</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Launch the SolarnovaOS terminal with command-line access.
+                  </p>
+                </div>
+              </div>
+            </button>
+          )}
         </div>
       </div>
     </div>
