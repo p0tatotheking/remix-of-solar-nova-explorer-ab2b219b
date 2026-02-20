@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, MessageSquare, Bell, Gamepad2, Timer, Shield, User, TrendingUp, Calendar, Zap, Trophy } from 'lucide-react';
+import { Clock, MessageSquare, Bell, Gamepad2, Timer, Shield, User, TrendingUp, Calendar, Zap, Trophy, Terminal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface HomeDashboardProps {
   typewriterText: string;
   onNavigate: (section: string) => void;
+  onDevMode?: () => void;
 }
 
 interface UserStats {
@@ -20,7 +21,7 @@ interface UserStats {
 const STATS_KEY = 'solarnova_user_stats';
 const GAMES_HISTORY_KEY = 'solarnova_games_history';
 
-export const HomeDashboard = ({ typewriterText, onNavigate }: HomeDashboardProps) => {
+export const HomeDashboard = ({ typewriterText, onNavigate, onDevMode }: HomeDashboardProps) => {
   const { user, isAdmin } = useAuth();
   const { glassEnabled } = useTheme();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -434,8 +435,21 @@ export const HomeDashboard = ({ typewriterText, onNavigate }: HomeDashboardProps
         </div>
       </div>
 
+      {/* Developer Mode button */}
+      {onDevMode && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={onDevMode}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/30 border border-border/30 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all text-xs"
+          >
+            <Terminal className="w-3.5 h-3.5" />
+            Developer Mode
+          </button>
+        </div>
+      )}
+
       {/* Hint text */}
-      <p className="text-center text-xs text-muted-foreground/60 mt-6">
+      <p className="text-center text-xs text-muted-foreground/60 mt-4">
         <span className="hidden md:inline">Press <kbd className="px-2 py-1 bg-muted rounded text-foreground">R</kbd> to panic exit • Hover left to show menu</span>
         <span className="md:hidden">Tap bottom menu to navigate</span>
       </p>
