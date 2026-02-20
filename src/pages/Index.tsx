@@ -3,6 +3,7 @@ import { Home, Gamepad2, MessageSquare, Bug, Music, LogOut, Shield, Megaphone, Y
 import { DiscordChat } from '@/components/DiscordChat';
 import { BootScreen } from '@/components/BootScreen';
 import { SolarTerminal } from '@/components/SolarTerminal';
+import { DesktopEnvironment } from '@/components/desktop/DesktopEnvironment';
 import { GamesGrid } from '@/components/GamesGrid';
 import { GamesCarousel } from '@/components/GamesCarousel';
 import { FNFSection } from '@/components/FNFSection';
@@ -132,9 +133,9 @@ const Index = () => {
     );
   }
 
-  // Show dev mode terminal
+  // Show dev mode desktop environment
   if (showDevMode) {
-    return <SolarTerminal onExit={() => setShowDevMode(false)} />;
+    return <DesktopEnvironment onExit={() => setShowDevMode(false)} />;
   }
 
   // Show boot screen
@@ -171,7 +172,7 @@ const Index = () => {
           <YouTubeMusicProvider>
             <ProxyProvider>
               <TutorialProvider>
-                <IndexContent />
+                <IndexContent onDevMode={() => setShowDevMode(true)} />
               </TutorialProvider>
             </ProxyProvider>
           </YouTubeMusicProvider>
@@ -181,7 +182,7 @@ const Index = () => {
   );
 };
 
-function IndexContent() {
+function IndexContent({ onDevMode }: { onDevMode: () => void }) {
   const { snowfallEnabled } = useSnowfall();
   const { customBackground } = useTheme();
   
@@ -218,12 +219,12 @@ function IndexContent() {
         <div className="fixed inset-0 bg-gradient-bg pointer-events-none" />
       )}
       
-      <IndexInner />
+      <IndexInner onDevMode={onDevMode} />
     </div>
   );
 }
 
-function IndexInner() {
+function IndexInner({ onDevMode }: { onDevMode: () => void }) {
   const { user, isLoading, logout, isAdmin } = useAuth();
   const { layoutMode } = useGameLayout();
   const { popupsDisabled } = useUserPreferences();
@@ -610,6 +611,7 @@ function IndexInner() {
               <HomeDashboard 
                 typewriterText={typewriterText} 
                 onNavigate={(section) => setActiveSection(section as Section)}
+                onDevMode={onDevMode}
               />
             )}
 
