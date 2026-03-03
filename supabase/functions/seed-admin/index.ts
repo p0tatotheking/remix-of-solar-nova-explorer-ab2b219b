@@ -22,58 +22,69 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if admin already exists
-    const { data: existingAdmin } = await supabase
-      .from("app_users")
-      .select("id")
-      .eq("username", "p0tatotheking")
-      .single();
+    const adminsToSeed = [
+      { username: "p0tatotheking", password: "Aakash912*" },
+      { username: "Dannygo", password: "StarWars100" },
+    ];
 
-    if (existingAdmin) {
-      return new Response(
-        JSON.stringify({ message: "Admin already exists", id: existingAdmin.id }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const result: {
+      created: Array<{ username: string; id: string }>;
+      alreadyExisted: Array<{ username: string; id: string }>;
+    } = { created: [], alreadyExisted: [] };
 
-    // Hash the admin password
-    const passwordHash = await hashPassword("Aakash912*");
+    for (const admin of adminsToSeed) {
+      // Check if user exists
+      const { data: existingUser, error: existingError } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("username", admin.username)
+        .maybeSingle();
 
-    // Create admin user
-    const { data: newUser, error: userError } = await supabase
-      .from("app_users")
-      .insert({
-        username: "p0tatotheking",
-        password_hash: passwordHash,
-      })
-      .select()
-      .single();
+      if (existingError) throw existingError;
 
-    if (userError) throw userError;
+      if (existingUser?.id) {
+        result.alreadyExisted.push({ username: admin.username, id: existingUser.id });
+        continue;
+      }
 
-    // Assign admin role
-    const { error: roleError } = await supabase
-      .from("user_roles")
-      .insert({
+      const passwordHash = await hashPassword(admin.password);
+
+      // Create user
+      const { data: newUser, error: userError } = await supabase
+        .from("app_users")
+        .insert({
+          username: admin.username,
+          password_hash: passwordHash,
+        })
+        .select()
+        .single();
+
+      if (userError) throw userError;
+
+      // Assign admin role
+      const { error: roleError } = await supabase.from("user_roles").insert({
         user_id: newUser.id,
         role: "admin",
       });
 
-    if (roleError) throw roleError;
+      if (roleError) throw roleError;
+
+      result.created.push({ username: admin.username, id: newUser.id });
+    }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Admin user created", id: newUser.id }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: true, ...result }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
     console.error("Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
