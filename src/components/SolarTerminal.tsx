@@ -130,7 +130,7 @@ export function SolarTerminal({ onExit }: TerminalProps) {
         addLines([
           { type: 'output', text: 'SolarnovaOS v2.0' },
           { type: 'output', text: 'Built with React + TypeScript + Vite' },
-          { type: 'output', text: 'Created by p0tato' },
+          { type: 'output', text: 'Created by p0tato and Dannygo' },
         ]);
         break;
 

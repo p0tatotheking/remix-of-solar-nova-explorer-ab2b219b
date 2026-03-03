@@ -84,7 +84,7 @@ export function SettingsApp({ theme, onThemeChange }: SettingsAppProps) {
           <p>SolarnovaOS v2.0</p>
           <p>Desktop Environment powered by React</p>
           <p>Inspired by NautilusOS — thank you for the inspiration!</p>
-          <p className="text-primary">Created by p0tato ☀</p>
+          <p className="text-primary">Created by p0tato and Dannygo ☀</p>
         </div>
       </div>
     </div>
