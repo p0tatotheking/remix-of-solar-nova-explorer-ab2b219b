@@ -29,11 +29,22 @@ export const ProxyTab = forwardRef<HTMLDivElement, ProxyTabProps>(
         }`}
       >
         {/* Favicon or Globe icon */}
-        <Globe className="w-4 h-4 flex-shrink-0" />
+        {tab.favicon ? (
+          <img 
+            src={tab.favicon} 
+            alt="" 
+            className="w-4 h-4 flex-shrink-0"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        ) : (
+          <Globe className="w-4 h-4 flex-shrink-0" />
+        )}
         
         {/* Tab title */}
         <span className="flex-1 truncate text-sm">
-          {tab.title}
+          {tab.isLoading ? 'Loading...' : tab.title}
         </span>
         
         {/* Close button */}

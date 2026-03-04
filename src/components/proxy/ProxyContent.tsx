@@ -1,77 +1,73 @@
-import React, { useEffect, useRef, useState, forwardRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { useEffect, useRef, forwardRef } from 'react';
+import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useProxy } from '@/contexts/ProxyContext';
 import { ProxyStartPage } from './ProxyStartPage';
 import { ProxySettings } from './ProxySettings';
-import { getHolyUnblockerUrl } from '@/lib/proxyConfig';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 
 export const ProxyContent = forwardRef<HTMLDivElement, object>(function ProxyContent(_, ref) {
-  const { getActiveTab, setTabTitle } = useProxy();
+  const { 
+    getActiveTab, 
+    setTabContent, 
+    setTabError, 
+    setTabLoading,
+    navigate 
+  } = useProxy();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
   const activeTab = getActiveTab();
-  const prevUrlRef = useRef<string | null>(null);
 
-  // Build the Holy Unblocker iframe URL from the target URL
-  const getProxiedUrl = (targetUrl: string): string => {
-    const base = getHolyUnblockerUrl();
-    // Holy Unblocker uses Ultraviolet - encode the target URL
-    // The service worker intercepts and proxies all requests
-    const encodedUrl = encodeURIComponent(targetUrl);
-    return `${base}?url=${encodedUrl}`;
-  };
-
-  // Detect URL changes and trigger loading
+  // Fetch content when URL changes
   useEffect(() => {
     if (!activeTab) return;
-    const { url } = activeTab;
-    
+
+    const { url, id } = activeTab;
+
+    // Handle internal pages
     if (url.startsWith('proxy://')) {
-      setIsLoading(false);
+      setTabLoading(id, false);
       return;
     }
 
-    if (prevUrlRef.current !== url) {
-      setIsLoading(true);
-      prevUrlRef.current = url;
-    }
-  }, [activeTab?.url]);
-
-  // Handle reload
-  useEffect(() => {
-    if (!activeTab || activeTab.url.startsWith('proxy://')) return;
-    if (activeTab.title === 'Reloading...') {
-      setReloadKey(prev => prev + 1);
-      setIsLoading(true);
-    }
-  }, [activeTab?.title]);
-
-  // Handle iframe load event
-  const handleIframeLoad = () => {
-    setIsLoading(false);
-    if (activeTab) {
-      // Try to get the page title from the iframe
+    // Fetch external content
+    const fetchContent = async () => {
       try {
-        const iframeDoc = iframeRef.current?.contentDocument;
-        if (iframeDoc?.title) {
-          setTabTitle(activeTab.id, iframeDoc.title);
-        } else {
-          // Use domain as fallback title
-          const url = new URL(activeTab.url);
-          setTabTitle(activeTab.id, url.hostname);
+        setTabLoading(id, true);
+        setTabError(id, null);
+
+        const { data, error } = await supabase.functions.invoke('proxy-fetch', {
+          body: { url },
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Failed to fetch content');
         }
-      } catch {
-        // Cross-origin - use domain as title
-        try {
-          const url = new URL(activeTab.url);
-          setTabTitle(activeTab.id, url.hostname);
-        } catch {
-          setTabTitle(activeTab.id, 'Proxy');
+
+        if (data.error) {
+          throw new Error(data.error);
         }
+
+        setTabContent(id, data.content, data.title, data.favicon);
+      } catch (err) {
+        console.error('Proxy fetch error:', err);
+        setTabError(id, err instanceof Error ? err.message : 'Failed to load page');
       }
-    }
-  };
+    };
+
+    fetchContent();
+  }, [activeTab?.url, activeTab?.id]);
+
+  // Handle link clicks within the iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'proxy-navigate' && event.data?.url) {
+        navigate(event.data.url);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [navigate]);
 
   if (!activeTab) {
     return (
@@ -81,7 +77,7 @@ export const ProxyContent = forwardRef<HTMLDivElement, object>(function ProxyCon
     );
   }
 
-  const { url } = activeTab;
+  const { url, content, isLoading, error } = activeTab;
 
   // Internal start page
   if (url === 'proxy://start') {
@@ -101,27 +97,130 @@ export const ProxyContent = forwardRef<HTMLDivElement, object>(function ProxyCon
     );
   }
 
-  // Render Holy Unblocker iframe
-  const iframeSrc = getProxiedUrl(url);
+  // Loading state
+  if (isLoading) {
+    return (
+      <div ref={ref as React.Ref<HTMLDivElement>} className="flex flex-col items-center justify-center h-full gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Loading {url}...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    const isBlocked = error.includes('blocks server requests') || error.includes('403');
+    
+    return (
+      <div ref={ref as React.Ref<HTMLDivElement>} className="flex flex-col items-center justify-center h-full gap-6 p-8 text-center">
+        <div className={`p-4 rounded-full ${isBlocked ? 'bg-accent/20' : 'bg-destructive/10'}`}>
+          <AlertCircle className={`w-12 h-12 ${isBlocked ? 'text-accent-foreground' : 'text-destructive'}`} />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold mb-2">
+            {isBlocked ? 'Website Blocked Access' : 'Failed to load page'}
+          </h2>
+          <p className="text-muted-foreground max-w-md mb-4">
+            {isBlocked 
+              ? 'This website has anti-bot protection that blocks proxy requests. Try a simpler website without heavy security measures.'
+              : error
+            }
+          </p>
+          <p className="text-sm text-muted-foreground/60">
+            URL: {url}
+          </p>
+          {isBlocked && (
+            <div className="mt-4 p-3 bg-muted/30 rounded-lg text-sm text-muted-foreground">
+              <strong>Tip:</strong> Sites like Google, YouTube, Reddit, and social media often block proxies. 
+              Try news sites, wikis, or simpler web pages instead.
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => navigate('proxy://start')}
+          >
+            Go Home
+          </Button>
+          <Button
+            onClick={() => navigate(url)}
+            className="gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render content in sandboxed iframe
+  if (content) {
+    const iframeContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            * { box-sizing: border-box; }
+            body { margin: 0; padding: 0; }
+          </style>
+        </head>
+        <body>
+          ${content}
+          <script>
+            // Intercept link clicks and send to parent
+            document.addEventListener('click', function(e) {
+              const link = e.target.closest('a');
+              if (link && link.href && !link.href.startsWith('javascript:')) {
+                e.preventDefault();
+                window.parent.postMessage({
+                  type: 'proxy-navigate',
+                  url: link.href
+                }, '*');
+              }
+            });
+            
+            // Intercept form submissions
+            document.addEventListener('submit', function(e) {
+              e.preventDefault();
+              const form = e.target;
+              if (form.action) {
+                const formData = new FormData(form);
+                const params = new URLSearchParams(formData).toString();
+                const url = form.method === 'get' 
+                  ? form.action + '?' + params 
+                  : form.action;
+                window.parent.postMessage({
+                  type: 'proxy-navigate',
+                  url: url
+                }, '*');
+              }
+            });
+          </script>
+        </body>
+      </html>
+    `;
+
+    return (
+      <div ref={ref as React.Ref<HTMLDivElement>} className="w-full h-full">
+        <iframe
+          ref={iframeRef}
+          srcDoc={iframeContent}
+          className="w-full h-full border-0 bg-white"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+          allow="autoplay; fullscreen"
+          title="Proxy Content"
+        />
+      </div>
+    );
+  }
 
   return (
-    <div ref={ref as React.Ref<HTMLDivElement>} className="w-full h-full relative">
-      {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground mt-4 text-sm">Loading {url}...</p>
-        </div>
-      )}
-      <iframe
-        key={`${activeTab.id}-${reloadKey}`}
-        ref={iframeRef}
-        src={iframeSrc}
-        onLoad={handleIframeLoad}
-        className="w-full h-full border-0"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-storage-access-by-user-activation"
-        allow="autoplay; fullscreen; clipboard-write"
-        title="Proxy Content"
-      />
+    <div ref={ref as React.Ref<HTMLDivElement>} className="flex items-center justify-center h-full">
+      <p className="text-muted-foreground">No content</p>
     </div>
   );
 });
