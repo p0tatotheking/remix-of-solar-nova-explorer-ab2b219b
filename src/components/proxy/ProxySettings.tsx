@@ -1,9 +1,12 @@
-import React from 'react';
-import { Settings, Search, Shield, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { Settings, Search, Shield, Server } from 'lucide-react';
 import { useProxy, SearchEngine } from '@/contexts/ProxyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { getHolyUnblockerUrl, setHolyUnblockerUrl, HOLY_UNBLOCKER_BASE } from '@/lib/proxyConfig';
 
 const searchEngines: { id: SearchEngine; name: string; description: string }[] = [
   { id: 'google', name: 'Google', description: 'The most popular search engine' },
@@ -13,11 +16,26 @@ const searchEngines: { id: SearchEngine; name: string; description: string }[] =
 
 export function ProxySettings() {
   const { searchEngine, setSearchEngine } = useProxy();
+  const [proxyUrl, setProxyUrl] = useState(getHolyUnblockerUrl());
+  const [saved, setSaved] = useState(false);
+
+  const handleSaveProxyUrl = () => {
+    setHolyUnblockerUrl(proxyUrl);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleReset = () => {
+    setProxyUrl(HOLY_UNBLOCKER_BASE);
+    setHolyUnblockerUrl(HOLY_UNBLOCKER_BASE);
+    localStorage.removeItem('holy-unblocker-url');
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   return (
     <div className="min-h-full p-8 bg-gradient-to-b from-background to-muted/20">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <Settings className="w-8 h-8 text-primary" />
           <div>
@@ -25,6 +43,35 @@ export function ProxySettings() {
             <p className="text-muted-foreground">Configure your browsing experience</p>
           </div>
         </div>
+
+        {/* Holy Unblocker Backend URL */}
+        <Card className="bg-background/60 backdrop-blur-sm border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="w-5 h-5" />
+              Proxy Backend URL
+            </CardTitle>
+            <CardDescription>
+              The URL where your Holy Unblocker instance is running. Default is <code>/holy/</code> (same server).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Input
+              value={proxyUrl}
+              onChange={(e) => setProxyUrl(e.target.value)}
+              placeholder="/holy/"
+              className="font-mono text-sm"
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleSaveProxyUrl} size="sm">
+                {saved ? '✓ Saved' : 'Save'}
+              </Button>
+              <Button onClick={handleReset} variant="outline" size="sm">
+                Reset to Default
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Search Engine */}
         <Card className="bg-background/60 backdrop-blur-sm border-border/50">
@@ -68,60 +115,49 @@ export function ProxySettings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="w-5 h-5" />
-              Privacy & Security
+              How It Works
             </CardTitle>
             <CardDescription>
-              How the proxy keeps you safe while browsing
+              Powered by Holy Unblocker (Ultraviolet proxy)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <div className="flex items-start gap-3">
-              <div className="w-2 h-2 mt-1.5 rounded-full bg-green-500" />
+              <div className="w-2 h-2 mt-1.5 rounded-full bg-primary" />
               <div>
-                <div className="font-medium">Content Sanitization</div>
+                <div className="font-medium">Full Website Support</div>
                 <div className="text-muted-foreground">
-                  All fetched content is sanitized to remove potentially harmful scripts
+                  Uses service workers to proxy all requests — supports YouTube, Discord, Google, and more
+                </div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 mt-1.5 rounded-full bg-primary" />
+              <div>
+                <div className="font-medium">Session Privacy</div>
+                <div className="text-muted-foreground">
+                  Browsing data stays in your browser session and is not logged server-side
+                </div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 mt-1.5 rounded-full bg-primary" />
+              <div>
+                <div className="font-medium">Self-Hosted</div>
+                <div className="text-muted-foreground">
+                  The proxy backend runs on the same server as SolarNova for maximum speed
                 </div>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="w-2 h-2 mt-1.5 rounded-full bg-green-500" />
               <div>
-                <div className="font-medium">No Data Storage</div>
+                <div className="font-medium">Self-Hosted</div>
                 <div className="text-muted-foreground">
-                  Your browsing history is only stored in your current session and not saved to any server
+                  The proxy backend runs on the same server as SolarNova for maximum speed
                 </div>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 mt-1.5 rounded-full bg-green-500" />
-              <div>
-                <div className="font-medium">Rate Limiting</div>
-                <div className="text-muted-foreground">
-                  Request rate limiting helps prevent abuse and ensures fair usage
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Limitations */}
-        <Card className="bg-background/60 backdrop-blur-sm border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="w-5 h-5" />
-              Known Limitations
-            </CardTitle>
-            <CardDescription>
-              Some things the proxy cannot do
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>• Some websites may block proxy requests or require JavaScript execution</p>
-            <p>• Video streaming sites (Netflix, Hulu, etc.) won't work due to DRM</p>
-            <p>• Login sessions and cookies are not preserved between tabs</p>
-            <p>• Complex single-page applications may have limited functionality</p>
-            <p>• Downloads and file handling are not supported</p>
           </CardContent>
         </Card>
       </div>
