@@ -8,6 +8,8 @@ import { DesktopWindowComponent } from './DesktopWindow';
 import { DesktopTerminal } from './DesktopTerminal';
 import { FileManager } from './FileManager';
 import { SettingsApp } from './SettingsApp';
+import { DesktopChat } from './DesktopChat';
+import { DesktopMusic } from './DesktopMusic';
 import type { DesktopTheme, DesktopApp, DesktopWindow, FileSystemNode } from './types';
 import { DEFAULT_FILE_SYSTEM } from './types';
 
@@ -18,6 +20,8 @@ interface DesktopEnvironmentProps {
 const DESKTOP_APPS: DesktopApp[] = [
   { id: 'terminal', name: 'Terminal', icon: 'terminal', type: 'terminal' },
   { id: 'files', name: 'Files', icon: 'folder', type: 'filemanager' },
+  { id: 'chat', name: 'Chat', icon: 'chat', type: 'custom' },
+  { id: 'music', name: 'Music', icon: 'music', type: 'custom' },
   { id: 'settings', name: 'Settings', icon: 'settings', type: 'settings' },
 ];
 
@@ -108,6 +112,12 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     }
     if (win.appId === 'settings') {
       return <SettingsApp theme={theme} onThemeChange={setTheme} />;
+    }
+    if (win.appId === 'chat') {
+      return <DesktopChat />;
+    }
+    if (win.appId === 'music') {
+      return <DesktopMusic />;
     }
     // Game window - embed the game directly
     const game = games.find(g => g.id === win.appId);
