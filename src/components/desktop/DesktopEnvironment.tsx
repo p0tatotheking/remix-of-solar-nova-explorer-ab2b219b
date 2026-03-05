@@ -20,6 +20,8 @@ interface DesktopEnvironmentProps {
 const DESKTOP_APPS: DesktopApp[] = [
   { id: 'terminal', name: 'Terminal', icon: 'terminal', type: 'terminal' },
   { id: 'files', name: 'Files', icon: 'folder', type: 'filemanager' },
+  { id: 'chat', name: 'Chat', icon: 'chat', type: 'custom' },
+  { id: 'music', name: 'Music', icon: 'music', type: 'custom' },
   { id: 'settings', name: 'Settings', icon: 'settings', type: 'settings' },
 ];
 
