@@ -30,12 +30,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1 # Change if your bucket is in a different region
 
-      - name: Sync build folder to S3
-        run: |
-          # 1. Sync the 'dist' folder created by Vite
-          aws s3 sync ./dist s3://solarnova-novasolar-s3 --delete
+      - name: Empty S3 bucket
+        run: aws s3 rm s3://solarnova-novasolar-s3 --recursive
 
-          # 2. Force the correct MIME type for all JS files to fix the 'binary' error
+      - name: Upload new build to S3
+        run: |
+          # Upload the 'dist' folder created by Vite
+          aws s3 cp ./dist s3://solarnova-novasolar-s3 --recursive
+
+          # Force the correct MIME type for all JS files to fix the 'binary' error
           aws s3 cp s3://solarnova-novasolar-s3 s3://solarnova-novasolar-s3 \
             --exclude "*" --include "*.js" --recursive \
             --metadata-directive REPLACE --content-type "application/javascript"
