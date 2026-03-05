@@ -135,7 +135,11 @@ const Index = () => {
 
   // Show dev mode desktop environment
   if (showDevMode) {
-    return <DesktopEnvironment onExit={() => setShowDevMode(false)} />;
+    return (
+      <ThemeProvider>
+        <DesktopEnvironment onExit={() => setShowDevMode(false)} />
+      </ThemeProvider>
+    );
   }
 
   // Show boot screen
