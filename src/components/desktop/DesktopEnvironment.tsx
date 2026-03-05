@@ -110,6 +110,9 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     if (win.appId === 'files') {
       return <FileManager fileSystem={fileSystem} />;
     }
+    if (win.appId === 'settings') {
+      return <SettingsApp theme={theme} onThemeChange={setTheme} />;
+    }
     if (win.appId === 'chat') {
       return <DesktopChat />;
     }
