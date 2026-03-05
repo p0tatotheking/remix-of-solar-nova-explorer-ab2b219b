@@ -8,6 +8,8 @@ import { DesktopWindowComponent } from './DesktopWindow';
 import { DesktopTerminal } from './DesktopTerminal';
 import { FileManager } from './FileManager';
 import { SettingsApp } from './SettingsApp';
+import { DesktopChat } from './DesktopChat';
+import { DesktopMusic } from './DesktopMusic';
 import type { DesktopTheme, DesktopApp, DesktopWindow, FileSystemNode } from './types';
 import { DEFAULT_FILE_SYSTEM } from './types';
 
