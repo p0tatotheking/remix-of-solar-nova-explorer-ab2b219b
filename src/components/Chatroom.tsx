@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Lock, Users, MessageSquare } from 'lucide-react';
+import { Send, Lock, Users, MessageSquare, Smile, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { hashPassword } from '@/lib/crypto';
 import { censorText } from '@/lib/profanityFilter';
+import { parseEmojis, isGifUrl, extractGifUrl } from '@/lib/emojiParser';
+import { EmojiPicker } from '@/components/chat/EmojiPicker';
+import { GifPicker } from '@/components/chat/GifPicker';
+import { EmojiAutocomplete } from '@/components/chat/EmojiAutocomplete';
 
 interface Message {
   id: string;
@@ -20,7 +24,12 @@ export function Chatroom() {
   const [newMessage, setNewMessage] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiAutocomplete, setShowEmojiAutocomplete] = useState(false);
+  const [emojiQuery, setEmojiQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Fetch existing messages and subscribe to new ones
   useEffect(() => {
@@ -30,7 +39,6 @@ export function Chatroom() {
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
-        // Pull the most recent messages (the old code fetched the oldest 100)
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -39,9 +47,7 @@ export function Chatroom() {
         return;
       }
 
-      // Reverse so the UI renders oldest -> newest
       setMessages((data || []).slice().reverse());
-      // Scroll to bottom after initial load with a slight delay to ensure render
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' });
       }, 100);
@@ -81,6 +87,18 @@ export function Chatroom() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }, [messages]);
+
+  // Check for emoji autocomplete trigger
+  useEffect(() => {
+    const colonMatch = newMessage.match(/:([a-zA-Z0-9_]{2,})$/);
+    if (colonMatch) {
+      setEmojiQuery(colonMatch[1]);
+      setShowEmojiAutocomplete(true);
+    } else {
+      setShowEmojiAutocomplete(false);
+      setEmojiQuery('');
+    }
+  }, [newMessage]);
 
   const handleVerifyPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,7 +141,9 @@ export function Chatroom() {
     setIsLoading(true);
     setError('');
 
-    const censoredMessage = censorText(newMessage.trim());
+    // Parse emoji shortcodes before censoring
+    const parsedMessage = parseEmojis(newMessage.trim());
+    const censoredMessage = censorText(parsedMessage);
     
     try {
       const { error } = await supabase.from('chat_messages').insert({
@@ -145,9 +165,62 @@ export function Chatroom() {
     }
   };
 
+  const handleGifSelect = async (gifUrl: string) => {
+    if (!user || isLoading) return;
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.from('chat_messages').insert({
+        username: user.username,
+        message: `[GIF](${gifUrl})`,
+      });
+
+      if (error) {
+        console.error('Error sending GIF:', error);
+      }
+    } catch (err) {
+      console.error('Error sending GIF:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setNewMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
+    inputRef.current?.focus();
+  };
+
+  const handleEmojiAutocompleteSelect = (emoji: string) => {
+    // Replace the :query part with the emoji
+    setNewMessage(prev => prev.replace(/:([a-zA-Z0-9_]{2,})$/, emoji));
+    setShowEmojiAutocomplete(false);
+    inputRef.current?.focus();
+  };
+
+  const renderMessage = (msg: Message) => {
+    const gifUrl = extractGifUrl(msg.message);
+    if (gifUrl) {
+      return (
+        <div className="max-w-[240px]">
+          <img
+            src={gifUrl}
+            alt="GIF"
+            className="rounded-lg w-full"
+            loading="lazy"
+          />
+        </div>
+      );
+    }
+
+    // Parse emoji shortcodes in display
+    const parsed = parseEmojis(msg.message);
+    return <p className="text-foreground break-words">{parsed}</p>;
+  };
+
   if (step === 'verify') {
     return (
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto p-4">
         <div className="bg-gradient-card border border-border/30 rounded-xl p-8">
           <div className="flex items-center justify-center mb-6">
             <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center">
@@ -202,68 +275,109 @@ export function Chatroom() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-gradient-card border border-border/30 rounded-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 border-b border-border/30 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Users className="w-6 h-6 text-primary" />
-              <div>
-                <h3 className="text-xl font-bold text-foreground">Global Chat</h3>
-                <p className="text-sm text-muted-foreground">Logged in as {user?.username}</p>
-              </div>
+    <div className="flex flex-col h-full">
+      <div className="bg-gradient-to-r from-primary/20 to-secondary/20 border-b border-border/30 px-6 py-4 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Users className="w-6 h-6 text-primary" />
+            <div>
+              <h3 className="text-xl font-bold text-foreground">Global Chat</h3>
+              <p className="text-sm text-muted-foreground">Logged in as {user?.username}</p>
             </div>
-            <button
-              onClick={() => {
-                setStep('verify');
-                setPassword('');
-                setMessages([]);
-              }}
-              className="text-sm text-primary hover:text-secondary transition-colors"
-            >
-              Leave
-            </button>
           </div>
+          <button
+            onClick={() => {
+              setStep('verify');
+              setPassword('');
+              setMessages([]);
+            }}
+            className="text-sm text-primary hover:text-secondary transition-colors"
+          >
+            Leave
+          </button>
         </div>
+      </div>
 
-        <div className="h-96 overflow-y-auto p-6 space-y-4">
-          {messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              <div className="text-center">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No messages yet. Start the conversation!</p>
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="text-center">
+              <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No messages yet. Start the conversation!</p>
+            </div>
+          </div>
+        ) : (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.username === user?.username ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                  msg.username === user?.username
+                    ? 'bg-gradient-primary'
+                    : 'bg-muted'
+                }`}
+              >
+                <p className="text-xs text-foreground/70 mb-1">{msg.username}</p>
+                {renderMessage(msg)}
               </div>
             </div>
-          ) : (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.username === user?.username ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    msg.username === user?.username
-                      ? 'bg-gradient-primary'
-                      : 'bg-muted'
-                  }`}
-                >
-                  <p className="text-xs text-foreground/70 mb-1">{msg.username}</p>
-                  <p className="text-foreground break-words">{msg.message}</p>
-                </div>
-              </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        <form onSubmit={handleSendMessage} className="border-t border-border/30 p-4">
-          <div className="flex gap-2">
+      <form onSubmit={handleSendMessage} className="border-t border-border/30 p-4 shrink-0">
+        <div className="relative">
+          {/* Emoji Autocomplete */}
+          {showEmojiAutocomplete && (
+            <EmojiAutocomplete
+              query={emojiQuery}
+              onSelect={(emoji) => handleEmojiAutocompleteSelect(emoji)}
+            />
+          )}
+
+          {/* Emoji Picker */}
+          {showEmojiPicker && (
+            <EmojiPicker
+              onSelect={handleEmojiSelect}
+              onClose={() => setShowEmojiPicker(false)}
+            />
+          )}
+
+          {/* GIF Picker */}
+          {showGifPicker && (
+            <GifPicker
+              onSelect={handleGifSelect}
+              onClose={() => setShowGifPicker(false)}
+            />
+          )}
+
+          <div className="flex gap-2 items-center">
+            <button
+              type="button"
+              onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowGifPicker(false); }}
+              className="p-2.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title="Emojis"
+            >
+              <Smile className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowGifPicker(!showGifPicker); setShowEmojiPicker(false); }}
+              className="p-2.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title="GIFs"
+            >
+              <ImageIcon className="w-5 h-5" />
+            </button>
             <input
+              ref={inputRef}
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               className="flex-1 bg-background/50 border border-border/30 rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
-              placeholder="Type a message..."
+              placeholder="Type a message... (use :emoji: for shortcuts)"
               disabled={isLoading}
             />
             <button
@@ -274,8 +388,8 @@ export function Chatroom() {
               <Send className="w-5 h-5 text-foreground" />
             </button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
