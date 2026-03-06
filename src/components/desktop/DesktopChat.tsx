@@ -66,7 +66,7 @@ export function DesktopChat() {
 
   return (
     <div className="h-full flex flex-col bg-[hsl(var(--background))]">
-      <Chatroom />
+      <DiscordChat />
     </div>
   );
 }
