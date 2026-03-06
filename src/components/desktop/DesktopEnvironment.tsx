@@ -108,7 +108,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
       return <DesktopTerminal fileSystem={fileSystem} onFileSystemChange={setFileSystem} />;
     }
     if (win.appId === 'files') {
-      return <FileManager fileSystem={fileSystem} />;
+      return <FileManager fileSystem={fileSystem} onFileSystemChange={setFileSystem} />;
     }
     if (win.appId === 'settings') {
       return <SettingsApp theme={theme} onThemeChange={setTheme} />;
