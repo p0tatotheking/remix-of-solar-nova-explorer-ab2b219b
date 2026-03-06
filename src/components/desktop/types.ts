@@ -28,6 +28,8 @@ export interface FileSystemNode {
   content?: string;
   children?: Record<string, FileSystemNode>;
   createdAt: string;
+  modifiedAt?: string;
+  size?: number;
 }
 
 export const DEFAULT_FILE_SYSTEM: Record<string, FileSystemNode> = {
