@@ -33,7 +33,17 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
   });
   const [windows, setWindows] = useState<DesktopWindow[]>([]);
   const [nextZIndex, setNextZIndex] = useState(100);
-  const [fileSystem, setFileSystem] = useState<Record<string, FileSystemNode>>(DEFAULT_FILE_SYSTEM);
+  const [fileSystem, setFileSystemState] = useState<Record<string, FileSystemNode>>(() => {
+    try {
+      const saved = localStorage.getItem('solarnova-desktop-fs');
+      return saved ? JSON.parse(saved) : DEFAULT_FILE_SYSTEM;
+    } catch { return DEFAULT_FILE_SYSTEM; }
+  });
+
+  const setFileSystem = useCallback((fs: Record<string, FileSystemNode>) => {
+    setFileSystemState(fs);
+    try { localStorage.setItem('solarnova-desktop-fs', JSON.stringify(fs)); } catch { /* quota */ }
+  }, []);
   const [games, setGames] = useState<any[]>([]);
   const [pinnedApps, setPinnedApps] = useState<string[]>(() => {
     try {
