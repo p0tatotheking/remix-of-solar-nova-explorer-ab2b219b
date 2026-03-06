@@ -334,8 +334,7 @@ export function Chatroom() {
           {showEmojiAutocomplete && (
             <EmojiAutocomplete
               query={emojiQuery}
-              onSelect={handleEmojiAutocompleteSelect}
-              onClose={() => setShowEmojiAutocomplete(false)}
+              onSelect={(emoji) => handleEmojiAutocompleteSelect(emoji)}
             />
           )}
 
