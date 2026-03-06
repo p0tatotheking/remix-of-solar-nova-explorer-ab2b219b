@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MessageSquare, Sparkles } from 'lucide-react';
-import { Chatroom } from '@/components/Chatroom';
+import { DiscordChat } from '@/components/DiscordChat';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 export function DesktopChat() {
@@ -66,7 +66,7 @@ export function DesktopChat() {
 
   return (
     <div className="h-full flex flex-col bg-[hsl(var(--background))]">
-      <Chatroom />
+      <DiscordChat />
     </div>
   );
 }
