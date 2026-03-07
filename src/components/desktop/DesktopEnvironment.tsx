@@ -99,7 +99,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
       supabase.from('desktop_pinned_apps').select('pinned_apps').eq('user_id', user.id).maybeSingle(),
     ]).then(([fsResult, pinsResult]) => {
       if (fsResult.data?.file_system) {
-        const dbFs = fsResult.data.file_system as Record<string, FileSystemNode>;
+        const dbFs = fsResult.data.file_system as unknown as Record<string, FileSystemNode>;
         setFileSystemState(dbFs);
         try { localStorage.setItem('solarnova-desktop-fs', JSON.stringify(dbFs)); } catch {}
       }
