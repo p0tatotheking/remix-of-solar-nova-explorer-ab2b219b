@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { FileSystemNode } from './types';
+import { handleGitCommand } from './terminalGit';
 
 interface DesktopTerminalProps {
   fileSystem: Record<string, FileSystemNode>;
@@ -56,6 +57,19 @@ const HELP_TEXT = `Available Commands:
   curl [url]        Fetch URL content
   wget [url]        Download URL content
   ifconfig          Show network info
+  
+  --- Git ---
+  git init          Initialize a git repository
+  git status        Show working tree status
+  git add [file]    Stage files (use . for all)
+  git commit -m ""  Commit staged changes
+  git log           Show commit history
+  git branch        List/create branches
+  git checkout      Switch branches
+  git diff          Show file differences
+  git remote        Manage remotes
+  git push/pull     Simulate push/pull
+  git clone [url]   Clone a repository
   
   --- Misc ---
   cowsay [text]     ASCII cow says text
@@ -416,6 +430,12 @@ export function DesktopTerminal({ fileSystem, onFileSystemChange }: DesktopTermi
       case 'exit':
         addLines([{ type: 'output', text: 'Use the window close button to exit the terminal.' }]);
         break;
+
+      case 'git': {
+        const result = handleGitCommand(args, currentPath, fileSystem, user?.username || 'user', updateFs, getDir);
+        if (result.length > 0) addLines(result);
+        break;
+      }
 
       default:
         addLines([{ type: 'error', text: `Command not found: ${command}. Type "help" for available commands.` }]);
