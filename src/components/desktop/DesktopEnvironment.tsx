@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,8 @@ import { FileManager } from './FileManager';
 import { SettingsApp } from './SettingsApp';
 import { DesktopChat } from './DesktopChat';
 import { DesktopMusic } from './DesktopMusic';
+import { YouTubeMusicProvider } from '@/contexts/YouTubeMusicContext';
+import { YouTubeMusicPlayer } from '@/components/music/YouTubeMusicPlayer';
 import type { DesktopTheme, DesktopApp, DesktopWindow, FileSystemNode } from './types';
 import { DEFAULT_FILE_SYSTEM } from './types';
 
@@ -40,16 +42,74 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     } catch { return DEFAULT_FILE_SYSTEM; }
   });
 
+  // Track if music has been opened at least once (persists music playback)
+  const [musicActivated, setMusicActivated] = useState(false);
+
+  const fsSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pinSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync file system to database
   const setFileSystem = useCallback((fs: Record<string, FileSystemNode>) => {
     setFileSystemState(fs);
     try { localStorage.setItem('solarnova-desktop-fs', JSON.stringify(fs)); } catch { /* quota */ }
-  }, []);
+    
+    // Debounced save to database
+    if (user) {
+      if (fsSaveTimeout.current) clearTimeout(fsSaveTimeout.current);
+      fsSaveTimeout.current = setTimeout(() => {
+        supabase.from('desktop_file_systems').upsert(
+          { user_id: user.id, file_system: fs as any, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id' }
+        ).then(() => {});
+      }, 1500);
+    }
+  }, [user]);
+
   const [games, setGames] = useState<any[]>([]);
-  const [pinnedApps, setPinnedApps] = useState<string[]>(() => {
+  const [pinnedApps, setPinnedAppsState] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('solarnova-desktop-pinned') || '[]');
     } catch { return []; }
   });
+
+  const setPinnedApps = useCallback((updater: (prev: string[]) => string[]) => {
+    setPinnedAppsState(prev => {
+      const next = updater(prev);
+      localStorage.setItem('solarnova-desktop-pinned', JSON.stringify(next));
+      // Debounced save to database
+      if (user) {
+        if (pinSaveTimeout.current) clearTimeout(pinSaveTimeout.current);
+        pinSaveTimeout.current = setTimeout(() => {
+          supabase.from('desktop_pinned_apps').upsert(
+            { user_id: user.id, pinned_apps: next as any, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id' }
+          ).then(() => {});
+        }, 500);
+      }
+      return next;
+    });
+  }, [user]);
+
+  // Load file system and pinned apps from database on mount
+  useEffect(() => {
+    if (!user) return;
+    
+    Promise.all([
+      supabase.from('desktop_file_systems').select('file_system').eq('user_id', user.id).maybeSingle(),
+      supabase.from('desktop_pinned_apps').select('pinned_apps').eq('user_id', user.id).maybeSingle(),
+    ]).then(([fsResult, pinsResult]) => {
+      if (fsResult.data?.file_system) {
+        const dbFs = fsResult.data.file_system as Record<string, FileSystemNode>;
+        setFileSystemState(dbFs);
+        try { localStorage.setItem('solarnova-desktop-fs', JSON.stringify(dbFs)); } catch {}
+      }
+      if (pinsResult.data?.pinned_apps) {
+        const dbPins = pinsResult.data.pinned_apps as string[];
+        setPinnedAppsState(dbPins);
+        localStorage.setItem('solarnova-desktop-pinned', JSON.stringify(dbPins));
+      }
+    });
+  }, [user]);
 
   // Fetch games for desktop icons
   useEffect(() => {
@@ -62,17 +122,16 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     localStorage.setItem('solarnova-desktop-theme', theme);
   }, [theme]);
 
-  useEffect(() => {
-    localStorage.setItem('solarnova-desktop-pinned', JSON.stringify(pinnedApps));
-  }, [pinnedApps]);
-
   const togglePin = useCallback((appId: string) => {
-    setPinnedApps(prev => 
+    setPinnedApps(prev =>
       prev.includes(appId) ? prev.filter(id => id !== appId) : [...prev, appId]
     );
-  }, []);
+  }, [setPinnedApps]);
 
   const openWindow = useCallback((appId: string, title: string) => {
+    // Activate music persistence when music is first opened
+    if (appId === 'music') setMusicActivated(true);
+
     const existing = windows.find(w => w.appId === appId);
     if (existing) {
       setWindows(prev => prev.map(w => w.id === existing.id ? { ...w, isMinimized: false, zIndex: nextZIndex } : w));
@@ -87,7 +146,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
       appId,
       title,
       isMinimized: false,
-      isMaximized: !!isGame, // Games open maximized
+      isMaximized: !!isGame,
       zIndex: nextZIndex,
       x: 100 + offsetCount * 30,
       y: 60 + offsetCount * 30,
@@ -127,9 +186,10 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
       return <DesktopChat />;
     }
     if (win.appId === 'music') {
+      // Music window just shows the player UI - actual playback is persistent below
       return <DesktopMusic />;
     }
-    // Game window - embed the game directly
+    // Game window
     const game = games.find(g => g.id === win.appId);
     if (game && game.embed) {
       return (
@@ -229,6 +289,15 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
           {renderWindowContent(win)}
         </DesktopWindowComponent>
       ))}
+
+      {/* Persistent music player - stays mounted even when music window is closed/minimized */}
+      {musicActivated && (
+        <div className="hidden">
+          <YouTubeMusicProvider>
+            <YouTubeMusicPlayer />
+          </YouTubeMusicProvider>
+        </div>
+      )}
 
       {/* Taskbar */}
       <Taskbar
