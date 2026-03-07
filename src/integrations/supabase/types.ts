@@ -227,6 +227,48 @@ export type Database = {
         }
         Relationships: []
       }
+      desktop_file_systems: {
+        Row: {
+          file_system: Json
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          file_system?: Json
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          file_system?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      desktop_pinned_apps: {
+        Row: {
+          id: string
+          pinned_apps: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          pinned_apps?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          pinned_apps?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       direct_messages: {
         Row: {
           created_at: string
