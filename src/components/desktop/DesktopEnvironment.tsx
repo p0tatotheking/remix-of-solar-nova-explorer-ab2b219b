@@ -45,6 +45,21 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
   // Track if music has been opened at least once (persists music playback)
   const [musicActivated, setMusicActivated] = useState(false);
 
+  // Desktop customization state
+  const [hiddenApps, setHiddenApps] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('solarnova-desktop-hidden') || '[]'); } catch { return []; }
+  });
+  const [customIcons, setCustomIcons] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('solarnova-desktop-icons') || '{}'); } catch { return {}; }
+  });
+  const [customNames, setCustomNames] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('solarnova-desktop-names') || '{}'); } catch { return {}; }
+  });
+  const [iconOrder, setIconOrder] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('solarnova-desktop-order') || '[]'); } catch { return []; }
+  });
+  const [draggedIcon, setDraggedIcon] = useState<string | null>(null);
+
   const fsSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pinSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
