@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Search, Wifi, Volume2, BatteryFull, ChevronUp, LogOut, Pin, PinOff, Gamepad2, Terminal, Folder, Settings } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Search, Wifi, Volume2, BatteryFull, ChevronUp, LogOut, Pin, PinOff, Gamepad2, Terminal, Folder, Settings, Music, MessageSquare, X, Eye } from 'lucide-react';
 import type { DesktopTheme, DesktopWindow, DesktopApp } from './types';
+import { ICON_MAP } from './DesktopIcon';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 interface TaskbarProps {
@@ -8,10 +9,12 @@ interface TaskbarProps {
   windows: DesktopWindow[];
   pinnedApps: string[];
   allApps: DesktopApp[];
+  hiddenApps: string[];
   onWindowClick: (id: string) => void;
   onAppLaunch: (id: string, name: string) => void;
   onUnpin: (id: string) => void;
   onExitDesktop: () => void;
+  onUnhideApp: (id: string) => void;
 }
 
 const APP_ICONS: Record<string, React.ReactNode> = {
@@ -19,11 +22,15 @@ const APP_ICONS: Record<string, React.ReactNode> = {
   folder: <Folder className="w-4 h-4" />,
   settings: <Settings className="w-4 h-4" />,
   gamepad: <Gamepad2 className="w-4 h-4" />,
+  music: <Music className="w-4 h-4" />,
+  chat: <MessageSquare className="w-4 h-4" />,
 };
 
-export function Taskbar({ theme, windows, pinnedApps, allApps, onWindowClick, onAppLaunch, onUnpin, onExitDesktop }: TaskbarProps) {
+export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWindowClick, onAppLaunch, onUnpin, onExitDesktop, onUnhideApp }: TaskbarProps) {
   const [time, setTime] = useState(new Date());
   const [showTray, setShowTray] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; appId: string; appName: string; isPinned: boolean } | null>(null);
 
   useEffect(() => {
@@ -37,6 +44,14 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, onWindowClick, on
     return () => window.removeEventListener('click', close);
   }, [contextMenu]);
 
+  // Close search on Escape
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setSearchOpen(false); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [searchOpen]);
+
   const formatTime = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const formatDate = (d: Date) => d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -45,9 +60,166 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, onWindowClick, on
     setContextMenu({ x: e.clientX, y: e.clientY - 60, appId, appName, isPinned });
   };
 
-  // Get pinned apps that don't have open windows
+  // Search filtering
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return allApps.slice(0, 8);
+    const q = searchQuery.toLowerCase();
+    return allApps.filter(a => a.name.toLowerCase().includes(q));
+  }, [searchQuery, allApps]);
+
   const pinnedNotOpen = pinnedApps.filter(id => !windows.some(w => w.appId === id));
   const pinnedAppDetails = pinnedNotOpen.map(id => allApps.find(a => a.id === id)).filter(Boolean) as DesktopApp[];
+
+  const hiddenAppDetails = hiddenApps.map(id => allApps.find(a => a.id === id)).filter(Boolean) as DesktopApp[];
+
+  // Search Panel component
+  const SearchPanel = () => (
+    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 w-[560px] max-w-[90vw] bg-[hsl(220,20%,10%)]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[600]">
+      {/* Search input */}
+      <div className="p-4 border-b border-white/10">
+        <div className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-2.5 border border-white/10">
+          <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <input
+            autoFocus
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Type here to search"
+            className="bg-transparent flex-1 text-sm text-foreground placeholder-muted-foreground outline-none"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="text-muted-foreground hover:text-foreground">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Results */}
+      <div className="p-3 max-h-[400px] overflow-y-auto">
+        {searchQuery.trim() && (
+          <div className="text-xs text-muted-foreground/70 uppercase tracking-wider px-2 mb-2">
+            {searchResults.length > 0 ? `${searchResults.length} result${searchResults.length !== 1 ? 's' : ''}` : 'No results'}
+          </div>
+        )}
+
+        {!searchQuery.trim() && (
+          <div className="text-xs text-muted-foreground/70 uppercase tracking-wider px-2 mb-2">
+            All Apps
+          </div>
+        )}
+
+        <div className="space-y-0.5">
+          {searchResults.map(app => {
+            const IconComp = ICON_MAP[app.icon] || Settings;
+            const isHidden = hiddenApps.includes(app.id);
+            return (
+              <div key={app.id} className="flex items-center gap-3">
+                <button
+                  onClick={() => { onAppLaunch(app.id, app.name); setSearchOpen(false); setSearchQuery(''); }}
+                  className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors text-left"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <IconComp className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-foreground truncate">{app.name}</div>
+                    <div className="text-[10px] text-muted-foreground capitalize">{app.type === 'custom' ? 'App' : app.type}</div>
+                  </div>
+                </button>
+                {isHidden && (
+                  <button
+                    onClick={() => onUnhideApp(app.id)}
+                    className="p-1.5 rounded-md hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Restore to desktop"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Hidden apps section */}
+        {hiddenAppDetails.length > 0 && !searchQuery.trim() && (
+          <>
+            <div className="h-px bg-white/10 my-3" />
+            <div className="text-xs text-muted-foreground/70 uppercase tracking-wider px-2 mb-2">
+              Hidden from Desktop
+            </div>
+            <div className="space-y-0.5">
+              {hiddenAppDetails.map(app => {
+                const IconComp = ICON_MAP[app.icon] || Settings;
+                return (
+                  <div key={app.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0 opacity-50">
+                      <IconComp className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <span className="flex-1 text-sm text-muted-foreground truncate">{app.name}</span>
+                    <button
+                      onClick={() => onUnhideApp(app.id)}
+                      className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Restore
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  // macOS Spotlight
+  const SpotlightPanel = () => (
+    <div className="fixed inset-0 z-[600] flex items-start justify-center pt-[20vh]" onClick={() => setSearchOpen(false)}>
+      <div className="w-[520px] max-w-[90vw] bg-[hsl(220,15%,15%)]/95 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-white/10">
+          <Search className="w-5 h-5 text-white/40" />
+          <input
+            autoFocus
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Spotlight Search"
+            className="bg-transparent flex-1 text-lg text-white placeholder-white/30 outline-none"
+          />
+        </div>
+        <div className="max-h-[350px] overflow-y-auto p-2">
+          {searchResults.map(app => {
+            const IconComp = ICON_MAP[app.icon] || Settings;
+            const isHidden = hiddenApps.includes(app.id);
+            return (
+              <div key={app.id} className="flex items-center gap-3">
+                <button
+                  onClick={() => { onAppLaunch(app.id, app.name); setSearchOpen(false); setSearchQuery(''); }}
+                  className="flex-1 flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/30 transition-colors text-left"
+                >
+                  <IconComp className="w-5 h-5 text-white/70" />
+                  <span className="text-sm text-white">{app.name}</span>
+                  <span className="text-[10px] text-white/40 ml-auto capitalize">{app.type === 'custom' ? 'App' : app.type}</span>
+                </button>
+                {isHidden && (
+                  <button
+                    onClick={() => onUnhideApp(app.id)}
+                    className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                    title="Restore to desktop"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+          {searchResults.length === 0 && (
+            <div className="text-center text-white/30 py-8 text-sm">No results found</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   if (theme === 'macos') {
     return (
@@ -61,6 +233,9 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, onWindowClick, on
             <span className="text-white/60">View</span>
           </div>
           <div className="flex items-center gap-3">
+            <button onClick={() => setSearchOpen(!searchOpen)} className="hover:bg-white/10 rounded px-1">
+              <Search className="w-3.5 h-3.5 text-white/70" />
+            </button>
             <Wifi className="w-3.5 h-3.5 text-white/70" />
             <Volume2 className="w-3.5 h-3.5 text-white/70" />
             <BatteryFull className="w-3.5 h-3.5 text-white/70" />
@@ -68,9 +243,11 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, onWindowClick, on
           </div>
         </div>
 
+        {/* Spotlight search */}
+        {searchOpen && <SpotlightPanel />}
+
         {/* Bottom dock */}
         <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-[500] flex items-end gap-1 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl">
-          {/* Pinned apps (not open) */}
           {pinnedAppDetails.map(app => (
             <button
               key={app.id}
@@ -83,7 +260,6 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, onWindowClick, on
             </button>
           ))}
           {pinnedAppDetails.length > 0 && windows.length > 0 && <div className="w-px h-8 bg-white/20 mx-1" />}
-          {/* Open windows */}
           {windows.map(w => (
             <button
               key={w.id}
@@ -129,14 +305,23 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, onWindowClick, on
   return (
     <>
       <div className="fixed bottom-0 left-0 right-0 h-12 z-[500] bg-[hsl(220,20%,10%)]/90 backdrop-blur-xl border-t border-white/10 flex items-center px-3">
-        <button className="p-2 rounded-md hover:bg-white/10 transition-colors">
+        <button
+          onClick={() => setSearchOpen(!searchOpen)}
+          className="p-2 rounded-md hover:bg-white/10 transition-colors"
+        >
           <img src={solarnovaIcon} alt="" className="w-5 h-5" />
         </button>
 
-        <div className="ml-2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-muted-foreground w-48">
+        <button
+          onClick={() => setSearchOpen(!searchOpen)}
+          className="ml-2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-muted-foreground w-48 hover:bg-white/10 transition-colors"
+        >
           <Search className="w-3.5 h-3.5" />
           <span>Search</span>
-        </div>
+        </button>
+
+        {/* Search panel */}
+        {searchOpen && <SearchPanel />}
 
         {/* Pinned + Open windows */}
         <div className="flex-1 flex items-center gap-1 ml-3">
@@ -207,6 +392,11 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, onWindowClick, on
           </div>
         )}
       </div>
+
+      {/* Backdrop for search */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-[550]" onClick={() => { setSearchOpen(false); setSearchQuery(''); }} />
+      )}
 
       {/* Context menu */}
       {contextMenu && (
