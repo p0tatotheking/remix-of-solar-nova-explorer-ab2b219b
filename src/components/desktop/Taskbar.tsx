@@ -79,12 +79,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
 
   // Search panel content rendered inline (not as a component) to prevent remount on state change
   const windowsSearchContent = (
-    <div
-      ref={searchPanelRef}
-      className="absolute bottom-14 left-1/2 -translate-x-1/2 w-[560px] max-w-[90vw] bg-[hsl(220,20%,10%)]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[600]"
-      onMouseDown={e => e.stopPropagation()}
-      onClick={e => e.stopPropagation()}
-    >
+    <>
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-2.5 border border-white/10">
           <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
