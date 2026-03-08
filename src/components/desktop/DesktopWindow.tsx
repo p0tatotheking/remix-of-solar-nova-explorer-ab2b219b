@@ -192,13 +192,13 @@ export function DesktopWindowComponent({
         >
           <span className="flex-1 text-xs text-foreground/80">{win.title}</span>
           <div className="flex items-center">
-            <button onClick={() => onMinimize(win.id)} className="p-1.5 hover:bg-white/10 rounded-sm">
+            <button onClick={(e) => { e.stopPropagation(); onMinimize(win.id); }} className="p-1.5 hover:bg-white/10 rounded-sm">
               <Minus className="w-3 h-3 text-muted-foreground" />
             </button>
-            <button onClick={() => onMaximize(win.id)} className="p-1.5 hover:bg-white/10 rounded-sm">
+            <button onClick={(e) => { e.stopPropagation(); onMaximize(win.id); }} className="p-1.5 hover:bg-white/10 rounded-sm">
               {win.isMaximized ? <Minimize2 className="w-3 h-3 text-muted-foreground" /> : <Maximize2 className="w-3 h-3 text-muted-foreground" />}
             </button>
-            <button onClick={() => onClose(win.id)} className="p-1.5 hover:bg-destructive rounded-sm">
+            <button onClick={(e) => { e.stopPropagation(); onClose(win.id); }} className="p-1.5 hover:bg-destructive rounded-sm">
               <X className="w-3 h-3 text-muted-foreground" />
             </button>
           </div>
