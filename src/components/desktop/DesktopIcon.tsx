@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Gamepad2, Terminal, Settings, FolderOpen, Globe, Music, MessageSquare, Sparkles, Youtube, Paintbrush, Monitor, Pin, PinOff, EyeOff, Palette, GripVertical, Pencil } from 'lucide-react';
+import { Gamepad2, Terminal, Settings, FolderOpen, Globe, Music, MessageSquare, Sparkles, Youtube, Paintbrush, Monitor, Pin, PinOff, EyeOff, Palette, Pencil } from 'lucide-react';
 import type { DesktopTheme } from './types';
 
 interface DesktopIconProps {
@@ -14,10 +14,8 @@ interface DesktopIconProps {
   onRename?: (newName: string) => void;
   customIcon?: string;
   customName?: string;
-  isDraggable?: boolean;
-  onDragStart?: () => void;
-  onDragOver?: (e: React.DragEvent) => void;
-  onDrop?: () => void;
+  position?: { x: number; y: number };
+  onPositionChange?: (x: number, y: number) => void;
 }
 
 export const ICON_MAP: Record<string, any> = {
@@ -36,7 +34,7 @@ export const ICON_MAP: Record<string, any> = {
 
 export const AVAILABLE_ICONS = Object.keys(ICON_MAP);
 
-export function DesktopIcon({ name, icon, theme, onDoubleClick, onPin, isPinned, onHide, onChangeIcon, onRename, customIcon, customName, isDraggable = true, onDragStart, onDragOver, onDrop }: DesktopIconProps) {
+export function DesktopIcon({ name, icon, theme, onDoubleClick, onPin, isPinned, onHide, onChangeIcon, onRename, customIcon, customName, position, onPositionChange }: DesktopIconProps) {
   const displayIcon = customIcon || icon;
   const displayName = customName || name;
   const IconComponent = ICON_MAP[displayIcon] || Monitor;
@@ -46,13 +44,58 @@ export function DesktopIcon({ name, icon, theme, onDoubleClick, onPin, isPinned,
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(displayName);
   const renameRef = useRef<HTMLInputElement>(null);
+  const dragRef = useRef<{ startX: number; startY: number; iconX: number; iconY: number } | null>(null);
+  const iconRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setMenuPos({ x: e.clientX, y: e.clientY });
     setShowMenu(true);
     const close = () => { setShowMenu(false); setShowIconPicker(false); window.removeEventListener('click', close); };
     setTimeout(() => window.addEventListener('click', close), 0);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0 || isRenaming) return;
+    if (!position || !onPositionChange) return;
+    
+    isDraggingRef.current = false;
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      iconX: position.x,
+      iconY: position.y,
+    };
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return;
+      const dx = ev.clientX - dragRef.current.startX;
+      const dy = ev.clientY - dragRef.current.startY;
+      if (!isDraggingRef.current && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+        isDraggingRef.current = true;
+      }
+      if (isDraggingRef.current) {
+        const newX = Math.max(0, Math.min(window.innerWidth - 80, dragRef.current.iconX + dx));
+        const newY = Math.max(0, Math.min(window.innerHeight - 100, dragRef.current.iconY + dy));
+        onPositionChange(newX, newY);
+      }
+    };
+
+    const handleMouseUp = () => {
+      dragRef.current = null;
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    if (isDraggingRef.current) return;
+    onDoubleClick();
   };
 
   const handleRenameSubmit = () => {
@@ -78,11 +121,9 @@ export function DesktopIcon({ name, icon, theme, onDoubleClick, onPin, isPinned,
 
   const iconContent = theme === 'macos' ? (
     <div
-      draggable={isDraggable}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDoubleClick={onDoubleClick}
+      ref={iconRef}
+      onMouseDown={handleMouseDown}
+      onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-white/10 transition-colors select-none w-20 cursor-default"
     >
@@ -97,11 +138,9 @@ export function DesktopIcon({ name, icon, theme, onDoubleClick, onPin, isPinned,
     </div>
   ) : (
     <div
-      draggable={isDraggable}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDoubleClick={onDoubleClick}
+      ref={iconRef}
+      onMouseDown={handleMouseDown}
+      onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-white/10 transition-colors select-none w-20 cursor-default"
     >
@@ -125,7 +164,6 @@ export function DesktopIcon({ name, icon, theme, onDoubleClick, onPin, isPinned,
           style={{ left: menuPos.x, top: menuPos.y }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Open */}
           <button
             onClick={() => { onDoubleClick(); setShowMenu(false); }}
             className="w-full px-3 py-1.5 text-left text-sm text-foreground hover:bg-white/10 flex items-center gap-2"
@@ -136,7 +174,6 @@ export function DesktopIcon({ name, icon, theme, onDoubleClick, onPin, isPinned,
 
           <div className="h-px bg-white/10 mx-2 my-1" />
 
-          {/* Pin/Unpin */}
           {onPin && (
             <button
               onClick={() => { onPin(); setShowMenu(false); }}
@@ -147,7 +184,6 @@ export function DesktopIcon({ name, icon, theme, onDoubleClick, onPin, isPinned,
             </button>
           )}
 
-          {/* Rename */}
           {onRename && (
             <button
               onClick={() => { setRenameValue(displayName); setIsRenaming(true); setShowMenu(false); }}
@@ -158,7 +194,6 @@ export function DesktopIcon({ name, icon, theme, onDoubleClick, onPin, isPinned,
             </button>
           )}
 
-          {/* Change Icon */}
           {onChangeIcon && (
             <div className="relative">
               <button
@@ -192,7 +227,6 @@ export function DesktopIcon({ name, icon, theme, onDoubleClick, onPin, isPinned,
 
           <div className="h-px bg-white/10 mx-2 my-1" />
 
-          {/* Hide from desktop */}
           {onHide && (
             <button
               onClick={() => { onHide(); setShowMenu(false); }}
