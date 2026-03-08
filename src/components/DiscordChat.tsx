@@ -1038,11 +1038,11 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                             onReactionChange={fetchReactions}
                           />
                         </div>
-                        {/* Action buttons */}
-                        <div className="absolute right-2 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Action buttons - compact toolbar */}
+                        <div className="absolute -top-3 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-card border border-border rounded-md shadow-lg overflow-hidden z-10">
                           <button
                             onClick={() => setReplyingTo(msg)}
-                            className="p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground"
+                            className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                             title="Reply"
                           >
                             <Reply className="w-3.5 h-3.5" />
@@ -1050,7 +1050,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                           {user?.role === 'admin' && (
                             <button
                               onClick={() => msgPinned ? unpinMessage(msg.id, 'general') : pinMessage(msg.id, msg.message, msg.username, 'general')}
-                              className="p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground"
+                              className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                               title={msgPinned ? 'Unpin' : 'Pin'}
                             >
                               {msgPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
