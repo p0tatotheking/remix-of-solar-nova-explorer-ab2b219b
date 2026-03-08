@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, Wifi, Volume2, BatteryFull, ChevronUp, LogOut, Pin, PinOff, Gamepad2, Terminal, Folder, Settings, Music, MessageSquare, X, Eye } from 'lucide-react';
 import type { DesktopTheme, DesktopWindow, DesktopApp } from './types';
 import { ICON_MAP } from './DesktopIcon';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 interface TaskbarProps {
