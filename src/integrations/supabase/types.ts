@@ -610,6 +610,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pinned_messages: {
+        Row: {
+          channel_id: string
+          id: string
+          message_id: string
+          message_text: string
+          message_type: string
+          message_username: string
+          pinned_at: string
+          pinned_by: string
+        }
+        Insert: {
+          channel_id?: string
+          id?: string
+          message_id: string
+          message_text: string
+          message_type?: string
+          message_username: string
+          pinned_at?: string
+          pinned_by: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          message_id?: string
+          message_text?: string
+          message_type?: string
+          message_username?: string
+          pinned_at?: string
+          pinned_by?: string
+        }
+        Relationships: []
+      }
       playlist_songs: {
         Row: {
           added_at: string

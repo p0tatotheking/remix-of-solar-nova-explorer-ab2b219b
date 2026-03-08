@@ -29,6 +29,22 @@ export function Chatroom() {
   const [emojiQuery, setEmojiQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [adminUsernames, setAdminUsernames] = useState<Set<string>>(new Set());
+
+  // Fetch admin usernames
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      const { data: roles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+      if (!roles) return;
+      const adminIds = roles.map(r => r.user_id);
+      const { data: users } = await supabase.rpc('get_all_app_users');
+      if (users) {
+        const admins = new Set(users.filter((u: any) => adminIds.includes(u.id)).map((u: any) => u.username));
+        setAdminUsernames(admins);
+      }
+    };
+    fetchAdmins();
+  }, []);
 
   // Fetch existing messages and subscribe to new ones
   useEffect(() => {
@@ -331,7 +347,10 @@ export function Chatroom() {
                     : 'bg-muted'
                 }`}
               >
-                <p className="text-xs text-foreground/70 mb-1">{msg.username}</p>
+                <p className={`text-xs mb-1 ${adminUsernames.has(msg.username) ? 'text-red-500 font-bold' : 'text-foreground/70'}`}>
+                  {msg.username}
+                  {adminUsernames.has(msg.username) && <span className="ml-1 text-[9px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded">ADMIN</span>}
+                </p>
                 {renderMessage(msg)}
               </div>
             </div>

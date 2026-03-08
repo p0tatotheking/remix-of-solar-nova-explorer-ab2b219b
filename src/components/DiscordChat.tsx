@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle, Smile, Image as ImageIcon, Settings, Reply, XCircle, Trash2 } from 'lucide-react';
+import { Send, Users, MessageSquare, Hash, UserPlus, Bell, BellOff, Ban, Check, X, ChevronDown, ArrowLeft, Circle, Smile, Image as ImageIcon, Settings, Reply, XCircle, Trash2, Pin, PinOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePresence } from '@/contexts/PresenceContext';
@@ -124,6 +124,9 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   // Profiles and nicknames
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [nicknames, setNicknames] = useState<FriendNickname[]>([]);
+  const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
+  const [pinnedMessages, setPinnedMessages] = useState<Array<{ id: string; message_id: string; message_text: string; message_username: string; pinned_by: string; channel_id: string }>>([]);
+  const [showPinned, setShowPinned] = useState(false);
   
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -226,6 +229,8 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     fetchReactions();
     fetchProfiles();
     fetchNicknames();
+    fetchAdminUsers();
+    fetchPinnedMessages();
     
     // Subscribe to server messages
     const serverChannel = supabase
@@ -405,8 +410,44 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     setNicknames(data || []);
   };
 
+  const fetchAdminUsers = async () => {
+    const { data } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+    if (data) setAdminUserIds(new Set(data.map(r => r.user_id)));
+  };
+
+  const fetchPinnedMessages = async () => {
+    const { data } = await supabase.from('pinned_messages').select('*').order('pinned_at', { ascending: false });
+    setPinnedMessages(data || []);
+  };
+
+  const pinMessage = async (msgId: string, msgText: string, msgUsername: string, channelId: string) => {
+    if (!user || user.role !== 'admin') return;
+    await supabase.from('pinned_messages').upsert({
+      message_id: msgId,
+      message_type: channelId === 'general' ? 'server' : 'dm',
+      channel_id: channelId,
+      message_text: msgText,
+      message_username: msgUsername,
+      pinned_by: user.username,
+    }, { onConflict: 'message_id,channel_id' });
+    fetchPinnedMessages();
+  };
+
+  const unpinMessage = async (msgId: string, channelId: string) => {
+    if (!user || user.role !== 'admin') return;
+    await supabase.from('pinned_messages').delete().eq('message_id', msgId).eq('channel_id', channelId);
+    fetchPinnedMessages();
+  };
+
+  const isMessagePinned = (msgId: string, channelId: string) => {
+    return pinnedMessages.some(p => p.message_id === msgId && p.channel_id === channelId);
+  };
+
+  const isAdminUser = (userId: string) => adminUserIds.has(userId);
+
   const getDisplayName = (userId: string, username: string) => {
     // First check for nickname (user-specific)
+
     const nickname = nicknames.find(n => n.friend_id === userId);
     if (nickname) return nickname.nickname;
     
@@ -908,14 +949,45 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
               </div>
             ) : (
               <div className="p-4 space-y-1">
+                {/* Pinned messages banner */}
+                {pinnedMessages.filter(p => p.channel_id === 'general').length > 0 && (
+                  <div className="mb-2">
+                    <button
+                      onClick={() => setShowPinned(!showPinned)}
+                      className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded bg-primary/10"
+                    >
+                      <Pin className="w-3 h-3" />
+                      {pinnedMessages.filter(p => p.channel_id === 'general').length} pinned message(s)
+                    </button>
+                    {showPinned && (
+                      <div className="mt-1 space-y-1 border border-border rounded-lg p-2 bg-muted/30">
+                        {pinnedMessages.filter(p => p.channel_id === 'general').map(pin => (
+                          <div key={pin.id} className="flex items-start justify-between gap-2 text-xs p-1.5 rounded bg-background/50">
+                            <div className="min-w-0">
+                              <span className="font-semibold text-foreground">{pin.message_username}</span>
+                              <p className="text-muted-foreground truncate">{pin.message_text}</p>
+                            </div>
+                            {user?.role === 'admin' && (
+                              <button onClick={() => unpinMessage(pin.message_id, 'general')} className="text-destructive hover:text-destructive/80 flex-shrink-0" title="Unpin">
+                                <PinOff className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {serverMessages.map((msg) => {
                   const senderUser = allUsers.find(u => u.username === msg.username);
                   const msgAvatar = senderUser ? getAvatar(senderUser.id) : null;
                   const displayName = senderUser ? getDisplayName(senderUser.id, msg.username) : msg.username;
                   const replyMsg = getReplyMessage(msg.reply_to_id, 'server') as Message | null;
+                  const senderIsAdmin = senderUser ? isAdminUser(senderUser.id) : false;
+                  const msgPinned = isMessagePinned(msg.id, 'general');
                   
                     return (
-                      <div key={msg.id} className="group relative flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
+                      <div key={msg.id} className={`group relative flex gap-3 hover:bg-muted/20 px-2 py-1 rounded ${msgPinned ? 'border-l-2 border-primary/50' : ''}`}>
                         <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
                           {msgAvatar ? (
                             <img src={msgAvatar} alt="" className="w-full h-full object-cover" />
@@ -937,10 +1009,14 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                             </div>
                           )}
                           <div className="flex items-baseline gap-2">
-                            <span className="font-semibold text-foreground">{displayName}</span>
+                            <span className={`font-semibold ${senderIsAdmin ? 'text-red-500' : 'text-foreground'}`}>
+                              {displayName}
+                              {senderIsAdmin && <span className="ml-1 text-[10px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded align-middle">ADMIN</span>}
+                            </span>
                             <span className="text-xs text-muted-foreground">
                               {new Date(msg.created_at).toLocaleTimeString()}
                             </span>
+                            {msgPinned && <Pin className="w-3 h-3 text-primary" />}
                           </div>
                           <p className="text-foreground/90">
                             {isGifUrl(msg.message) ? (
@@ -956,17 +1032,29 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                             onReactionChange={fetchReactions}
                           />
                         </div>
-                        {/* Reply button */}
-                        <button
-                          onClick={() => setReplyingTo(msg)}
-                          className="absolute right-2 top-1 p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Reply"
-                        >
-                          <Reply className="w-3.5 h-3.5" />
-                        </button>
+                        {/* Action buttons */}
+                        <div className="absolute right-2 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => setReplyingTo(msg)}
+                            className="p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground"
+                            title="Reply"
+                          >
+                            <Reply className="w-3.5 h-3.5" />
+                          </button>
+                          {user?.role === 'admin' && (
+                            <button
+                              onClick={() => msgPinned ? unpinMessage(msg.id, 'general') : pinMessage(msg.id, msg.message, msg.username, 'general')}
+                              className="p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground"
+                              title={msgPinned ? 'Unpin' : 'Pin'}
+                            >
+                              {msgPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                 })}
+
               </div>
             )
           ) : view === 'dm' && selectedDmUser ? (
@@ -983,9 +1071,12 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                   const msgAvatar = getAvatar(msg.sender_id);
                   const displayName = getDisplayName(msg.sender_id, msg.sender_username);
                   const replyMsg = getReplyMessage(msg.reply_to_id, 'dm') as DirectMessage | null;
+                  const senderIsAdmin = isAdminUser(msg.sender_id);
+                  const dmChannelId = `dm-${[user?.id, selectedDmUser?.id].sort().join('-')}`;
+                  const msgPinned = isMessagePinned(msg.id, dmChannelId);
                   
                   return (
-                    <div key={msg.id} className="group relative flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
+                    <div key={msg.id} className={`group relative flex gap-3 hover:bg-muted/20 px-2 py-1 rounded ${msgPinned ? 'border-l-2 border-primary/50' : ''}`}>
                       <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
                         {msgAvatar ? (
                           <img src={msgAvatar} alt="" className="w-full h-full object-cover" />
@@ -1007,10 +1098,14 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                           </div>
                         )}
                         <div className="flex items-baseline gap-2">
-                          <span className="font-semibold text-foreground">{displayName}</span>
+                          <span className={`font-semibold ${senderIsAdmin ? 'text-red-500' : 'text-foreground'}`}>
+                            {displayName}
+                            {senderIsAdmin && <span className="ml-1 text-[10px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded align-middle">ADMIN</span>}
+                          </span>
                           <span className="text-xs text-muted-foreground">
                             {new Date(msg.created_at).toLocaleTimeString()}
                           </span>
+                          {msgPinned && <Pin className="w-3 h-3 text-primary" />}
                         </div>
                         <p className="text-foreground/90">
                           {isGifUrl(msg.message) ? (
@@ -1026,14 +1121,25 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                           onReactionChange={fetchReactions}
                         />
                       </div>
-                      {/* Reply button */}
-                      <button
-                        onClick={() => setReplyingTo(msg)}
-                        className="absolute right-2 top-1 p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Reply"
-                      >
-                        <Reply className="w-3.5 h-3.5" />
-                      </button>
+                      {/* Action buttons */}
+                      <div className="absolute right-2 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setReplyingTo(msg)}
+                          className="p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground"
+                          title="Reply"
+                        >
+                          <Reply className="w-3.5 h-3.5" />
+                        </button>
+                        {user?.role === 'admin' && (
+                          <button
+                            onClick={() => msgPinned ? unpinMessage(msg.id, dmChannelId) : pinMessage(msg.id, msg.message, msg.sender_username, dmChannelId)}
+                            className="p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground"
+                            title={msgPinned ? 'Unpin' : 'Pin'}
+                          >
+                            {msgPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
