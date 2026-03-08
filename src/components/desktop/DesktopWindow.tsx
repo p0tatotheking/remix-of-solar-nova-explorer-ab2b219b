@@ -164,9 +164,9 @@ export function DesktopWindowComponent({
             className="h-8 bg-[hsl(220,15%,18%)] flex items-center px-3 gap-2 shrink-0 cursor-move select-none rounded-t-xl"
             onMouseDown={handleMouseDown}
           >
-            <button onClick={() => onClose(win.id)} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400" />
-            <button onClick={() => onMinimize(win.id)} className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400" />
-            <button onClick={() => onMaximize(win.id)} className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400" />
+            <button onClick={(e) => { e.stopPropagation(); onClose(win.id); }} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400" />
+            <button onClick={(e) => { e.stopPropagation(); onMinimize(win.id); }} className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400" />
+            <button onClick={(e) => { e.stopPropagation(); onMaximize(win.id); }} className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400" />
             <span className="flex-1 text-center text-xs text-white/60 font-medium">{win.title}</span>
           </div>
         )}
