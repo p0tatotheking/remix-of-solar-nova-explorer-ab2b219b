@@ -14,7 +14,7 @@ interface AppUser {
 type TabType = 'users' | 'games';
 
 export function AdminPanel({ onClose }: { onClose: () => void }) {
-  const { user } = useAuth();
+  const { user, sessionToken } = useAuth();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,7 +29,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
     
     try {
       const { data, error } = await supabase.rpc('get_all_users', {
-        p_admin_id: user.id,
+        p_session_token: sessionToken!,
       });
 
       if (error) throw error;
@@ -55,7 +55,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 
     try {
       const { data, error } = await supabase.functions.invoke('auth-hash', {
-        body: { action: 'create_user', admin_id: user.id, username: newUsername.trim(), password: newPassword },
+        body: { action: 'create_user', session_token: sessionToken, username: newUsername.trim(), password: newPassword },
       });
 
       if (error || data?.error) throw new Error(data?.error || 'Failed to create user');
@@ -79,7 +79,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 
     try {
       const { error } = await supabase.rpc('delete_app_user', {
-        p_admin_id: user.id,
+        p_session_token: sessionToken!,
         p_user_id: userId,
       });
 
@@ -99,7 +99,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 
     try {
       const { data, error } = await supabase.functions.invoke('auth-hash', {
-        body: { action: 'update_password', admin_id: user.id, user_id: userId, new_password: newPass },
+        body: { action: 'update_password', session_token: sessionToken, user_id: userId, new_password: newPass },
       });
 
       if (error || data?.error) throw new Error(data?.error || 'Failed to update password');

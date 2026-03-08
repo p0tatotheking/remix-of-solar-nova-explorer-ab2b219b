@@ -13,11 +13,10 @@ interface GameLayoutContextType {
 const GameLayoutContext = createContext<GameLayoutContextType | undefined>(undefined);
 
 export function GameLayoutProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, sessionToken } = useAuth();
   const [layoutMode, setLayoutModeState] = useState<GameLayoutMode>('grid');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load layout preference from DB or localStorage
   useEffect(() => {
     const load = async () => {
       if (user) {
@@ -27,7 +26,6 @@ export function GameLayoutProvider({ children }: { children: ReactNode }) {
             .select('layout_mode')
             .eq('user_id', user.id)
             .single();
-
           if (data?.layout_mode === 'carousel' || data?.layout_mode === 'grid') {
             setLayoutModeState(data.layout_mode as GameLayoutMode);
             setIsLoading(false);
@@ -35,43 +33,28 @@ export function GameLayoutProvider({ children }: { children: ReactNode }) {
           }
         } catch {}
       }
-
-      // Fallback to localStorage
       const key = user ? `solarnova_game_layout_${user.id}` : 'solarnova_game_layout';
       const stored = localStorage.getItem(key);
-      if (stored === 'carousel' || stored === 'grid') {
-        setLayoutModeState(stored);
-      }
+      if (stored === 'carousel' || stored === 'grid') { setLayoutModeState(stored); }
       setIsLoading(false);
     };
-
     load();
   }, [user]);
 
   const setLayoutMode = useCallback((mode: GameLayoutMode) => {
     setLayoutModeState(mode);
-    
-    // Save to localStorage
     const key = user ? `solarnova_game_layout_${user.id}` : 'solarnova_game_layout';
     localStorage.setItem(key, mode);
-
-    // Save to DB if logged in
-    if (user) {
+    if (user && sessionToken) {
       supabase.rpc('update_my_profile', {
-        p_caller_id: user.id,
+        p_session_token: sessionToken,
         p_layout_mode: mode,
       }).then();
     }
-  }, [user]);
+  }, [user, sessionToken]);
 
   return (
-    <GameLayoutContext.Provider
-      value={{
-        layoutMode,
-        setLayoutMode,
-        isLoading,
-      }}
-    >
+    <GameLayoutContext.Provider value={{ layoutMode, setLayoutMode, isLoading }}>
       {children}
     </GameLayoutContext.Provider>
   );
@@ -79,8 +62,6 @@ export function GameLayoutProvider({ children }: { children: ReactNode }) {
 
 export function useGameLayout() {
   const context = useContext(GameLayoutContext);
-  if (!context) {
-    throw new Error('useGameLayout must be used within a GameLayoutProvider');
-  }
+  if (!context) { throw new Error('useGameLayout must be used within a GameLayoutProvider'); }
   return context;
 }
