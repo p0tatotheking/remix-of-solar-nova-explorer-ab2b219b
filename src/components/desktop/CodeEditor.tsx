@@ -183,8 +183,11 @@ export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal, onC
   const [activeFileTab, setActiveFileTab] = useState<number>(-1);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['home', 'home/user']));
   const [showTerminalPanel, setShowTerminalPanel] = useState(false);
-  const [terminalOutput, setTerminalOutput] = useState<string[]>(['Welcome to SolarCode Terminal', '$ ']);
+  const [bottomPanelTab, setBottomPanelTab] = useState<'problems' | 'output' | 'debug' | 'terminal'>('terminal');
+  const [terminalOutput, setTerminalOutput] = useState<string[]>(['Welcome to SolarCode Terminal', '']);
   const [terminalInput, setTerminalInput] = useState('');
+  const [problemsOutput] = useState<string[]>(['No problems detected.']);
+  const [outputLog] = useState<string[]>(['[SolarCode] Ready.']);
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [showSidebar, setShowSidebar] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
