@@ -76,6 +76,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
 
   const fsSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pinSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const customSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setFileSystem = useCallback((fs: Record<string, FileSystemNode>) => {
     setFileSystemState(fs);
