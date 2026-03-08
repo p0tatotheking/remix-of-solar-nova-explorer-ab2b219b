@@ -121,12 +121,14 @@ export function DesktopWindowComponent({
     }
   }, [win.isMinimized]);
 
-  if (win.isMinimized && minimizeAnim === 'idle') return null;
+  const isHidden = win.isMinimized && minimizeAnim === 'idle';
 
   const minimizeStyle: React.CSSProperties = minimizeAnim === 'minimizing'
     ? { transform: 'scale(0.3) translateY(100%)', opacity: 0, transition: 'transform 0.25s ease-in, opacity 0.2s ease-in', pointerEvents: 'none' }
     : minimizeAnim === 'restoring'
     ? { animation: 'window-restore 0.25s ease-out forwards' }
+    : isHidden
+    ? { display: 'none' }
     : {};
 
   const style: React.CSSProperties = win.isMaximized
@@ -162,9 +164,9 @@ export function DesktopWindowComponent({
             className="h-8 bg-[hsl(220,15%,18%)] flex items-center px-3 gap-2 shrink-0 cursor-move select-none rounded-t-xl"
             onMouseDown={handleMouseDown}
           >
-            <button onClick={() => onClose(win.id)} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400" />
-            <button onClick={() => onMinimize(win.id)} className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400" />
-            <button onClick={() => onMaximize(win.id)} className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400" />
+            <button onClick={(e) => { e.stopPropagation(); onClose(win.id); }} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400" />
+            <button onClick={(e) => { e.stopPropagation(); onMinimize(win.id); }} className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400" />
+            <button onClick={(e) => { e.stopPropagation(); onMaximize(win.id); }} className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400" />
             <span className="flex-1 text-center text-xs text-white/60 font-medium">{win.title}</span>
           </div>
         )}
@@ -190,13 +192,13 @@ export function DesktopWindowComponent({
         >
           <span className="flex-1 text-xs text-foreground/80">{win.title}</span>
           <div className="flex items-center">
-            <button onClick={() => onMinimize(win.id)} className="p-1.5 hover:bg-white/10 rounded-sm">
+            <button onClick={(e) => { e.stopPropagation(); onMinimize(win.id); }} className="p-1.5 hover:bg-white/10 rounded-sm">
               <Minus className="w-3 h-3 text-muted-foreground" />
             </button>
-            <button onClick={() => onMaximize(win.id)} className="p-1.5 hover:bg-white/10 rounded-sm">
+            <button onClick={(e) => { e.stopPropagation(); onMaximize(win.id); }} className="p-1.5 hover:bg-white/10 rounded-sm">
               {win.isMaximized ? <Minimize2 className="w-3 h-3 text-muted-foreground" /> : <Maximize2 className="w-3 h-3 text-muted-foreground" />}
             </button>
-            <button onClick={() => onClose(win.id)} className="p-1.5 hover:bg-destructive rounded-sm">
+            <button onClick={(e) => { e.stopPropagation(); onClose(win.id); }} className="p-1.5 hover:bg-destructive rounded-sm">
               <X className="w-3 h-3 text-muted-foreground" />
             </button>
           </div>
