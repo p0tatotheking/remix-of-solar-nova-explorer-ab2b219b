@@ -297,29 +297,60 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
 
       {/* Desktop Icons */}
       <div className={`absolute z-10 ${theme === 'macos' ? 'top-10 right-4' : 'top-4 left-4'} flex flex-col flex-wrap gap-1 max-h-[calc(100vh-80px)]`}>
-        {DESKTOP_APPS.map(app => (
-          <DesktopIcon
-            key={app.id}
-            name={app.name}
-            icon={app.icon}
-            theme={theme}
-            onDoubleClick={() => openWindow(app.id, app.name)}
-            onPin={() => togglePin(app.id)}
-            isPinned={pinnedApps.includes(app.id)}
-          />
-        ))}
-        <div className="h-2" />
-        {games.slice(0, 12).map(game => (
-          <DesktopIcon
-            key={game.id}
-            name={game.title}
-            icon="gamepad"
-            theme={theme}
-            onDoubleClick={() => openWindow(game.id, game.title)}
-            onPin={() => togglePin(game.id)}
-            isPinned={pinnedApps.includes(game.id)}
-          />
-        ))}
+        {(() => {
+          const allIcons = [
+            ...DESKTOP_APPS.map(app => ({ id: app.id, name: app.name, icon: app.icon })),
+            ...games.slice(0, 12).map(g => ({ id: g.id, name: g.title, icon: 'gamepad' })),
+          ];
+          // Sort by custom order
+          const sorted = iconOrder.length > 0
+            ? [...allIcons].sort((a, b) => {
+                const ai = iconOrder.indexOf(a.id);
+                const bi = iconOrder.indexOf(b.id);
+                if (ai === -1 && bi === -1) return 0;
+                if (ai === -1) return 1;
+                if (bi === -1) return -1;
+                return ai - bi;
+              })
+            : allIcons;
+
+          return sorted
+            .filter(app => !hiddenApps.includes(app.id))
+            .map(app => (
+              <DesktopIcon
+                key={app.id}
+                name={app.name}
+                icon={app.icon}
+                theme={theme}
+                customIcon={customIcons[app.id]}
+                customName={customNames[app.id]}
+                onDoubleClick={() => openWindow(app.id, customNames[app.id] || app.name)}
+                onPin={() => togglePin(app.id)}
+                isPinned={pinnedApps.includes(app.id)}
+                onHide={() => hideApp(app.id)}
+                onChangeIcon={(newIcon) => changeIcon(app.id, newIcon)}
+                onRename={(newName) => renameApp(app.id, newName)}
+                isDraggable
+                onDragStart={() => setDraggedIcon(app.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (draggedIcon && draggedIcon !== app.id) {
+                    const currentAll = sorted.map(a => a.id);
+                    const fromIdx = currentAll.indexOf(draggedIcon);
+                    const toIdx = currentAll.indexOf(app.id);
+                    if (fromIdx !== -1 && toIdx !== -1) {
+                      const newOrder = [...currentAll];
+                      newOrder.splice(fromIdx, 1);
+                      newOrder.splice(toIdx, 0, draggedIcon);
+                      setIconOrder(newOrder);
+                      localStorage.setItem('solarnova-desktop-order', JSON.stringify(newOrder));
+                    }
+                  }
+                  setDraggedIcon(null);
+                }}
+              />
+            ));
+        })()}
       </div>
 
       {/* Windows */}
@@ -353,11 +384,13 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
         theme={theme}
         windows={windows}
         pinnedApps={pinnedApps}
+        hiddenApps={hiddenApps}
         allApps={[...DESKTOP_APPS, ...games.slice(0, 12).map(g => ({ id: g.id, name: g.title, icon: 'gamepad', type: 'game' as const }))]}
         onWindowClick={handleWindowClick}
         onAppLaunch={(id, name) => openWindow(id, name)}
         onUnpin={(id) => togglePin(id)}
         onExitDesktop={onExit}
+        onUnhideApp={unhideApp}
       />
     </div>
   );
