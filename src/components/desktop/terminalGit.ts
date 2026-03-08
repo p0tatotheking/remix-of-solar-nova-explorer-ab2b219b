@@ -264,7 +264,7 @@ export async function handleAsyncGitCommand(
             repo: parsed.repo,
             path: filePath,
             branch: git.currentBranch,
-          });
+          }, userId);
           sha = shaData.sha;
         } catch {
           // File doesn't exist yet, that's fine
