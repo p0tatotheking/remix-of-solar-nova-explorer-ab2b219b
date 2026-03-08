@@ -55,7 +55,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 
     try {
       const { data, error } = await supabase.functions.invoke('auth-hash', {
-        body: { action: 'create_user', admin_id: user.id, username: newUsername.trim(), password: newPassword },
+        body: { action: 'create_user', session_token: sessionToken, username: newUsername.trim(), password: newPassword },
       });
 
       if (error || data?.error) throw new Error(data?.error || 'Failed to create user');
