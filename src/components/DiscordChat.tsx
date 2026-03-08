@@ -1196,7 +1196,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                             <Smile className="w-3.5 h-3.5" />
                           </button>
                           {reactionPickerMsgId === msg.id && (
-                            <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl p-2 z-50">
+                            <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl p-2 z-50" data-reaction-picker>
                               <div className="flex gap-1">
                                 {['👍', '❤️', '😂', '😮', '😢', '🔥', '💀', '🎉'].map((emoji) => (
                                   <button
