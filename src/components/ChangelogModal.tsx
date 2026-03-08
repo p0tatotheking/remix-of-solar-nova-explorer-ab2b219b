@@ -212,8 +212,8 @@ export function ChangelogModal() {
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">✨Changelog (ver starting from 2.05) ✨</h2>
-                <p className="text-sm text-white/80">See what's new in Solarnova</p>
+                <h2 className="text-xl font-bold text-white">✨ Solarnova V3 Changelog ✨</h2>
+                <p className="text-sm text-white/80">See what's new</p>
               </div>
             </div>
             <button
