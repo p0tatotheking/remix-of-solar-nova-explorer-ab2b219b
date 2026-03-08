@@ -7,7 +7,7 @@ interface BootScreenProps {
 }
 
 const BOOT_MESSAGES = [
-  { prefix: '[OK]', text: 'Starting boot sequence for SolarnovaOS...' },
+  { prefix: '[OK]', text: 'Starting boot sequence for Solarnova...' },
   { prefix: '[OK]', text: 'Initializing kernel modules...' },
   { prefix: '[OK]', text: 'Loading system configuration...' },
   { prefix: '[OK]', text: 'Running startup functions...' },
@@ -23,7 +23,7 @@ const BOOT_MESSAGES = [
   { prefix: '[OK]', text: '- initializeRealtime()' },
   { prefix: '[OK]', text: '- updateLoginGreeting()' },
   { prefix: '[OK]', text: 'All systems operational.' },
-  { prefix: '[OK]', text: 'Launching SolarnovaOS...' },
+  { prefix: '[OK]', text: 'Launching Solarnova...' },
 ];
 
 export function BootScreen({ onComplete, onDevMode }: BootScreenProps) {
@@ -77,7 +77,7 @@ export function BootScreen({ onComplete, onDevMode }: BootScreenProps) {
         <img src={solarnovaIcon} alt="Solarnova" className="w-16 h-16 mx-auto" />
       </div>
       <h1 className="text-2xl font-mono font-bold tracking-[0.3em] text-foreground mb-1">
-        SOLARNOVA OS
+        SOLARNOVA
       </h1>
       <p className="text-sm text-muted-foreground font-mono mb-8">Version 3.0</p>
 
