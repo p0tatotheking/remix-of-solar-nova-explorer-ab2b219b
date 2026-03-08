@@ -304,9 +304,30 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
 
   // Ensure all visible icons have positions
   const needsDefaults = visibleIcons.some(ic => !iconPositions[ic.id]);
-  const effectivePositions = needsDefaults
+  const rawPositions = needsDefaults
     ? { ...generateDefaultPositions(visibleIcons.map(i => i.id), theme), ...iconPositions }
     : iconPositions;
+
+  // Clamp positions to current viewport so icons never go off-screen
+  const [viewportSize, setViewportSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  useEffect(() => {
+    const onResize = () => setViewportSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const ICON_SIZE = 80; // approximate icon box size
+  const TASKBAR_HEIGHT = 48;
+  const effectivePositions = useMemo(() => {
+    const clamped: Record<string, { x: number; y: number }> = {};
+    for (const [id, pos] of Object.entries(rawPositions)) {
+      clamped[id] = {
+        x: Math.max(0, Math.min(pos.x, viewportSize.w - ICON_SIZE)),
+        y: Math.max(0, Math.min(pos.y, viewportSize.h - TASKBAR_HEIGHT - ICON_SIZE)),
+      };
+    }
+    return clamped;
+  }, [rawPositions, viewportSize]);
 
   return (
     <div className={`fixed inset-0 z-[300] overflow-hidden select-none ${!hasCustomBg ? wallpaper : 'bg-black'}`}>
