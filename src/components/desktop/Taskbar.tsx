@@ -247,7 +247,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
           </div>
         </div>
 
-        {searchOpen && <SpotlightPanel />}
+        {searchOpen && spotlightContent}
 
         <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-[500] flex items-end gap-1 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl">
           {pinnedAppDetails.map(app => (
