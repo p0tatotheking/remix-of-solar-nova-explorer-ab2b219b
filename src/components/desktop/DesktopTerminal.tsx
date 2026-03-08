@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { FileSystemNode } from './types';
-import { handleGitCommand } from './terminalGit';
+import { handleGitCommand, handleAsyncGitCommand, isAsyncGitCommand } from './terminalGit';
 
 interface DesktopTerminalProps {
   fileSystem: Record<string, FileSystemNode>;
@@ -432,8 +432,13 @@ export function DesktopTerminal({ fileSystem, onFileSystemChange }: DesktopTermi
         break;
 
       case 'git': {
-        const result = handleGitCommand(args, currentPath, fileSystem, user?.username || 'user', updateFs, getDir);
-        if (result.length > 0) addLines(result);
+        if (isAsyncGitCommand(args)) {
+          addLines([{ type: 'system', text: `$ git ${args.join(' ')}` }]);
+          handleAsyncGitCommand(args, currentPath, fileSystem, user?.username || 'user', updateFs, getDir, addLines);
+        } else {
+          const result = handleGitCommand(args, currentPath, fileSystem, user?.username || 'user', updateFs, getDir);
+          if (result.length > 0) addLines(result);
+        }
         break;
       }
 
