@@ -176,8 +176,8 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
     </div>
   );
 
-  // macOS Spotlight
-  const SpotlightPanel = () => (
+  // macOS Spotlight content (inline, not a component)
+  const spotlightContent = (
     <div className="fixed inset-0 z-[600] flex items-start justify-center pt-[20vh]" onMouseDown={() => { setSearchOpen(false); setSearchQuery(''); }}>
       <div className="w-[520px] max-w-[90vw] bg-[hsl(220,15%,15%)]/95 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden" onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 px-5 py-3 border-b border-white/10">
@@ -190,7 +190,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
             className="bg-transparent flex-1 text-lg text-white placeholder-white/30 outline-none"
           />
         </div>
-        <ScrollArea className="h-[350px]">
+        <div className="h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
           <div className="p-2">
             {searchResults.map(app => {
               const IconComp = ICON_MAP[app.icon] || Settings;
@@ -221,7 +221,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
               <div className="text-center text-white/30 py-8 text-sm">No results found</div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );
