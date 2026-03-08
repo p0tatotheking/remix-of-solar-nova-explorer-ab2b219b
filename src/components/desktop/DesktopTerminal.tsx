@@ -92,7 +92,17 @@ const FORTUNES = [
 export function DesktopTerminal({ fileSystem, onFileSystemChange }: DesktopTerminalProps) {
   const { user, isAdmin } = useAuth();
   const [lines, setLines] = useState<TerminalLine[]>([
-    { type: 'system', text: 'SolarnovaOS Terminal v2.0' },
+    { type: 'ascii', text: ' ______    ______   __         ______   _______   __    __   ______   __     __   ______  ' },
+    { type: 'ascii', text: '/      \\  /      \\ /  |       /      \\ /       \\ /  \\  /  | /      \\ /  |   /  | /      \\ ' },
+    { type: 'ascii', text: '/$$$$$$  |/$$$$$$  |$$ |      /$$$$$$  |$$$$$$$  |$$  \\ $$ |/$$$$$$  |$$ |   $$ |/$$$$$$  |' },
+    { type: 'ascii', text: '$$ \\__$$/ $$ |  $$ |$$ |      $$ |__$$ |$$ |__$$ |$$$  \\$$ |$$ |  $$ |$$ |   $$ |$$ |__$$ |' },
+    { type: 'ascii', text: '$$      \\ $$ |  $$ |$$ |      $$    $$ |$$    $$< $$$$  $$ |$$ |  $$ |$$  \\ /$$/ $$    $$ |' },
+    { type: 'ascii', text: ' $$$$$$  |$$ |  $$ |$$ |      $$$$$$$$ |$$$$$$$  |$$ $$ $$ |$$ |  $$ | $$  /$$/  $$$$$$$$ |' },
+    { type: 'ascii', text: '/  \\__$$ |$$ \\__$$ |$$ |_____ $$ |  $$ |$$ |  $$ |$$ |$$$$ |$$ \\__$$ |  $$ $$/   $$ |  $$ |' },
+    { type: 'ascii', text: '$$    $$/ $$    $$/ $$       |$$ |  $$ |$$ |  $$ |$$ | $$$ |$$    $$/    $$$/    $$ |  $$ |' },
+    { type: 'ascii', text: ' $$$$$$/   $$$$$$/  $$$$$$$$/ $$/   $$/ $$/   $$/ $$/   $$/  $$$$$$/      $/     $$/   $$/ ' },
+    { type: 'system', text: '' },
+    { type: 'system', text: 'SolarnovaOS Terminal v3.0' },
     { type: 'output', text: `Welcome, ${user?.username || 'user'}! Type "help" for commands.` },
     { type: 'output', text: '' },
   ]);
