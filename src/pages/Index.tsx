@@ -678,21 +678,6 @@ function IndexInner({ onDevMode }: { onDevMode: () => void }) {
         </main>
       )}
 
-      {/* Footer - only show on pages that scroll */}
-      {!['music', 'youtube', 'chatroom', 'solar', 'proxy'].includes(activeSection) && (
-        <footer className="border-t border-border/30 bg-background/80 backdrop-blur-lg mt-12 md:mt-20 pb-24 md:pb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-            <div className="text-center">
-              <p className="text-muted-foreground text-sm md:text-base">
-                © 2024 Solarnova Gaming. Crafted by p0tato
-              </p>
-              <p className="text-muted-foreground/60 text-xs md:text-sm mt-2">
-                Your hub for gaming excellence
-              </p>
-            </div>
-          </div>
-        </footer>
-      )}
 
       {/* Persistent YouTube Music Mini Player - shows when not in music tab */}
       {activeSection !== 'music' && (

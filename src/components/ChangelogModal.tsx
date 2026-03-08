@@ -13,6 +13,28 @@ interface ChangelogEntry {
 
 const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '3.0',
+    date: 'March 8, 2026',
+    highlights: ['Solarnova V3 — Major Release 🎉'],
+    features: [
+      'Real GitHub integration in SolarnovaOS terminal (clone, pull, push)',
+      'Resizable desktop windows with edge & corner drag',
+      'Admin "Clear Chat" button in global chatroom',
+      'SolarnovaOS desktop environment with dual-theme (Windows/macOS)',
+      'Persistent music playback across desktop windows',
+      'Cross-device file system & pinned apps sync',
+    ],
+    fixes: [
+      'Window overflow clipping fixed for resize handles',
+      'Git command routing improved for async operations',
+    ],
+    improvements: [
+      'Desktop windows feel native with full resize support',
+      'Edge function proxy for secure GitHub API access',
+      'Upgraded overall UI polish and interactions',
+    ],
+  },
+  {
     version: '2.14',
     date: 'January 29, 2026',
     highlights: ['Personal Music Uploads in YouTube Music', 'Cross-device game progress sync'],
