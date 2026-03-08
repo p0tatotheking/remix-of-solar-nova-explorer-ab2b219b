@@ -132,7 +132,7 @@ export async function handleAsyncGitCommand(
         action: 'clone',
         owner: parsed.owner,
         repo: parsed.repo,
-      });
+      }, userId);
 
       const gitState = createGitState();
       gitState.remotes['origin'] = url;
