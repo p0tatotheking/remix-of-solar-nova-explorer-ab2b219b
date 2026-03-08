@@ -79,7 +79,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 
     try {
       const { error } = await supabase.rpc('delete_app_user', {
-        p_admin_id: user.id,
+        p_session_token: sessionToken!,
         p_user_id: userId,
       });
 
