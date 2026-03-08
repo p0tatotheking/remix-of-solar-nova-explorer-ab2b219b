@@ -485,7 +485,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
 
   const fetchDmMessages = async (otherUserId: string) => {
     const { data } = await supabase.rpc('get_my_direct_messages', {
-      p_user_id: user?.id,
+      p_session_token: sessionToken!,
       p_other_user_id: otherUserId,
     });
     setDmMessages(data || []);
