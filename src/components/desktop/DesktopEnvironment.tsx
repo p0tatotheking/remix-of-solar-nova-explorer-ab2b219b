@@ -286,6 +286,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
           onMaximize={maximizeWindow}
           onFocus={focusWindow}
           onMove={moveWindow}
+          onResize={resizeWindow}
         >
           {renderWindowContent(win)}
         </DesktopWindowComponent>
