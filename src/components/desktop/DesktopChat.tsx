@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Sparkles } from 'lucide-react';
 import { DiscordChat } from '@/components/DiscordChat';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
+let hasLoadedOnce = false;
+
 export function DesktopChat() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!hasLoadedOnce);
   const [loadingStep, setLoadingStep] = useState(0);
 
   const loadingMessages = [
