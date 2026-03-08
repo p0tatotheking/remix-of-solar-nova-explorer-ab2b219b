@@ -22,7 +22,10 @@ export function DesktopChat() {
       setLoadingStep(prev => {
         if (prev >= loadingMessages.length - 1) {
           clearInterval(stepInterval);
-          setTimeout(() => setIsLoading(false), 400);
+          setTimeout(() => {
+            setIsLoading(false);
+            hasLoadedOnce = true;
+          }, 400);
           return prev;
         }
         return prev + 1;
