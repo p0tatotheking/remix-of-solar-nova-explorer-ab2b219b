@@ -77,8 +77,8 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
     setSearchQuery('');
   };
 
-  // Windows Search Panel
-  const SearchPanel = () => (
+  // Search panel content rendered inline (not as a component) to prevent remount on state change
+  const windowsSearchContent = (
     <div
       ref={searchPanelRef}
       className="absolute bottom-14 left-1/2 -translate-x-1/2 w-[560px] max-w-[90vw] bg-[hsl(220,20%,10%)]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[600]"
@@ -103,7 +103,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
         </div>
       </div>
 
-      <ScrollArea className="h-[400px]">
+      <div className="h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
         <div className="p-3">
           {searchQuery.trim() ? (
             <div className="text-xs text-muted-foreground/70 uppercase tracking-wider px-2 mb-2">
@@ -172,7 +172,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
             </>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 
