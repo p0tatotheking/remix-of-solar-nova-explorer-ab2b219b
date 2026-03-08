@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Minus, Maximize2, Minimize2 } from 'lucide-react';
 import type { DesktopTheme, DesktopWindow as WindowType } from './types';
 
