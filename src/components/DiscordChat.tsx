@@ -134,6 +134,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [reactions, setReactions] = useState<Record<string, Record<string, { users: string[]; usernames: string[] }>>>({});
   const [replyingTo, setReplyingTo] = useState<Message | DirectMessage | null>(null);
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, { username: string; location: string }>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
