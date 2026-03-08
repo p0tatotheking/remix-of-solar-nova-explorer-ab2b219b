@@ -304,7 +304,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
           <span>Search</span>
         </button>
 
-        {searchOpen && <SearchPanel />}
+        {searchOpen && windowsSearchContent}
 
         <div className="flex-1 flex items-center gap-1 ml-3">
           {pinnedAppDetails.map(app => (
