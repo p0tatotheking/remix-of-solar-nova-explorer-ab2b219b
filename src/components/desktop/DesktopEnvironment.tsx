@@ -10,6 +10,7 @@ import { FileManager } from './FileManager';
 import { SettingsApp } from './SettingsApp';
 import { DesktopChat } from './DesktopChat';
 import { DesktopMusic } from './DesktopMusic';
+import { CodeEditor } from './CodeEditor';
 import { YouTubeMusicProvider } from '@/contexts/YouTubeMusicContext';
 import { YouTubeMusicPlayer } from '@/components/music/YouTubeMusicPlayer';
 import type { DesktopTheme, DesktopApp, DesktopWindow, FileSystemNode } from './types';
@@ -21,6 +22,7 @@ interface DesktopEnvironmentProps {
 
 const DESKTOP_APPS: DesktopApp[] = [
   { id: 'terminal', name: 'Terminal', icon: 'terminal', type: 'terminal' },
+  { id: 'code-editor', name: 'SolarCode', icon: 'code', type: 'custom' },
   { id: 'files', name: 'Files', icon: 'folder', type: 'filemanager' },
   { id: 'chat', name: 'Chat', icon: 'chat', type: 'custom' },
   { id: 'music', name: 'Music', icon: 'music', type: 'custom' },
@@ -225,6 +227,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     }
     const offsetCount = windows.length;
     const isGame = games.find(g => g.id === appId);
+    const isCodeEditor = appId === 'code-editor';
     const newWindow: DesktopWindow = {
       id: `${appId}-${Date.now()}`,
       appId,
@@ -234,8 +237,8 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
       zIndex: nextZIndex,
       x: 100 + offsetCount * 30,
       y: 60 + offsetCount * 30,
-      width: isGame ? window.innerWidth : 700,
-      height: isGame ? window.innerHeight - 48 : 450,
+      width: isGame ? window.innerWidth : isCodeEditor ? 1000 : 700,
+      height: isGame ? window.innerHeight - 48 : isCodeEditor ? 600 : 450,
     };
     setWindows(prev => [...prev, newWindow]);
     setNextZIndex(prev => prev + 1);
@@ -259,6 +262,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
 
   const renderWindowContent = (win: DesktopWindow) => {
     if (win.appId === 'terminal') return <DesktopTerminal fileSystem={fileSystem} onFileSystemChange={setFileSystem} />;
+    if (win.appId === 'code-editor') return <CodeEditor fileSystem={fileSystem} onFileSystemChange={setFileSystem} onOpenTerminal={() => openWindow('terminal', 'Terminal')} />;
     if (win.appId === 'files') return <FileManager fileSystem={fileSystem} onFileSystemChange={setFileSystem} />;
     if (win.appId === 'settings') return <SettingsApp theme={theme} onThemeChange={setTheme} />;
     if (win.appId === 'chat') return <DesktopChat />;
