@@ -59,7 +59,7 @@ const THEME_OPTIONS: { id: ThemePreset; name: string; color: string }[] = [
   { id: 'midnight', name: 'Midnight', color: 'hsl(240, 50%, 45%)' },
 ];
 
-export function SettingsPage({ friends = [], nicknames = [], onNicknamesChange, onProfileChange }: SettingsPageProps) {
+export function SettingsPage({ friends: propFriends, nicknames: propNicknames, onNicknamesChange, onProfileChange }: SettingsPageProps) {
   const { user } = useAuth();
   const { snowfallEnabled, setSnowfallEnabled } = useSnowfall();
   const { currentTheme, setCurrentTheme, customBackground, setCustomBackground, glassEnabled, setGlassEnabled } = useTheme();
@@ -88,10 +88,48 @@ export function SettingsPage({ friends = [], nicknames = [], onNicknamesChange, 
   // Active settings tab
   const [activeTab, setActiveTab] = useState<'appearance' | 'profile' | 'friends'>('appearance');
 
-  // Fetch profile on mount
+  // Internal friends & nicknames state (fetched if not provided via props)
+  const [internalFriends, setInternalFriends] = useState<AppUser[]>([]);
+  const [internalNicknames, setInternalNicknames] = useState<FriendNickname[]>([]);
+
+  const friends = propFriends ?? internalFriends;
+  const nicknames = propNicknames ?? internalNicknames;
+
+  // Fetch friends list
+  const fetchFriends = async () => {
+    if (!user) return;
+    const { data: friendships } = await supabase
+      .from('friendships')
+      .select('friend_id')
+      .eq('user_id', user.id);
+
+    if (friendships && friendships.length > 0) {
+      const { data: users } = await supabase.rpc('get_all_app_users');
+      if (users) {
+        const friendIds = new Set(friendships.map(f => f.friend_id));
+        setInternalFriends(users.filter((u: AppUser) => friendIds.has(u.id)));
+      }
+    }
+  };
+
+  // Fetch nicknames
+  const fetchNicknames = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('friend_nicknames')
+      .select('*')
+      .eq('user_id', user.id);
+    if (data) {
+      setInternalNicknames(data as FriendNickname[]);
+    }
+  };
+
+  // Fetch profile, friends, nicknames on mount
   useEffect(() => {
     if (user) {
       fetchProfile();
+      if (!propFriends) fetchFriends();
+      if (!propNicknames) fetchNicknames();
     }
   }, [user]);
 
@@ -271,6 +309,7 @@ export function SettingsPage({ friends = [], nicknames = [], onNicknamesChange, 
     setEditingNickname(null);
     setNicknameValue('');
     onNicknamesChange?.();
+    if (!propNicknames) fetchNicknames();
   };
 
   const startEditNickname = (friendId: string) => {
