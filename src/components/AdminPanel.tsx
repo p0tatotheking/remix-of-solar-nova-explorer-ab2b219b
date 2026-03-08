@@ -14,7 +14,7 @@ interface AppUser {
 type TabType = 'users' | 'games';
 
 export function AdminPanel({ onClose }: { onClose: () => void }) {
-  const { user } = useAuth();
+  const { user, sessionToken } = useAuth();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
