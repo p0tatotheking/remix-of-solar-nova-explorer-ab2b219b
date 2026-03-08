@@ -444,19 +444,39 @@ export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal, onC
 
   return (
     <div className="flex flex-col h-full bg-[#1e1e1e] text-[#cccccc] overflow-hidden" style={{ fontFamily: "'Consolas', 'Courier New', monospace" }}>
-      {/* Title bar / Menu bar */}
-      <div className="flex items-center h-[30px] bg-[#323233] px-2 text-[12px] text-[#cccccc] gap-3 shrink-0 border-b border-[#252526]">
-        <Code2 className="w-4 h-4 text-[#007acc]" />
-        <span className="opacity-70">File</span>
-        <span className="opacity-70">Edit</span>
-        <span className="opacity-70">Selection</span>
-        <span className="opacity-70">View</span>
-        <span className="opacity-70">Go</span>
-        <span className="opacity-70">Run</span>
-        <span className="opacity-70">Terminal</span>
-        <span className="opacity-70">Help</span>
+      {/* Title bar / Menu bar with window controls */}
+      <div className="flex items-center h-[30px] bg-[#323233] px-2 text-[12px] text-[#cccccc] shrink-0 border-b border-[#252526]">
+        <Code2 className="w-4 h-4 text-[#007acc] mr-2 shrink-0" />
+        <div className="flex items-center gap-3">
+          <span className="opacity-70 hover:opacity-100 cursor-default">File</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Edit</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Selection</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">View</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Go</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Run</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Terminal</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Help</span>
+        </div>
         <div className="flex-1 text-center text-[12px] opacity-60">
           {currentTab ? `${currentTab.name} — SolarCode` : 'SolarCode'}
+        </div>
+        {/* Window controls */}
+        <div className="flex items-center shrink-0">
+          {onMinimize && (
+            <button onClick={onMinimize} className="p-1.5 hover:bg-white/10 rounded-sm" title="Minimize">
+              <Minus className="w-3.5 h-3.5 text-[#cccccc]" />
+            </button>
+          )}
+          {onMaximize && (
+            <button onClick={onMaximize} className="p-1.5 hover:bg-white/10 rounded-sm" title={isMaximized ? 'Restore' : 'Maximize'}>
+              {isMaximized ? <Minimize2 className="w-3.5 h-3.5 text-[#cccccc]" /> : <Maximize2 className="w-3.5 h-3.5 text-[#cccccc]" />}
+            </button>
+          )}
+          {onClose && (
+            <button onClick={onClose} className="p-1.5 hover:bg-[#e81123] rounded-sm" title="Close">
+              <X className="w-3.5 h-3.5 text-[#cccccc]" />
+            </button>
+          )}
         </div>
       </div>
 
