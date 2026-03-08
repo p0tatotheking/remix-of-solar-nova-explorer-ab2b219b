@@ -12,6 +12,10 @@ interface CodeEditorProps {
   fileSystem: Record<string, FileSystemNode>;
   onFileSystemChange: (fs: Record<string, FileSystemNode>) => void;
   onOpenTerminal?: () => void;
+  onClose?: () => void;
+  onMinimize?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
 }
 
 interface OpenTab {
