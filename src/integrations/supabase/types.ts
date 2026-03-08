@@ -230,6 +230,36 @@ export type Database = {
         }
         Relationships: []
       }
+      desktop_customizations: {
+        Row: {
+          custom_icons: Json
+          custom_names: Json
+          hidden_apps: Json
+          icon_positions: Json
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          custom_icons?: Json
+          custom_names?: Json
+          hidden_apps?: Json
+          icon_positions?: Json
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          custom_icons?: Json
+          custom_names?: Json
+          hidden_apps?: Json
+          icon_positions?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       desktop_file_systems: {
         Row: {
           file_system: Json

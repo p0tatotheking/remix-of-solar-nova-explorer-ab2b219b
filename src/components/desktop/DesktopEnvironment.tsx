@@ -76,6 +76,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
 
   const fsSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pinSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const customSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setFileSystem = useCallback((fs: Record<string, FileSystemNode>) => {
     setFileSystemState(fs);
@@ -115,12 +116,24 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     });
   }, [user]);
 
+  const saveCustomizations = useCallback((updates: { hidden_apps?: string[]; custom_icons?: Record<string, string>; custom_names?: Record<string, string>; icon_positions?: Record<string, { x: number; y: number }> }) => {
+    if (!user) return;
+    if (customSaveTimeout.current) clearTimeout(customSaveTimeout.current);
+    customSaveTimeout.current = setTimeout(() => {
+      supabase.from('desktop_customizations').upsert(
+        { user_id: user.id, ...updates, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      ).then(() => {});
+    }, 1000);
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
     Promise.all([
       supabase.from('desktop_file_systems').select('file_system').eq('user_id', user.id).maybeSingle(),
       supabase.from('desktop_pinned_apps').select('pinned_apps').eq('user_id', user.id).maybeSingle(),
-    ]).then(([fsResult, pinsResult]) => {
+      supabase.from('desktop_customizations').select('*').eq('user_id', user.id).maybeSingle(),
+    ]).then(([fsResult, pinsResult, customResult]) => {
       if (fsResult.data?.file_system) {
         const dbFs = fsResult.data.file_system as unknown as Record<string, FileSystemNode>;
         setFileSystemState(dbFs);
@@ -130,6 +143,13 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
         const dbPins = pinsResult.data.pinned_apps as string[];
         setPinnedAppsState(dbPins);
         localStorage.setItem('solarnova-desktop-pinned', JSON.stringify(dbPins));
+      }
+      if (customResult.data) {
+        const c = customResult.data;
+        if (c.hidden_apps) { const h = c.hidden_apps as string[]; setHiddenApps(h); localStorage.setItem('solarnova-desktop-hidden', JSON.stringify(h)); }
+        if (c.custom_icons) { const i = c.custom_icons as Record<string, string>; setCustomIcons(i); localStorage.setItem('solarnova-desktop-icons', JSON.stringify(i)); }
+        if (c.custom_names) { const n = c.custom_names as Record<string, string>; setCustomNames(n); localStorage.setItem('solarnova-desktop-names', JSON.stringify(n)); }
+        if (c.icon_positions) { const p = c.icon_positions as Record<string, { x: number; y: number }>; setIconPositions(p); localStorage.setItem('solarnova-desktop-positions', JSON.stringify(p)); }
       }
     });
   }, [user]);
@@ -148,9 +168,10 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     setIconPositions(prev => {
       const next = { ...prev, [appId]: { x, y } };
       localStorage.setItem('solarnova-desktop-positions', JSON.stringify(next));
+      saveCustomizations({ icon_positions: next });
       return next;
     });
-  }, []);
+  }, [saveCustomizations]);
 
   const togglePin = useCallback((appId: string) => {
     setPinnedApps(prev =>
@@ -162,33 +183,37 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     setHiddenApps(prev => {
       const next = [...prev, appId];
       localStorage.setItem('solarnova-desktop-hidden', JSON.stringify(next));
+      saveCustomizations({ hidden_apps: next });
       return next;
     });
-  }, []);
+  }, [saveCustomizations]);
 
   const unhideApp = useCallback((appId: string) => {
     setHiddenApps(prev => {
       const next = prev.filter(id => id !== appId);
       localStorage.setItem('solarnova-desktop-hidden', JSON.stringify(next));
+      saveCustomizations({ hidden_apps: next });
       return next;
     });
-  }, []);
+  }, [saveCustomizations]);
 
   const changeIcon = useCallback((appId: string, newIcon: string) => {
     setCustomIcons(prev => {
       const next = { ...prev, [appId]: newIcon };
       localStorage.setItem('solarnova-desktop-icons', JSON.stringify(next));
+      saveCustomizations({ custom_icons: next });
       return next;
     });
-  }, []);
+  }, [saveCustomizations]);
 
   const renameApp = useCallback((appId: string, newName: string) => {
     setCustomNames(prev => {
       const next = { ...prev, [appId]: newName };
       localStorage.setItem('solarnova-desktop-names', JSON.stringify(next));
+      saveCustomizations({ custom_names: next });
       return next;
     });
-  }, []);
+  }, [saveCustomizations]);
 
   const openWindow = useCallback((appId: string, title: string) => {
     if (appId === 'music') setMusicActivated(true);
