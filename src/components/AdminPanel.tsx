@@ -29,7 +29,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
     
     try {
       const { data, error } = await supabase.rpc('get_all_users', {
-        p_admin_id: user.id,
+        p_session_token: sessionToken!,
       });
 
       if (error) throw error;
