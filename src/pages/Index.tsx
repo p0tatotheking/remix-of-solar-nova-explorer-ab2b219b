@@ -4,6 +4,7 @@ import { DiscordChat } from '@/components/DiscordChat';
 import { BootScreen } from '@/components/BootScreen';
 import { SolarTerminal } from '@/components/SolarTerminal';
 import { DesktopEnvironment } from '@/components/desktop/DesktopEnvironment';
+import { DevModeLoginGate } from '@/components/DevModeLoginGate';
 import { GamesGrid } from '@/components/GamesGrid';
 import { GamesCarousel } from '@/components/GamesCarousel';
 import { FNFSection } from '@/components/FNFSection';
@@ -133,8 +134,15 @@ const Index = () => {
     );
   }
 
-  // Show dev mode desktop environment
+  // Show dev mode desktop environment (requires login)
   if (showDevMode) {
+    if (!user) {
+      return (
+        <ThemeProvider>
+          <DevModeLoginGate onBack={() => setShowDevMode(false)} />
+        </ThemeProvider>
+      );
+    }
     return (
       <ThemeProvider>
         <DesktopEnvironment onExit={() => setShowDevMode(false)} />
