@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Minus, Maximize2, Minimize2 } from 'lucide-react';
 import type { DesktopTheme, DesktopWindow as WindowType } from './types';
 
@@ -102,11 +102,36 @@ export function DesktopWindowComponent({
     document.addEventListener('mouseup', onMouseUp);
   }, [win.id, win.x, win.y, win.width, win.height, onFocus, onResize]);
 
-  if (win.isMinimized) return null;
+  // Minimize animation state
+  const [minimizeAnim, setMinimizeAnim] = useState<'idle' | 'minimizing' | 'restoring'>('idle');
+  const prevMinimized = useRef(win.isMinimized);
+
+  useEffect(() => {
+    if (win.isMinimized && !prevMinimized.current) {
+      setMinimizeAnim('minimizing');
+      const t = setTimeout(() => setMinimizeAnim('idle'), 250);
+      prevMinimized.current = true;
+      return () => clearTimeout(t);
+    }
+    if (!win.isMinimized && prevMinimized.current) {
+      setMinimizeAnim('restoring');
+      const t = setTimeout(() => setMinimizeAnim('idle'), 250);
+      prevMinimized.current = false;
+      return () => clearTimeout(t);
+    }
+  }, [win.isMinimized]);
+
+  if (win.isMinimized && minimizeAnim === 'idle') return null;
+
+  const minimizeStyle: React.CSSProperties = minimizeAnim === 'minimizing'
+    ? { transform: 'scale(0.3) translateY(100%)', opacity: 0, transition: 'transform 0.25s ease-in, opacity 0.2s ease-in', pointerEvents: 'none' }
+    : minimizeAnim === 'restoring'
+    ? { animation: 'window-restore 0.25s ease-out forwards' }
+    : {};
 
   const style: React.CSSProperties = win.isMaximized
-    ? { top: theme === 'macos' ? 28 : 0, left: 0, right: 0, bottom: theme === 'windows' ? 48 : 0, width: 'auto', height: 'auto' }
-    : { top: win.y, left: win.x, width: win.width, height: win.height };
+    ? { top: theme === 'macos' ? 28 : 0, left: 0, right: 0, bottom: theme === 'windows' ? 48 : 0, width: 'auto', height: 'auto', ...minimizeStyle }
+    : { top: win.y, left: win.x, width: win.width, height: win.height, ...minimizeStyle };
 
   const resizeHandles = !win.isMaximized && (
     <>
