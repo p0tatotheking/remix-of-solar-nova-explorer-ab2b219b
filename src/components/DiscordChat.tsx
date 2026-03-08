@@ -961,18 +961,22 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                   <div className="mb-2">
                     <button
                       onClick={() => setShowPinned(!showPinned)}
-                      className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded bg-primary/10"
+                      className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded bg-primary/10 w-full text-left"
                     >
-                      <Pin className="w-3 h-3" />
-                      {pinnedMessages.filter(p => p.channel_id === 'general').length} pinned message(s)
+                      <Pin className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">
+                        <span className="font-bold text-foreground">{pinnedMessages.filter(p => p.channel_id === 'general')[0]?.message_text}</span>
+                        {' '}<span className="text-muted-foreground">— pinned by {pinnedMessages.filter(p => p.channel_id === 'general')[0]?.pinned_by}</span>
+                      </span>
+                      <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${showPinned ? 'rotate-180' : ''}`} />
                     </button>
                     {showPinned && (
                       <div className="mt-1 space-y-1 border border-border rounded-lg p-2 bg-muted/30">
                         {pinnedMessages.filter(p => p.channel_id === 'general').map(pin => (
                           <div key={pin.id} className="flex items-start justify-between gap-2 text-xs p-1.5 rounded bg-background/50">
                             <div className="min-w-0">
-                              <span className="font-semibold text-foreground">{pin.message_username}</span>
-                              <p className="text-muted-foreground truncate">{pin.message_text}</p>
+                              <span className="font-semibold text-foreground">{pin.message_username}:</span>
+                              <p className="font-bold text-foreground">{pin.message_text}</p>
                             </div>
                             {user?.role === 'admin' && (
                               <button onClick={() => unpinMessage(pin.message_id, 'general')} className="text-destructive hover:text-destructive/80 flex-shrink-0" title="Unpin">
