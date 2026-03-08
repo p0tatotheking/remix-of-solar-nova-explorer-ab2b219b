@@ -227,6 +227,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     }
     const offsetCount = windows.length;
     const isGame = games.find(g => g.id === appId);
+    const isCodeEditor = appId === 'code-editor';
     const newWindow: DesktopWindow = {
       id: `${appId}-${Date.now()}`,
       appId,
@@ -236,8 +237,8 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
       zIndex: nextZIndex,
       x: 100 + offsetCount * 30,
       y: 60 + offsetCount * 30,
-      width: isGame ? window.innerWidth : 700,
-      height: isGame ? window.innerHeight - 48 : 450,
+      width: isGame ? window.innerWidth : isCodeEditor ? 1000 : 700,
+      height: isGame ? window.innerHeight - 48 : isCodeEditor ? 600 : 450,
     };
     setWindows(prev => [...prev, newWindow]);
     setNextZIndex(prev => prev + 1);
