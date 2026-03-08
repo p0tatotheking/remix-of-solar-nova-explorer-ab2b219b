@@ -173,13 +173,11 @@ export function useGameProgress() {
           ? session.custom_settings as Record<string, Json | undefined>
           : {};
         const mergedSettings = { ...existingSettings, ...settings };
-        await supabase
-          .from('game_progress')
-          .update({
-            custom_settings: mergedSettings,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', session.id);
+        await supabase.rpc('save_game_settings', {
+          p_caller_id: user.id,
+          p_game_url: gameUrl,
+          p_custom_settings: mergedSettings as any,
+        });
       } catch (e) {
         console.error('Error saving game settings:', e);
       }
