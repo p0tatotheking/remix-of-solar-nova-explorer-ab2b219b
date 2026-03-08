@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { hashPassword } from '@/lib/crypto';
 
 interface User {
   id: string;
@@ -23,16 +22,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session in localStorage
     const storedUser = localStorage.getItem('solarnova_user');
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
-        // Ensure role field exists, default to 'user' if missing
-        if (!parsed.role) {
-          parsed.role = 'user';
-        }
-        setUser(parsed);
+        // Re-verify role from server on load
+        verifyUserRole(parsed).then(verified => {
+          if (verified) {
+            setUser(verified);
+            localStorage.setItem('solarnova_user', JSON.stringify(verified));
+          } else {
+            localStorage.removeItem('solarnova_user');
+          }
+          setIsLoading(false);
+        });
+        return;
       } catch {
         localStorage.removeItem('solarnova_user');
       }
@@ -40,28 +44,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  const verifyUserRole = async (parsed: { id: string; username: string }): Promise<User | null> => {
+    try {
+      const { data } = await supabase.rpc('has_role', { _user_id: parsed.id, _role: 'admin' });
+      return {
+        id: parsed.id,
+        username: parsed.username,
+        role: data ? 'admin' : 'user',
+      };
+    } catch {
+      return null;
+    }
+  };
+
   const login = async (username: string, password: string): Promise<{ error: string | null }> => {
     try {
-      const passwordHash = await hashPassword(password);
-      
-      const { data, error } = await supabase.rpc('verify_login', {
-        p_username: username,
-        p_password_hash: passwordHash,
+      const { data, error } = await supabase.functions.invoke('auth-hash', {
+        body: { action: 'login', username, password },
       });
 
-      if (error) {
-        console.error('Login error:', error);
-        return { error: 'Invalid username or password' };
-      }
-
-      if (!data || data.length === 0) {
-        return { error: 'Invalid username or password' };
+      if (error || data?.error) {
+        return { error: data?.error || 'Invalid username or password' };
       }
 
       const userData: User = {
-        id: data[0].user_id,
-        username: data[0].username,
-        role: data[0].role || 'user',
+        id: data.user_id,
+        username: data.username,
+        role: data.role || 'user',
       };
 
       setUser(userData);
