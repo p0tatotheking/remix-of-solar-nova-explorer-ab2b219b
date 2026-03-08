@@ -524,42 +524,51 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
 
   const sendFriendRequest = async (toUser: AppUser) => {
     if (!user) return;
-    await supabase.from('friend_requests').insert({
-      from_user_id: user.id,
-      from_username: user.username,
-      to_user_id: toUser.id,
-      to_username: toUser.username,
+    await supabase.rpc('send_friend_request', {
+      p_caller_id: user.id,
+      p_caller_username: user.username,
+      p_to_user_id: toUser.id,
+      p_to_username: toUser.username,
     });
     fetchFriendRequests();
   };
 
   const acceptFriendRequest = async (request: FriendRequest) => {
     if (!user) return;
-    await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', request.id);
-    await supabase.from('friendships').insert([
-      { user_id: request.from_user_id, friend_id: request.to_user_id },
-      { user_id: request.to_user_id, friend_id: request.from_user_id },
-    ]);
+    await supabase.rpc('accept_friend_request', {
+      p_caller_id: user.id,
+      p_request_id: request.id,
+    });
     setShowNotification(null);
     fetchFriendRequests();
     fetchFriendships();
   };
 
   const rejectFriendRequest = async (request: FriendRequest) => {
-    await supabase.from('friend_requests').update({ status: 'rejected' }).eq('id', request.id);
+    if (!user) return;
+    await supabase.rpc('reject_friend_request', {
+      p_caller_id: user.id,
+      p_request_id: request.id,
+    });
     setShowNotification(null);
     fetchFriendRequests();
   };
 
   const blockUser = async (userId: string) => {
     if (!user) return;
-    await supabase.from('user_blocks').insert({ blocker_id: user.id, blocked_id: userId });
+    await supabase.rpc('block_user', {
+      p_caller_id: user.id,
+      p_blocked_id: userId,
+    });
     fetchBlocks();
   };
 
   const unblockUser = async (userId: string) => {
     if (!user) return;
-    await supabase.from('user_blocks').delete().eq('blocker_id', user.id).eq('blocked_id', userId);
+    await supabase.rpc('unblock_user', {
+      p_caller_id: user.id,
+      p_blocked_id: userId,
+    });
     fetchBlocks();
   };
 
@@ -567,23 +576,21 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     if (!user) return;
     const muteUntil = duration ? new Date(Date.now() + parseInt(duration)).toISOString() : null;
     
-    const existing = muteSettings.find(m => m.muted_user_id === userId);
-    if (existing) {
-      await supabase.from('notification_settings').update({ mute_until: muteUntil }).eq('id', existing.id);
-    } else {
-      await supabase.from('notification_settings').insert({
-        user_id: user.id,
-        muted_user_id: userId,
-        mute_until: muteUntil,
-      });
-    }
+    await supabase.rpc('upsert_my_notification_setting', {
+      p_caller_id: user.id,
+      p_muted_user_id: userId,
+      p_mute_until: muteUntil,
+    });
     fetchMuteSettings();
     setShowMuteDialog(null);
   };
 
   const unmuteUser = async (userId: string) => {
     if (!user) return;
-    await supabase.from('notification_settings').delete().eq('user_id', user.id).eq('muted_user_id', userId);
+    await supabase.rpc('delete_my_notification_setting', {
+      p_caller_id: user.id,
+      p_muted_user_id: userId,
+    });
     fetchMuteSettings();
   };
 
@@ -1080,12 +1087,13 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                                       key={emoji}
                                       onClick={async () => {
                                         if (!user) return;
-                                        const userReacted = reactions[msg.id]?.[emoji]?.users.includes(user.id);
-                                        if (userReacted) {
-                                          await supabase.from('message_reactions').delete().eq('message_id', msg.id).eq('user_id', user.id).eq('emoji', emoji);
-                                        } else {
-                                          await supabase.from('message_reactions').insert({ message_id: msg.id, user_id: user.id, username: user.username, emoji, message_type: 'server' });
-                                        }
+                                        await supabase.rpc('toggle_reaction', {
+                                          p_caller_id: user.id,
+                                          p_message_id: msg.id,
+                                          p_username: user.username,
+                                          p_emoji: emoji,
+                                          p_message_type: 'server',
+                                        });
                                         fetchReactions();
                                         setReactionPickerMsgId(null);
                                       }}
@@ -1203,12 +1211,13 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                                     key={emoji}
                                     onClick={async () => {
                                       if (!user) return;
-                                      const userReacted = reactions[msg.id]?.[emoji]?.users.includes(user.id);
-                                      if (userReacted) {
-                                        await supabase.from('message_reactions').delete().eq('message_id', msg.id).eq('user_id', user.id).eq('emoji', emoji);
-                                      } else {
-                                        await supabase.from('message_reactions').insert({ message_id: msg.id, user_id: user.id, username: user.username, emoji, message_type: 'dm' });
-                                      }
+                                      await supabase.rpc('toggle_reaction', {
+                                        p_caller_id: user.id,
+                                        p_message_id: msg.id,
+                                        p_username: user.username,
+                                        p_emoji: emoji,
+                                        p_message_type: 'dm',
+                                      });
                                       fetchReactions();
                                       setReactionPickerMsgId(null);
                                     }}

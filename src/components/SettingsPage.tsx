@@ -197,23 +197,11 @@ export function SettingsPage({ friends: propFriends, nicknames: propNicknames, o
     if (!user) return;
     setIsSaving(true);
 
-    const profileData = {
-      user_id: user.id,
-      display_name: displayName.trim() || null,
-      avatar_url: selectedAvatar,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (profile) {
-      await supabase
-        .from('user_profiles')
-        .update(profileData)
-        .eq('user_id', user.id);
-    } else {
-      await supabase
-        .from('user_profiles')
-        .insert(profileData);
-    }
+    await supabase.rpc('upsert_my_profile', {
+      p_caller_id: user.id,
+      p_display_name: displayName.trim() || null,
+      p_avatar_url: selectedAvatar,
+    });
 
     toast.success('Profile saved!');
     setIsSaving(false);

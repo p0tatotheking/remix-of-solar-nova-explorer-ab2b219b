@@ -156,34 +156,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (!user || !hasLoaded) return;
 
     try {
-      // Check if profile exists
-      const { data: existing } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      const themeData = {
-        theme_preset: theme,
-        custom_bg_type: bg.type,
-        custom_bg_url: bg.url,
-        glass_enabled: glass,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (existing) {
-        await supabase
-          .from('user_profiles')
-          .update(themeData)
-          .eq('user_id', user.id);
-      } else {
-        await supabase
-          .from('user_profiles')
-          .insert({
-            user_id: user.id,
-            ...themeData,
-          });
-      }
+      await supabase.rpc('upsert_my_profile', {
+        p_caller_id: user.id,
+        p_theme_preset: theme,
+        p_custom_bg_type: bg.type,
+        p_custom_bg_url: bg.url,
+        p_glass_enabled: glass,
+      });
     } catch (error) {
       console.error('Error saving theme settings:', error);
     }

@@ -86,8 +86,8 @@ function buildFileSystem(files: Record<string, string>, gitState: GitState): Rec
   return root;
 }
 
-async function callGitHubApi(body: Record<string, unknown>): Promise<any> {
-  const { data, error } = await supabase.functions.invoke('github-api', { body });
+async function callGitHubApi(body: Record<string, unknown>, userId: string): Promise<any> {
+  const { data, error } = await supabase.functions.invoke('github-api', { body: { ...body, user_id: userId } });
   if (error) throw new Error(error.message || 'Edge function error');
   if (data?.error) throw new Error(data.error);
   return data;
@@ -99,6 +99,7 @@ export async function handleAsyncGitCommand(
   currentPath: string[],
   fileSystem: Record<string, FileSystemNode>,
   username: string,
+  userId: string,
   updateFs: (path: string[], name: string, node: FileSystemNode | null) => void,
   getDir: (path: string[]) => Record<string, FileSystemNode> | null,
   addLines: (lines: TerminalLine[]) => void,
@@ -131,7 +132,7 @@ export async function handleAsyncGitCommand(
         action: 'clone',
         owner: parsed.owner,
         repo: parsed.repo,
-      });
+      }, userId);
 
       const gitState = createGitState();
       gitState.remotes['origin'] = url;
@@ -186,7 +187,7 @@ export async function handleAsyncGitCommand(
         owner: parsed.owner,
         repo: parsed.repo,
         branch: git.currentBranch,
-      });
+      }, userId);
 
       // Update files in current directory
       let updated = 0;
@@ -263,7 +264,7 @@ export async function handleAsyncGitCommand(
             repo: parsed.repo,
             path: filePath,
             branch: git.currentBranch,
-          });
+          }, userId);
           sha = shaData.sha;
         } catch {
           // File doesn't exist yet, that's fine
@@ -278,7 +279,7 @@ export async function handleAsyncGitCommand(
           message: lastCommit.message,
           branch: git.currentBranch,
           sha,
-        });
+        }, userId);
         pushed++;
       }
 
