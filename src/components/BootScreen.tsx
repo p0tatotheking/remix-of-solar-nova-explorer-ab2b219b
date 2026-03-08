@@ -7,7 +7,7 @@ interface BootScreenProps {
 }
 
 const BOOT_MESSAGES = [
-  { prefix: '[OK]', text: 'Starting boot sequence for SolarnovaOS...' },
+  { prefix: '[OK]', text: 'Starting boot sequence for Solarnova...' },
   { prefix: '[OK]', text: 'Initializing kernel modules...' },
   { prefix: '[OK]', text: 'Loading system configuration...' },
   { prefix: '[OK]', text: 'Running startup functions...' },
