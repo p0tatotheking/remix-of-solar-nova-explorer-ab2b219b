@@ -244,7 +244,9 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
 
         {searchOpen && spotlightContent}
 
-        <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-[500] flex items-end gap-1 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl">
+        {/* Hover trigger zone at bottom of screen */}
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[499] w-[400px] h-2 group">
+        <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-[500] flex items-end gap-1 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl translate-y-[calc(100%+8px)] opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out pointer-events-none group-hover:pointer-events-auto">
           {pinnedAppDetails.map(app => (
             <button key={app.id} onClick={() => onAppLaunch(app.id, app.name)}
               onContextMenu={(e) => handleContextMenu(e, app.id, app.name, true)}
