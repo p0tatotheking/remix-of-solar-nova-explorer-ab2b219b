@@ -23,7 +23,7 @@ const BOOT_MESSAGES = [
   { prefix: '[OK]', text: '- initializeRealtime()' },
   { prefix: '[OK]', text: '- updateLoginGreeting()' },
   { prefix: '[OK]', text: 'All systems operational.' },
-  { prefix: '[OK]', text: 'Launching SolarnovaOS...' },
+  { prefix: '[OK]', text: 'Launching Solarnova...' },
 ];
 
 export function BootScreen({ onComplete, onDevMode }: BootScreenProps) {
