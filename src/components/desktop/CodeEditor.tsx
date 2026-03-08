@@ -308,26 +308,27 @@ export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal, onC
   const handleTerminalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const cmd = terminalInput.trim();
-    setTerminalOutput(prev => [...prev.slice(0, -1), `$ ${cmd}`, '']);
+    const prompt = 'user@solarnova:~$ ';
+    setTerminalOutput(prev => [...prev, `${prompt}${cmd}`]);
     
     if (cmd === 'clear') {
-      setTerminalOutput(['$ ']);
+      setTerminalOutput([]);
     } else if (cmd === 'help') {
-      setTerminalOutput(prev => [...prev.slice(0, -1), 'Available: clear, help, ls, pwd, echo, date', '$ ']);
+      setTerminalOutput(prev => [...prev, 'Available: clear, help, ls, pwd, echo, date']);
     } else if (cmd === 'pwd') {
-      setTerminalOutput(prev => [...prev.slice(0, -1), '/home/user', '$ ']);
+      setTerminalOutput(prev => [...prev, '/home/user']);
     } else if (cmd === 'date') {
-      setTerminalOutput(prev => [...prev.slice(0, -1), new Date().toString(), '$ ']);
+      setTerminalOutput(prev => [...prev, new Date().toString()]);
     } else if (cmd.startsWith('echo ')) {
-      setTerminalOutput(prev => [...prev.slice(0, -1), cmd.slice(5), '$ ']);
+      setTerminalOutput(prev => [...prev, cmd.slice(5)]);
     } else if (cmd === 'ls') {
       const userDir = fileSystem.home?.children?.user?.children;
       if (userDir) {
         const items = Object.keys(userDir).join('  ');
-        setTerminalOutput(prev => [...prev.slice(0, -1), items, '$ ']);
+        setTerminalOutput(prev => [...prev, items]);
       }
     } else if (cmd) {
-      setTerminalOutput(prev => [...prev.slice(0, -1), `command not found: ${cmd}`, '$ ']);
+      setTerminalOutput(prev => [...prev, `command not found: ${cmd}`]);
     }
     setTerminalInput('');
   };
