@@ -101,15 +101,12 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
     // Handle page close/refresh - set user as offline
     const handleBeforeUnload = () => {
-      // Use sendBeacon for reliable delivery on page unload
-      const data = JSON.stringify({
-        user_id: user.id,
-        is_online: false,
-        last_seen: new Date().toISOString(),
-      });
+      // Use RPC via fetch for reliable delivery on page unload
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/upsert_my_status`;
+      const body = JSON.stringify({ p_caller_id: user.id, p_is_online: false });
       navigator.sendBeacon?.(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/user_status?on_conflict=user_id`,
-        new Blob([data], { type: 'application/json' })
+        url,
+        new Blob([body], { type: 'application/json' })
       );
     };
 
