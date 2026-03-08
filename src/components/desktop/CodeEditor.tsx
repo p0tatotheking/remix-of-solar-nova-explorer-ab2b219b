@@ -177,7 +177,7 @@ function createFileAtPath(fs: Record<string, FileSystemNode>, dirPath: string, f
   return newFs;
 }
 
-export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal }: CodeEditorProps) {
+export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal, onClose, onMinimize, onMaximize, isMaximized }: CodeEditorProps) {
   const [activeTab, setActiveTab] = useState(0); // activity bar tab
   const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
   const [activeFileTab, setActiveFileTab] = useState<number>(-1);
