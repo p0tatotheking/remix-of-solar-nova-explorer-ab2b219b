@@ -86,10 +86,10 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     if (user) {
       if (fsSaveTimeout.current) clearTimeout(fsSaveTimeout.current);
       fsSaveTimeout.current = setTimeout(() => {
-        supabase.from('desktop_file_systems').upsert(
-          { user_id: user.id, file_system: fs as any, updated_at: new Date().toISOString() },
-          { onConflict: 'user_id' }
-        ).then(() => {});
+        supabase.rpc('upsert_my_file_system', {
+          p_caller_id: user.id,
+          p_file_system: fs as any,
+        }).then(() => {});
       }, 1500);
     }
   }, [user]);
