@@ -1596,6 +1596,7 @@ export type Database = {
           username: string
         }[]
       }
+      verify_session: { Args: { p_session_token: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
