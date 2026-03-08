@@ -281,16 +281,32 @@ export function Chatroom() {
               <p className="text-sm text-muted-foreground">Logged in as {user?.username}</p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              setStep('verify');
-              setPassword('');
-              setMessages([]);
-            }}
-            className="text-sm text-primary hover:text-secondary transition-colors"
-          >
-            Leave
-          </button>
+          <div className="flex items-center gap-3">
+            {user?.role === 'admin' && (
+              <button
+                onClick={async () => {
+                  if (!confirm('Clear all chat messages? This cannot be undone.')) return;
+                  const { error } = await supabase.rpc('clear_chat_messages', { p_admin_id: user.id });
+                  if (!error) setMessages([]);
+                }}
+                className="text-sm text-destructive hover:text-destructive/80 transition-colors flex items-center gap-1"
+                title="Clear all messages"
+              >
+                <Trash2 className="w-4 h-4" />
+                Clear
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setStep('verify');
+                setPassword('');
+                setMessages([]);
+              }}
+              className="text-sm text-primary hover:text-secondary transition-colors"
+            >
+              Leave
+            </button>
+          </div>
         </div>
       </div>
 
