@@ -1230,6 +1230,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_friend_request: {
+        Args: { p_caller_id: string; p_request_id: string }
+        Returns: boolean
+      }
+      add_friendship: {
+        Args: { p_caller_id: string; p_friend_id: string }
+        Returns: boolean
+      }
       add_uploaded_music: {
         Args: {
           p_admin_id: string
@@ -1296,6 +1304,18 @@ export type Database = {
       }
       delete_game: {
         Args: { p_admin_id: string; p_game_id: string }
+        Returns: boolean
+      }
+      delete_my_friend_nickname: {
+        Args: { p_caller_id: string; p_friend_id: string }
+        Returns: boolean
+      }
+      delete_my_notification_setting: {
+        Args: { p_caller_id: string; p_muted_user_id: string }
+        Returns: boolean
+      }
+      delete_my_reaction: {
+        Args: { p_caller_id: string; p_reaction_id: string }
         Returns: boolean
       }
       delete_uploaded_music: {
@@ -1370,8 +1390,25 @@ export type Database = {
         Args: { p_sender_id: string; p_user_id: string }
         Returns: boolean
       }
+      reject_friend_request: {
+        Args: { p_caller_id: string; p_request_id: string }
+        Returns: boolean
+      }
+      remove_friendship: {
+        Args: { p_caller_id: string; p_friend_id: string }
+        Returns: boolean
+      }
       seed_admin_user: {
         Args: { p_password_hash: string; p_username: string }
+        Returns: string
+      }
+      send_friend_request: {
+        Args: {
+          p_caller_id: string
+          p_caller_username: string
+          p_to_user_id: string
+          p_to_username: string
+        }
         Returns: string
       }
       update_announcement: {
@@ -1399,12 +1436,87 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_my_profile: {
+        Args: {
+          p_avatar_url?: string
+          p_caller_id: string
+          p_custom_bg_type?: string
+          p_custom_bg_url?: string
+          p_display_name?: string
+          p_glass_enabled?: boolean
+          p_layout_mode?: string
+          p_popups_disabled?: boolean
+          p_theme_preset?: string
+          p_transitions_disabled?: boolean
+        }
+        Returns: boolean
+      }
       update_user_password: {
         Args: {
           p_admin_id: string
           p_new_password_hash: string
           p_user_id: string
         }
+        Returns: boolean
+      }
+      upsert_my_desktop_customizations: {
+        Args: {
+          p_caller_id: string
+          p_custom_icons?: Json
+          p_custom_names?: Json
+          p_hidden_apps?: Json
+          p_icon_positions?: Json
+        }
+        Returns: boolean
+      }
+      upsert_my_file_system: {
+        Args: { p_caller_id: string; p_file_system: Json }
+        Returns: boolean
+      }
+      upsert_my_friend_nickname: {
+        Args: { p_caller_id: string; p_friend_id: string; p_nickname: string }
+        Returns: boolean
+      }
+      upsert_my_game_progress: {
+        Args: {
+          p_caller_id: string
+          p_custom_settings?: Json
+          p_game_id?: string
+          p_game_title: string
+          p_game_url: string
+          p_play_time?: number
+        }
+        Returns: boolean
+      }
+      upsert_my_notification_setting: {
+        Args: {
+          p_caller_id: string
+          p_mute_until?: string
+          p_muted_user_id: string
+        }
+        Returns: boolean
+      }
+      upsert_my_pinned_apps: {
+        Args: { p_caller_id: string; p_pinned_apps: Json }
+        Returns: boolean
+      }
+      upsert_my_profile: {
+        Args: {
+          p_avatar_url?: string
+          p_caller_id: string
+          p_custom_bg_type?: string
+          p_custom_bg_url?: string
+          p_display_name?: string
+          p_glass_enabled?: boolean
+          p_layout_mode?: string
+          p_popups_disabled?: boolean
+          p_theme_preset?: string
+          p_transitions_disabled?: boolean
+        }
+        Returns: boolean
+      }
+      upsert_my_status: {
+        Args: { p_caller_id: string; p_is_online: boolean }
         Returns: boolean
       }
       verify_login: {
