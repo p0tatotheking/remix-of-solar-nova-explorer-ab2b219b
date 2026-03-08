@@ -37,7 +37,7 @@ export function SolarTerminal({ onExit }: TerminalProps) {
   const [lines, setLines] = useState<TerminalLine[]>([
     { type: 'system', text: '╔══════════════════════════════════════════╗' },
     { type: 'system', text: '║       SolarnovaOS Developer Terminal     ║' },
-    { type: 'system', text: '║            Version 2.0                   ║' },
+    { type: 'system', text: '║            Version 3.0                   ║' },
     { type: 'system', text: '╚══════════════════════════════════════════╝' },
     { type: 'output', text: '' },
     { type: 'output', text: `Welcome, ${user?.username || 'user'}! Type "help" for available commands.` },
