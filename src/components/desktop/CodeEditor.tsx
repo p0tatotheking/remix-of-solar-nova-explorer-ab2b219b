@@ -2,9 +2,9 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { 
   Files, Search, GitBranch, Play, Settings, ChevronRight, ChevronDown, 
   File, Folder, FolderOpen, X, Plus, MoreHorizontal, Terminal,
-  Code2, FileText, FileJson, FileCode, Hash, Minus, Maximize2, 
+  Code2, FileText, FileJson, FileCode, Hash, Minus, Maximize2, Minimize2,
   PanelBottom, SplitSquareVertical, LayoutGrid, Bell, GitCommit,
-  AlertCircle, CheckCircle2, Info
+  AlertCircle, CheckCircle2, Info, TriangleAlert, Bug
 } from 'lucide-react';
 import type { FileSystemNode } from './types';
 
