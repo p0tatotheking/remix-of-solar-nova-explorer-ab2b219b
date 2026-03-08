@@ -101,42 +101,35 @@ export function useGameProgress() {
         if (existing) {
           // Update last played time
           const { data, error } = await supabase
-            .from('game_progress')
-            .update({
-              last_played: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existing.id)
-            .select()
-            .single();
+            .rpc('start_game_session', {
+              p_caller_id: user.id,
+              p_game_url: gameUrl,
+              p_game_title: gameTitle,
+              p_game_id: gameId || null,
+            });
 
           if (error) {
             console.error('Error updating game session:', error);
             return existing;
           }
 
-          return data as GameProgress;
+          return (data as GameProgress[])?.[0] || existing;
         } else {
           // Create new session
           const { data, error } = await supabase
-            .from('game_progress')
-            .insert({
-              user_id: user.id,
-              game_url: gameUrl,
-              game_title: gameTitle,
-              game_id: gameId || null,
-              play_time: 0,
-              custom_settings: {},
-            })
-            .select()
-            .single();
+            .rpc('start_game_session', {
+              p_caller_id: user.id,
+              p_game_url: gameUrl,
+              p_game_title: gameTitle,
+              p_game_id: gameId || null,
+            });
 
           if (error) {
             console.error('Error creating game session:', error);
             return null;
           }
 
-          return data as GameProgress;
+          return (data as GameProgress[])?.[0] || null;
         }
       } catch (e) {
         console.error('Error in startGameSession:', e);
