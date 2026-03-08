@@ -40,17 +40,38 @@ async function legacySHA256(password: string): Promise<string> {
   return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Generate a cryptographically secure session token
+function generateSessionToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { action, username, password, admin_id, user_id, new_password } = await req.json();
+    const { action, username, password, admin_id, session_token, user_id, new_password } = await req.json();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Helper: verify session token and return user_id
+    const verifySession = async (token: string): Promise<string> => {
+      const { data, error } = await supabase
+        .from("user_sessions")
+        .select("user_id")
+        .eq("session_token", token)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+      
+      if (error || !data) {
+        throw new Error("Invalid or expired session");
+      }
+      return data.user_id;
+    };
 
     if (action === "login") {
       // Look up user
@@ -101,15 +122,27 @@ serve(async (req) => {
         .eq("user_id", userData.id)
         .maybeSingle();
 
+      // Create session token
+      const sessionTokenValue = generateSessionToken();
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
+
+      await supabase.from("user_sessions").insert({
+        user_id: userData.id,
+        session_token: sessionTokenValue,
+        expires_at: expiresAt,
+      });
+
       return new Response(JSON.stringify({
         user_id: userData.id,
         username: userData.username,
         role: roleData?.role || "user",
+        session_token: sessionTokenValue,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     } else if (action === "create_user") {
-      // Verify admin
-      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: admin_id, _role: "admin" });
+      // Verify admin via session token
+      const verifiedUserId = await verifySession(session_token);
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: verifiedUserId, _role: "admin" });
       if (!isAdmin) {
         return new Response(JSON.stringify({ error: "Only admins can create users" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -119,7 +152,7 @@ serve(async (req) => {
       const { hash, salt } = await hashPasswordPBKDF2(password);
       const { data: newUser, error: createError } = await supabase
         .from("app_users")
-        .insert({ username, password_hash: hash, password_salt: salt, created_by: admin_id })
+        .insert({ username, password_hash: hash, password_salt: salt, created_by: verifiedUserId })
         .select("id")
         .single();
 
@@ -132,8 +165,9 @@ serve(async (req) => {
       });
 
     } else if (action === "update_password") {
-      // Verify admin
-      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: admin_id, _role: "admin" });
+      // Verify admin via session token
+      const verifiedUserId = await verifySession(session_token);
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: verifiedUserId, _role: "admin" });
       if (!isAdmin) {
         return new Response(JSON.stringify({ error: "Only admins can update passwords" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -170,9 +204,32 @@ serve(async (req) => {
 
       await supabase.from("user_roles").insert({ user_id: newUser.id, role: "admin" });
 
+      // Create session token for the new admin
+      const sessionTokenValue = generateSessionToken();
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      await supabase.from("user_sessions").insert({
+        user_id: newUser.id,
+        session_token: sessionTokenValue,
+        expires_at: expiresAt,
+      });
+
       return new Response(JSON.stringify({
         user_id: newUser.id, username, role: "admin",
+        session_token: sessionTokenValue,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    } else if (action === "logout") {
+      // Invalidate session token
+      if (session_token) {
+        await supabase
+          .from("user_sessions")
+          .delete()
+          .eq("session_token", session_token);
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ error: "Invalid action" }), {
