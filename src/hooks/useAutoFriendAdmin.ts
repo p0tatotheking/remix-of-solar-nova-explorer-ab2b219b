@@ -6,20 +6,17 @@ const AUTO_FRIEND_ADMIN_KEY = 'solarnova_auto_friend_admin';
 const ADMIN_BEFRIEND_ALL_KEY = 'solarnova_admin_befriend_all_v2';
 
 export function useAutoFriendAdmin() {
-  const { user } = useAuth();
+  const { user, sessionToken } = useAuth();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !sessionToken) return;
 
-    // If this is the admin user, befriend all existing users
     if (user.role === 'admin') {
       const befriendAllUsers = async () => {
-        // Check if we've already run this
         const alreadyRan = localStorage.getItem(ADMIN_BEFRIEND_ALL_KEY);
         if (alreadyRan) return;
 
         try {
-          // Get all users except admin
           const { data: allUsers } = await supabase
             .from('app_users')
             .select('id')
@@ -27,15 +24,12 @@ export function useAutoFriendAdmin() {
 
           if (!allUsers || allUsers.length === 0) return;
 
-          // Get existing friendships for admin
           const { data: existingFriendships } = await supabase
             .from('friendships')
             .select('friend_id')
             .eq('user_id', user.id);
 
           const existingFriendIds = new Set(existingFriendships?.map(f => f.friend_id) || []);
-
-          // Find users who are not yet friends
           const usersToFriend = allUsers.filter(u => !existingFriendIds.has(u.id));
 
           if (usersToFriend.length === 0) {
@@ -43,11 +37,9 @@ export function useAutoFriendAdmin() {
             return;
           }
 
-          // Create mutual friendships for all users
-
           for (const targetUser of usersToFriend) {
             await supabase.rpc('add_friendship', {
-              p_caller_id: user.id,
+              p_session_token: sessionToken,
               p_friend_id: targetUser.id,
             });
           }
@@ -63,13 +55,11 @@ export function useAutoFriendAdmin() {
       return;
     }
 
-    // For non-admin users: auto-friend with admin
     const processedUsers = JSON.parse(localStorage.getItem(AUTO_FRIEND_ADMIN_KEY) || '[]');
     if (processedUsers.includes(user.id)) return;
 
     const autoFriendWithAdmin = async () => {
       try {
-        // Find the admin user
         const { data: adminRole } = await supabase
           .from('user_roles')
           .select('user_id')
@@ -81,7 +71,6 @@ export function useAutoFriendAdmin() {
 
         const adminId = adminRole.user_id;
         
-        // Check if already friends
         const { data: existingFriendship } = await supabase
           .from('friendships')
           .select('id')
@@ -94,15 +83,13 @@ export function useAutoFriendAdmin() {
           return;
         }
 
-        // Create mutual friendship directly
         await supabase.rpc('add_friendship', {
-          p_caller_id: user.id,
+          p_session_token: sessionToken,
           p_friend_id: adminId,
         });
 
         processedUsers.push(user.id);
         localStorage.setItem(AUTO_FRIEND_ADMIN_KEY, JSON.stringify(processedUsers));
-
         console.log('Auto-friended with admin account');
       } catch (error) {
         console.error('Error auto-friending with admin:', error);
@@ -110,5 +97,5 @@ export function useAutoFriendAdmin() {
     };
 
     autoFriendWithAdmin();
-  }, [user]);
+  }, [user, sessionToken]);
 }
