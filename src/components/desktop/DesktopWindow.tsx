@@ -121,12 +121,14 @@ export function DesktopWindowComponent({
     }
   }, [win.isMinimized]);
 
-  if (win.isMinimized && minimizeAnim === 'idle') return null;
+  const isHidden = win.isMinimized && minimizeAnim === 'idle';
 
   const minimizeStyle: React.CSSProperties = minimizeAnim === 'minimizing'
     ? { transform: 'scale(0.3) translateY(100%)', opacity: 0, transition: 'transform 0.25s ease-in, opacity 0.2s ease-in', pointerEvents: 'none' }
     : minimizeAnim === 'restoring'
     ? { animation: 'window-restore 0.25s ease-out forwards' }
+    : isHidden
+    ? { display: 'none' }
     : {};
 
   const style: React.CSSProperties = win.isMaximized
