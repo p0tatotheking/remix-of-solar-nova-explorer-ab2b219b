@@ -424,19 +424,17 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   };
 
   const fetchDmMessages = async (otherUserId: string) => {
-    const { data } = await supabase
-      .from('direct_messages')
-      .select('*')
-      .or(`and(sender_id.eq.${user?.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user?.id})`)
-      .order('created_at', { ascending: true });
+    const { data } = await supabase.rpc('get_my_direct_messages', {
+      p_user_id: user?.id,
+      p_other_user_id: otherUserId,
+    });
     setDmMessages(data || []);
     
     // Mark as read
-    await supabase
-      .from('direct_messages')
-      .update({ read: true })
-      .eq('receiver_id', user?.id)
-      .eq('sender_id', otherUserId);
+    await supabase.rpc('mark_dms_read', {
+      p_user_id: user?.id,
+      p_sender_id: otherUserId,
+    });
     
     setUnreadCounts(prev => ({ ...prev, [otherUserId]: 0 }));
   };

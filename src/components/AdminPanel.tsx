@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Users, Plus, Trash2, Key, X, Shield, Gamepad2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { hashPassword } from '@/lib/crypto';
 import { GameManagement } from './GameManagement';
 
 interface AppUser {
@@ -55,16 +54,11 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
     setError('');
 
     try {
-      const passwordHash = await hashPassword(newPassword);
-      
-      const { error } = await supabase.rpc('create_app_user', {
-        p_admin_id: user.id,
-        p_username: newUsername.trim(),
-        p_password_hash: passwordHash,
-        p_role: 'user',
+      const { data, error } = await supabase.functions.invoke('auth-hash', {
+        body: { action: 'create_user', admin_id: user.id, username: newUsername.trim(), password: newPassword },
       });
 
-      if (error) throw error;
+      if (error || data?.error) throw new Error(data?.error || 'Failed to create user');
 
       setNewUsername('');
       setNewPassword('');
@@ -104,15 +98,11 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
     if (!newPass) return;
 
     try {
-      const passwordHash = await hashPassword(newPass);
-      
-      const { error } = await supabase.rpc('update_user_password', {
-        p_admin_id: user.id,
-        p_user_id: userId,
-        p_new_password_hash: passwordHash,
+      const { data, error } = await supabase.functions.invoke('auth-hash', {
+        body: { action: 'update_password', admin_id: user.id, user_id: userId, new_password: newPass },
       });
 
-      if (error) throw error;
+      if (error || data?.error) throw new Error(data?.error || 'Failed to update password');
       alert('Password updated successfully');
     } catch (err: any) {
       console.error('Error updating password:', err);

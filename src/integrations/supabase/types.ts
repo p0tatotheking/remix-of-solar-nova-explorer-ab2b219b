@@ -97,6 +97,7 @@ export type Database = {
           created_by: string | null
           id: string
           password_hash: string
+          password_salt: string | null
           username: string
         }
         Insert: {
@@ -104,6 +105,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           password_hash: string
+          password_salt?: string | null
           username: string
         }
         Update: {
@@ -111,6 +113,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           password_hash?: string
+          password_salt?: string | null
           username?: string
         }
         Relationships: [
@@ -1252,11 +1255,55 @@ export type Database = {
           username: string
         }[]
       }
+      get_my_direct_messages: {
+        Args: { p_other_user_id: string; p_user_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          receiver_id: string
+          receiver_username: string
+          reply_to_id: string | null
+          sender_id: string
+          sender_username: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "direct_messages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_my_unread_dms: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          receiver_id: string
+          receiver_username: string
+          reply_to_id: string | null
+          sender_id: string
+          sender_username: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "direct_messages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      mark_dms_read: {
+        Args: { p_sender_id: string; p_user_id: string }
         Returns: boolean
       }
       seed_admin_user: {

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Lock, User, Shield, Info } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { hashPassword } from '@/lib/crypto';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 function getGreeting() {
@@ -73,12 +72,10 @@ export function LoginPage() {
     }
     setIsLoading(true);
     try {
-      const passwordHash = await hashPassword(password);
-      const { error } = await supabase.rpc('seed_admin_user', {
-        p_username: username.trim(),
-        p_password_hash: passwordHash,
+      const { data, error } = await supabase.functions.invoke('auth-hash', {
+        body: { action: 'setup_admin', username: username.trim(), password },
       });
-      if (error) throw error;
+      if (error || data?.error) throw new Error(data?.error || 'Failed to create admin');
       setNeedsSetup(false);
       const result = await login(username.trim(), password);
       if (result.error) setError(result.error);

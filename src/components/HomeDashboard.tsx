@@ -126,13 +126,9 @@ export const HomeDashboard = ({ typewriterText, onNavigate, onDevMode }: HomeDas
   useEffect(() => {
     const fetchUnreadDM = async () => {
       if (!user) return;
-      const { data } = await supabase
-        .from('direct_messages')
-        .select('sender_username, message')
-        .eq('receiver_id', user.id)
-        .eq('read', false)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const { data } = await supabase.rpc('get_my_unread_dms', {
+        p_user_id: user.id,
+      });
       if (data && data.length > 0) {
         setUnreadMessage({
           from: data[0].sender_username,
