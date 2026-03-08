@@ -1187,7 +1187,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                         >
                           <Reply className="w-3.5 h-3.5" />
                         </button>
-                        <div className="relative">
+                        <div className="relative" data-reaction-picker>
                           <button
                             onClick={() => setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id)}
                             className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
