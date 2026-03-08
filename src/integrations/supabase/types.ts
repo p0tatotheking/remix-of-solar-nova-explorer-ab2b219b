@@ -1177,6 +1177,7 @@ export type Database = {
         Returns: string
       }
       admin_exists: { Args: never; Returns: boolean }
+      clear_chat_messages: { Args: { p_admin_id: string }; Returns: boolean }
       clear_community_whiteboard: {
         Args: { p_admin_id: string }
         Returns: boolean
