@@ -139,8 +139,20 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Close reaction picker on outside click
+  useEffect(() => {
+    if (!reactionPickerMsgId) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-reaction-picker]')) {
+        setReactionPickerMsgId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [reactionPickerMsgId]);
 
-  // Emoji autocomplete state
+
   const emojiAutocompleteQuery = useMemo(() => {
     const match = newMessage.match(/:([a-zA-Z0-9_+-]*)$/);
     return match ? match[1] : null;
