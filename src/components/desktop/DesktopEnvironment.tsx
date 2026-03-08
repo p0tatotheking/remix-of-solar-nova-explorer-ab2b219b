@@ -165,6 +165,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     setNextZIndex(prev => prev + 1);
   };
   const moveWindow = (id: string, x: number, y: number) => setWindows(prev => prev.map(w => w.id === id ? { ...w, x, y } : w));
+  const resizeWindow = (id: string, w: number, h: number, x?: number, y?: number) => setWindows(prev => prev.map(win => win.id === id ? { ...win, width: w, height: h, ...(x !== undefined ? { x } : {}), ...(y !== undefined ? { y } : {}) } : win));
 
   const handleWindowClick = (id: string) => {
     const win = windows.find(w => w.id === id);
@@ -285,6 +286,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
           onMaximize={maximizeWindow}
           onFocus={focusWindow}
           onMove={moveWindow}
+          onResize={resizeWindow}
         >
           {renderWindowContent(win)}
         </DesktopWindowComponent>
