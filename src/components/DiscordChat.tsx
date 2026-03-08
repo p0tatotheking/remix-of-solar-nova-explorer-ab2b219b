@@ -492,7 +492,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     
     // Mark as read
     await supabase.rpc('mark_dms_read', {
-      p_user_id: user?.id,
+      p_session_token: sessionToken!,
       p_sender_id: otherUserId,
     });
     
