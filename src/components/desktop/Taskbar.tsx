@@ -293,6 +293,21 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
   // Windows 11 style taskbar
   return (
     <>
+      {/* Search backdrop - clicks here close the panel */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-[550]" onMouseDown={() => { setSearchOpen(false); setSearchQuery(''); }} />
+      )}
+
+      {/* Search panel - rendered outside taskbar for proper z-index stacking */}
+      {searchOpen && (
+        <div className="fixed bottom-14 left-1/2 -translate-x-1/2 w-[560px] max-w-[90vw] bg-[hsl(220,20%,10%)]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[600]"
+          onMouseDown={e => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+        >
+          {windowsSearchContent}
+        </div>
+      )}
+
       <div className="fixed bottom-0 left-0 right-0 h-12 z-[500] bg-[hsl(220,20%,10%)]/90 backdrop-blur-xl border-t border-white/10 flex items-center px-3">
         <button onClick={() => setSearchOpen(!searchOpen)} className="p-2 rounded-md hover:bg-white/10 transition-colors">
           <img src={solarnovaIcon} alt="" className="w-5 h-5" />
@@ -303,8 +318,6 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
           <Search className="w-3.5 h-3.5" />
           <span>Search</span>
         </button>
-
-        {searchOpen && windowsSearchContent}
 
         <div className="flex-1 flex items-center gap-1 ml-3">
           {pinnedAppDetails.map(app => (
@@ -354,11 +367,6 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
           </div>
         )}
       </div>
-
-      {/* Backdrop for search - clicks here close the panel */}
-      {searchOpen && (
-        <div className="fixed inset-0 z-[550]" onMouseDown={() => { setSearchOpen(false); setSearchQuery(''); }} />
-      )}
 
       {contextMenu && (
         <div className="fixed z-[600] bg-[hsl(220,20%,12%)] border border-white/10 rounded-lg shadow-2xl py-1 min-w-[160px]"
