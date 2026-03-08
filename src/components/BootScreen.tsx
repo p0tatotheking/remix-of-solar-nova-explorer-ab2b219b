@@ -77,7 +77,7 @@ export function BootScreen({ onComplete, onDevMode }: BootScreenProps) {
         <img src={solarnovaIcon} alt="Solarnova" className="w-16 h-16 mx-auto" />
       </div>
       <h1 className="text-2xl font-mono font-bold tracking-[0.3em] text-foreground mb-1">
-        SOLARNOVA OS
+        SOLARNOVA
       </h1>
       <p className="text-sm text-muted-foreground font-mono mb-8">Version 3.0</p>
 
