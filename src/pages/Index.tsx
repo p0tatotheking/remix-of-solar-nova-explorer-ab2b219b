@@ -527,7 +527,7 @@ function IndexInner({ onDevMode }: { onDevMode: () => void }) {
         <div className="h-full border-r border-border/30 bg-background/95 backdrop-blur-lg flex flex-col">
           <div className="p-6 flex items-center gap-3">
             <img src={solarnovaIcon} alt="Solarnova" className="w-10 h-10" />
-            <span className="text-xl font-bold text-gradient">SOLARNOVA V2</span>
+            <span className="text-xl font-bold text-gradient">SOLARNOVA V3</span>
           </div>
 
           <div className="border-t border-border/30 mx-4" />

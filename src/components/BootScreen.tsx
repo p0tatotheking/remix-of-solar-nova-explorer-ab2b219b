@@ -79,7 +79,7 @@ export function BootScreen({ onComplete, onDevMode }: BootScreenProps) {
       <h1 className="text-2xl font-mono font-bold tracking-[0.3em] text-foreground mb-1">
         SOLARNOVA OS
       </h1>
-      <p className="text-sm text-muted-foreground font-mono mb-8">Version 2.0</p>
+      <p className="text-sm text-muted-foreground font-mono mb-8">Version 3.0</p>
 
       {/* Progress bar */}
       <div className="w-[90%] max-w-2xl mb-8">
