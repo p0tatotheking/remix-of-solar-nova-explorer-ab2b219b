@@ -443,9 +443,11 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     return pinnedMessages.some(p => p.message_id === msgId && p.channel_id === channelId);
   };
 
-  const isAdmin = (userId: string) => adminUserIds.has(userId);
+  const isAdminUser = (userId: string) => adminUserIds.has(userId);
 
+  const getDisplayName = (userId: string, username: string) => {
     // First check for nickname (user-specific)
+
     const nickname = nicknames.find(n => n.friend_id === userId);
     if (nickname) return nickname.nickname;
     
