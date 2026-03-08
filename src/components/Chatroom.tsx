@@ -29,6 +29,22 @@ export function Chatroom() {
   const [emojiQuery, setEmojiQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [adminUsernames, setAdminUsernames] = useState<Set<string>>(new Set());
+
+  // Fetch admin usernames
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      const { data: roles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+      if (!roles) return;
+      const adminIds = roles.map(r => r.user_id);
+      const { data: users } = await supabase.rpc('get_all_app_users');
+      if (users) {
+        const admins = new Set(users.filter((u: any) => adminIds.includes(u.id)).map((u: any) => u.username));
+        setAdminUsernames(admins);
+      }
+    };
+    fetchAdmins();
+  }, []);
 
   // Fetch existing messages and subscribe to new ones
   useEffect(() => {
