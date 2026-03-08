@@ -62,7 +62,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
   };
 
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return allApps.slice(0, 8);
+    if (!searchQuery.trim()) return allApps;
     const q = searchQuery.toLowerCase();
     return allApps.filter(a => a.name.toLowerCase().includes(q));
   }, [searchQuery, allApps]);
