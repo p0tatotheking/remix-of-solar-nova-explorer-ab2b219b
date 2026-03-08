@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, Wifi, Volume2, BatteryFull, ChevronUp, LogOut, Pin, PinOff, Gamepad2, Terminal, Folder, Settings, Music, MessageSquare, X, Eye } from 'lucide-react';
 import type { DesktopTheme, DesktopWindow, DesktopApp } from './types';
 import { ICON_MAP } from './DesktopIcon';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
 interface TaskbarProps {
@@ -62,7 +62,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
   };
 
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return allApps.slice(0, 8);
+    if (!searchQuery.trim()) return allApps;
     const q = searchQuery.toLowerCase();
     return allApps.filter(a => a.name.toLowerCase().includes(q));
   }, [searchQuery, allApps]);
@@ -77,8 +77,8 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
     setSearchQuery('');
   };
 
-  // Windows Search Panel
-  const SearchPanel = () => (
+  // Search panel content rendered inline (not as a component) to prevent remount on state change
+  const windowsSearchContent = (
     <div
       ref={searchPanelRef}
       className="absolute bottom-14 left-1/2 -translate-x-1/2 w-[560px] max-w-[90vw] bg-[hsl(220,20%,10%)]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[600]"
@@ -103,7 +103,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
         </div>
       </div>
 
-      <ScrollArea className="h-[400px]">
+      <div className="h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
         <div className="p-3">
           {searchQuery.trim() ? (
             <div className="text-xs text-muted-foreground/70 uppercase tracking-wider px-2 mb-2">
@@ -172,12 +172,12 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
             </>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 
-  // macOS Spotlight
-  const SpotlightPanel = () => (
+  // macOS Spotlight content (inline, not a component)
+  const spotlightContent = (
     <div className="fixed inset-0 z-[600] flex items-start justify-center pt-[20vh]" onMouseDown={() => { setSearchOpen(false); setSearchQuery(''); }}>
       <div className="w-[520px] max-w-[90vw] bg-[hsl(220,15%,15%)]/95 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden" onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 px-5 py-3 border-b border-white/10">
@@ -190,7 +190,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
             className="bg-transparent flex-1 text-lg text-white placeholder-white/30 outline-none"
           />
         </div>
-        <ScrollArea className="h-[350px]">
+        <div className="h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
           <div className="p-2">
             {searchResults.map(app => {
               const IconComp = ICON_MAP[app.icon] || Settings;
@@ -221,7 +221,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
               <div className="text-center text-white/30 py-8 text-sm">No results found</div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );
@@ -247,7 +247,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
           </div>
         </div>
 
-        {searchOpen && <SpotlightPanel />}
+        {searchOpen && spotlightContent}
 
         <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-[500] flex items-end gap-1 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl">
           {pinnedAppDetails.map(app => (
@@ -304,7 +304,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
           <span>Search</span>
         </button>
 
-        {searchOpen && <SearchPanel />}
+        {searchOpen && windowsSearchContent}
 
         <div className="flex-1 flex items-center gap-1 ml-3">
           {pinnedAppDetails.map(app => (
