@@ -818,10 +818,26 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
         {/* Header */}
         <div className="h-12 md:h-14 border-b border-border/30 flex items-center px-3 md:px-4 gap-2">
           {view === 'server' ? (
-            <>
-              <Hash className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
-              <span className="font-semibold text-sm md:text-base">general</span>
-            </>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <Hash className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+                <span className="font-semibold text-sm md:text-base">general</span>
+              </div>
+              {user?.role === 'admin' && (
+                <button
+                  onClick={async () => {
+                    if (!confirm('Clear all server messages? This cannot be undone.')) return;
+                    const { error } = await (supabase.rpc as any)('clear_chat_messages', { p_admin_id: user.id });
+                    if (!error) setServerMessages([]);
+                  }}
+                  className="flex items-center gap-1 text-xs text-destructive hover:text-destructive/80 transition-colors"
+                  title="Clear all messages"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Clear</span>
+                </button>
+              )}
+            </div>
           ) : view === 'dm' && selectedDmUser ? (
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
