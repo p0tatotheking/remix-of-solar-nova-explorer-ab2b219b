@@ -261,6 +261,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
 
   const renderWindowContent = (win: DesktopWindow) => {
     if (win.appId === 'terminal') return <DesktopTerminal fileSystem={fileSystem} onFileSystemChange={setFileSystem} />;
+    if (win.appId === 'code-editor') return <CodeEditor fileSystem={fileSystem} onFileSystemChange={setFileSystem} onOpenTerminal={() => openWindow('terminal', 'Terminal')} />;
     if (win.appId === 'files') return <FileManager fileSystem={fileSystem} onFileSystemChange={setFileSystem} />;
     if (win.appId === 'settings') return <SettingsApp theme={theme} onThemeChange={setTheme} />;
     if (win.appId === 'chat') return <DesktopChat />;
