@@ -168,7 +168,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 
   // macOS Spotlight content (inline, not a component)
