@@ -410,7 +410,41 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     setNicknames(data || []);
   };
 
-  const getDisplayName = (userId: string, username: string) => {
+  const fetchAdminUsers = async () => {
+    const { data } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+    if (data) setAdminUserIds(new Set(data.map(r => r.user_id)));
+  };
+
+  const fetchPinnedMessages = async () => {
+    const { data } = await supabase.from('pinned_messages').select('*').order('pinned_at', { ascending: false });
+    setPinnedMessages(data || []);
+  };
+
+  const pinMessage = async (msgId: string, msgText: string, msgUsername: string, channelId: string) => {
+    if (!user || user.role !== 'admin') return;
+    await supabase.from('pinned_messages').upsert({
+      message_id: msgId,
+      message_type: channelId === 'general' ? 'server' : 'dm',
+      channel_id: channelId,
+      message_text: msgText,
+      message_username: msgUsername,
+      pinned_by: user.username,
+    }, { onConflict: 'message_id,channel_id' });
+    fetchPinnedMessages();
+  };
+
+  const unpinMessage = async (msgId: string, channelId: string) => {
+    if (!user || user.role !== 'admin') return;
+    await supabase.from('pinned_messages').delete().eq('message_id', msgId).eq('channel_id', channelId);
+    fetchPinnedMessages();
+  };
+
+  const isMessagePinned = (msgId: string, channelId: string) => {
+    return pinnedMessages.some(p => p.message_id === msgId && p.channel_id === channelId);
+  };
+
+  const isAdmin = (userId: string) => adminUserIds.has(userId);
+
     // First check for nickname (user-specific)
     const nickname = nicknames.find(n => n.friend_id === userId);
     if (nickname) return nickname.nickname;
