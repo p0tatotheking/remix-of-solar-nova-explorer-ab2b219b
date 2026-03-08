@@ -758,38 +758,81 @@ export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal, onC
               <div className="flex-1 bg-[#1e1e1e]" />
             )}
 
-            {/* Integrated Terminal Panel */}
+            {/* Integrated Bottom Panel (VS Code style) */}
             {showTerminalPanel && (
-              <div className="h-[200px] bg-[#1e1e1e] border-t border-[#3c3c3c] flex flex-col shrink-0">
-                <div className="flex items-center h-[30px] bg-[#252526] px-3 shrink-0">
-                  <div className="flex items-center gap-2 text-[12px]">
-                    <Terminal className="w-3.5 h-3.5 text-[#cccccc]" />
-                    <span className="text-white text-[11px] bg-[#1e1e1e] px-2 py-0.5 rounded">bash</span>
+              <div className="h-[220px] bg-[#1e1e1e] border-t border-[#3c3c3c] flex flex-col shrink-0">
+                {/* Panel tab bar */}
+                <div className="flex items-center h-[35px] bg-[#252526] px-0 shrink-0 border-b border-[#1e1e1e]">
+                  <div className="flex items-center h-full">
+                    {(['problems', 'output', 'debug', 'terminal'] as const).map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setBottomPanelTab(tab)}
+                        className={`px-3 h-full text-[11px] uppercase tracking-wider font-medium transition-colors ${
+                          bottomPanelTab === tab
+                            ? 'text-white border-b border-b-white bg-transparent'
+                            : 'text-[#858585] hover:text-[#cccccc] border-b border-b-transparent'
+                        }`}
+                      >
+                        {tab === 'debug' ? 'Debug Console' : tab}
+                      </button>
+                    ))}
                   </div>
                   <div className="flex-1" />
-                  <div className="flex gap-1">
-                    <button className="p-0.5 hover:bg-[#3c3c3c] rounded" onClick={() => setShowTerminalPanel(false)}>
-                      <X className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-0.5 px-2">
+                    <button className="p-1 hover:bg-[#3c3c3c] rounded" title="Maximize Panel">
+                      <Maximize2 className="w-3.5 h-3.5 text-[#858585]" />
+                    </button>
+                    <button className="p-1 hover:bg-[#3c3c3c] rounded" onClick={() => setShowTerminalPanel(false)} title="Close Panel">
+                      <X className="w-3.5 h-3.5 text-[#858585]" />
                     </button>
                   </div>
                 </div>
-                <div
-                  className="flex-1 overflow-y-auto px-3 py-1 text-[13px] font-mono scrollbar-thin scrollbar-thumb-[#424242]"
-                  onClick={() => terminalInputRef.current?.focus()}
-                >
-                  {terminalOutput.map((line, i) => (
-                    <div key={i} className="leading-[20px] text-[#cccccc]">{line}</div>
-                  ))}
-                  <form onSubmit={handleTerminalSubmit} className="flex items-center">
-                    <span className="text-[#cccccc]">$ </span>
-                    <input
-                      ref={terminalInputRef}
-                      className="flex-1 bg-transparent outline-none text-[#cccccc] ml-1"
-                      value={terminalInput}
-                      onChange={e => setTerminalInput(e.target.value)}
-                      autoFocus
-                    />
-                  </form>
+
+                {/* Panel content */}
+                <div className="flex-1 overflow-y-auto px-3 py-1 text-[13px] font-mono scrollbar-thin scrollbar-thumb-[#424242]">
+                  {bottomPanelTab === 'problems' && (
+                    <div className="text-[#cccccc]">
+                      {problemsOutput.map((line, i) => (
+                        <div key={i} className="leading-[20px] flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                          {line}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {bottomPanelTab === 'output' && (
+                    <div className="text-[#cccccc]">
+                      {outputLog.map((line, i) => (
+                        <div key={i} className="leading-[20px]">{line}</div>
+                      ))}
+                    </div>
+                  )}
+                  {bottomPanelTab === 'debug' && (
+                    <div className="text-[#858585] leading-[20px]">
+                      <span className="text-[#569cd6]">Debug Console</span> — No active debug session.
+                    </div>
+                  )}
+                  {bottomPanelTab === 'terminal' && (
+                    <div onClick={() => terminalInputRef.current?.focus()}>
+                      {terminalOutput.map((line, i) => (
+                        <div key={i} className="leading-[20px] text-[#cccccc]">{line}</div>
+                      ))}
+                      <form onSubmit={handleTerminalSubmit} className="flex items-center">
+                        <span className="text-[#6a9955]">user@solarnova</span>
+                        <span className="text-[#cccccc]">:</span>
+                        <span className="text-[#569cd6]">~</span>
+                        <span className="text-[#cccccc]">$ </span>
+                        <input
+                          ref={terminalInputRef}
+                          className="flex-1 bg-transparent outline-none text-[#cccccc] ml-1"
+                          value={terminalInput}
+                          onChange={e => setTerminalInput(e.target.value)}
+                          autoFocus
+                        />
+                      </form>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
