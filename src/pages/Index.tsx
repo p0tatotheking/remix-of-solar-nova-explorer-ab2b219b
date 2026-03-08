@@ -455,7 +455,7 @@ function IndexInner({ onDevMode }: { onDevMode: () => void }) {
           <div className="flex items-center justify-between p-4 border-b border-border/30">
             <div className="flex items-center gap-3">
               <img src={solarnovaIcon} alt="Solarnova" className="w-8 h-8" />
-              <span className="text-lg font-bold text-gradient">SOLARNOVA V2</span>
+              <span className="text-lg font-bold text-gradient">SOLARNOVA V3</span>
             </div>
             <button onClick={() => setShowNav(false)} className="p-2 text-muted-foreground">
               <LogOut className="w-5 h-5 rotate-180" />
