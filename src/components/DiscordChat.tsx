@@ -229,6 +229,8 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
     fetchReactions();
     fetchProfiles();
     fetchNicknames();
+    fetchAdminUsers();
+    fetchPinnedMessages();
     
     // Subscribe to server messages
     const serverChannel = supabase
