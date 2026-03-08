@@ -148,14 +148,11 @@ export function useGameProgress() {
       if (!session) return;
 
       try {
-        await supabase
-          .from('game_progress')
-          .update({
-            play_time: session.play_time + additionalSeconds,
-            last_played: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', session.id);
+        await supabase.rpc('update_game_play_time', {
+          p_caller_id: user.id,
+          p_game_url: gameUrl,
+          p_additional_seconds: additionalSeconds,
+        });
       } catch (e) {
         console.error('Error updating play time:', e);
       }
