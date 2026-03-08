@@ -134,6 +134,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [reactions, setReactions] = useState<Record<string, Record<string, { users: string[]; usernames: string[] }>>>({});
   const [replyingTo, setReplyingTo] = useState<Message | DirectMessage | null>(null);
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, { username: string; location: string }>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -1047,6 +1048,40 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                           >
                             <Reply className="w-3.5 h-3.5" />
                           </button>
+                          <div className="relative">
+                            <button
+                              onClick={() => setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id)}
+                              className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                              title="React"
+                            >
+                              <Smile className="w-3.5 h-3.5" />
+                            </button>
+                            {reactionPickerMsgId === msg.id && (
+                              <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl p-2 z-50">
+                                <div className="flex gap-1">
+                                  {['👍', '❤️', '😂', '😮', '😢', '🔥', '💀', '🎉'].map((emoji) => (
+                                    <button
+                                      key={emoji}
+                                      onClick={async () => {
+                                        if (!user) return;
+                                        const userReacted = reactions[msg.id]?.[emoji]?.users.includes(user.id);
+                                        if (userReacted) {
+                                          await supabase.from('message_reactions').delete().eq('message_id', msg.id).eq('user_id', user.id).eq('emoji', emoji);
+                                        } else {
+                                          await supabase.from('message_reactions').insert({ message_id: msg.id, user_id: user.id, username: user.username, emoji, message_type: 'server' });
+                                        }
+                                        fetchReactions();
+                                        setReactionPickerMsgId(null);
+                                      }}
+                                      className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors text-lg"
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                           {user?.role === 'admin' && (
                             <button
                               onClick={() => msgPinned ? unpinMessage(msg.id, 'general') : pinMessage(msg.id, msg.message, msg.username, 'general')}
@@ -1136,6 +1171,40 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                         >
                           <Reply className="w-3.5 h-3.5" />
                         </button>
+                        <div className="relative">
+                          <button
+                            onClick={() => setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id)}
+                            className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            title="React"
+                          >
+                            <Smile className="w-3.5 h-3.5" />
+                          </button>
+                          {reactionPickerMsgId === msg.id && (
+                            <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl p-2 z-50">
+                              <div className="flex gap-1">
+                                {['👍', '❤️', '😂', '😮', '😢', '🔥', '💀', '🎉'].map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    onClick={async () => {
+                                      if (!user) return;
+                                      const userReacted = reactions[msg.id]?.[emoji]?.users.includes(user.id);
+                                      if (userReacted) {
+                                        await supabase.from('message_reactions').delete().eq('message_id', msg.id).eq('user_id', user.id).eq('emoji', emoji);
+                                      } else {
+                                        await supabase.from('message_reactions').insert({ message_id: msg.id, user_id: user.id, username: user.username, emoji, message_type: 'dm' });
+                                      }
+                                      fetchReactions();
+                                      setReactionPickerMsgId(null);
+                                    }}
+                                    className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors text-lg"
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                         {user?.role === 'admin' && (
                           <button
                             onClick={() => msgPinned ? unpinMessage(msg.id, dmChannelId) : pinMessage(msg.id, msg.message, msg.sender_username, dmChannelId)}
