@@ -589,18 +589,20 @@ function IndexInner({ onDevMode }: { onDevMode: () => void }) {
         </div>
       </nav>
 
-      {/* Fullscreen sections - rendered outside main flow */}
-      {activeSection === 'chatroom' && (
-        <div className="fixed inset-0 z-40 bg-background animate-fade-in">
-          <DiscordChat onClose={() => setActiveSection('home')} />
-        </div>
-      )}
+      {/* Fullscreen sections - kept mounted to avoid re-loading */}
+      <div className={`fixed inset-0 z-40 bg-background ${activeSection === 'chatroom' ? 'animate-fade-in' : 'pointer-events-none invisible'}`}
+        style={activeSection !== 'chatroom' ? { display: 'none' } : undefined}
+        key="chatroom-persistent"
+      >
+        <DiscordChat onClose={() => setActiveSection('home')} />
+      </div>
 
-      {activeSection === 'music' && (
-        <div className="fixed inset-0 z-40 bg-background animate-fade-in">
-          <YouTubeMusicPlayer />
-        </div>
-      )}
+      <div className={`fixed inset-0 z-40 bg-background ${activeSection === 'music' ? 'animate-fade-in' : 'pointer-events-none invisible'}`}
+        style={activeSection !== 'music' ? { display: 'none' } : undefined}
+        key="music-persistent"
+      >
+        <YouTubeMusicPlayer />
+      </div>
 
       {activeSection === 'youtube' && (
         <div className="fixed inset-0 z-40 bg-background animate-fade-in">
