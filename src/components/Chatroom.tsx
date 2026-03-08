@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Lock, Users, MessageSquare, Smile, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { hashPassword } from '@/lib/crypto';
 import { censorText } from '@/lib/profanityFilter';
 import { parseEmojis, isGifUrl, extractGifUrl } from '@/lib/emojiParser';
 import { EmojiPicker } from '@/components/chat/EmojiPicker';
@@ -112,14 +111,11 @@ export function Chatroom() {
     }
 
     try {
-      const passwordHash = await hashPassword(password);
-      
-      const { data, error } = await supabase.rpc('verify_login', {
-        p_username: user.username,
-        p_password_hash: passwordHash,
+      const { data, error } = await supabase.functions.invoke('auth-hash', {
+        body: { action: 'login', username: user.username, password },
       });
 
-      if (error || !data || data.length === 0) {
+      if (error || data?.error) {
         setError('Invalid password');
         setIsLoading(false);
         return;
