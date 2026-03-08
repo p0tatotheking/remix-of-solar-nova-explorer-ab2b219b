@@ -1248,9 +1248,17 @@ export type Database = {
         Returns: string
       }
       admin_exists: { Args: never; Returns: boolean }
+      block_user: {
+        Args: { p_blocked_id: string; p_caller_id: string }
+        Returns: boolean
+      }
       clear_chat_messages: { Args: { p_admin_id: string }; Returns: boolean }
       clear_community_whiteboard: {
         Args: { p_admin_id: string }
+        Returns: boolean
+      }
+      clear_my_game_progress: {
+        Args: { p_caller_id: string }
         Returns: boolean
       }
       create_announcement: {
@@ -1398,6 +1406,14 @@ export type Database = {
         Args: { p_caller_id: string; p_friend_id: string }
         Returns: boolean
       }
+      save_game_settings: {
+        Args: {
+          p_caller_id: string
+          p_custom_settings: Json
+          p_game_url: string
+        }
+        Returns: boolean
+      }
       seed_admin_user: {
         Args: { p_password_hash: string; p_username: string }
         Returns: string
@@ -1410,6 +1426,46 @@ export type Database = {
           p_to_username: string
         }
         Returns: string
+      }
+      start_game_session: {
+        Args: {
+          p_caller_id: string
+          p_game_id?: string
+          p_game_title: string
+          p_game_url: string
+        }
+        Returns: {
+          created_at: string
+          custom_settings: Json | null
+          game_id: string | null
+          game_title: string
+          game_url: string
+          id: string
+          last_played: string
+          play_time: number
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "game_progress"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      toggle_reaction: {
+        Args: {
+          p_caller_id: string
+          p_emoji: string
+          p_message_id: string
+          p_message_type?: string
+          p_username: string
+        }
+        Returns: boolean
+      }
+      unblock_user: {
+        Args: { p_blocked_id: string; p_caller_id: string }
+        Returns: boolean
       }
       update_announcement: {
         Args: {
@@ -1433,6 +1489,14 @@ export type Database = {
           p_thumbnail_url: string
           p_title: string
           p_url: string
+        }
+        Returns: boolean
+      }
+      update_game_play_time: {
+        Args: {
+          p_additional_seconds: number
+          p_caller_id: string
+          p_game_url: string
         }
         Returns: boolean
       }
