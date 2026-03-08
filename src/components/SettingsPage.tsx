@@ -309,6 +309,7 @@ export function SettingsPage({ friends: propFriends, nicknames: propNicknames, o
     setEditingNickname(null);
     setNicknameValue('');
     onNicknamesChange?.();
+    if (!propNicknames) fetchNicknames();
   };
 
   const startEditNickname = (friendId: string) => {
