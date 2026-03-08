@@ -10,6 +10,7 @@ import { FileManager } from './FileManager';
 import { SettingsApp } from './SettingsApp';
 import { DesktopChat } from './DesktopChat';
 import { DesktopMusic } from './DesktopMusic';
+import { CodeEditor } from './CodeEditor';
 import { YouTubeMusicProvider } from '@/contexts/YouTubeMusicContext';
 import { YouTubeMusicPlayer } from '@/components/music/YouTubeMusicPlayer';
 import type { DesktopTheme, DesktopApp, DesktopWindow, FileSystemNode } from './types';
