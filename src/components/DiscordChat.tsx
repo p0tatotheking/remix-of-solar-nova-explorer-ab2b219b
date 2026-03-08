@@ -124,6 +124,9 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   // Profiles and nicknames
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [nicknames, setNicknames] = useState<FriendNickname[]>([]);
+  const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
+  const [pinnedMessages, setPinnedMessages] = useState<Array<{ id: string; message_id: string; message_text: string; message_username: string; pinned_by: string; channel_id: string }>>([]);
+  const [showPinned, setShowPinned] = useState(false);
   
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
