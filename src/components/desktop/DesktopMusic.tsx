@@ -4,8 +4,10 @@ import { YouTubeMusicPlayer } from '@/components/music/YouTubeMusicPlayer';
 import { YouTubeMusicProvider } from '@/contexts/YouTubeMusicContext';
 import solarnovaIcon from '@/assets/solarnova-icon.png';
 
+let hasLoadedOnce = false;
+
 export function DesktopMusic() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!hasLoadedOnce);
   const [loadingStep, setLoadingStep] = useState(0);
 
   const loadingMessages = [
@@ -21,7 +23,10 @@ export function DesktopMusic() {
       setLoadingStep(prev => {
         if (prev >= loadingMessages.length - 1) {
           clearInterval(stepInterval);
-          setTimeout(() => setIsLoading(false), 400);
+          setTimeout(() => {
+            setIsLoading(false);
+            hasLoadedOnce = true;
+          }, 400);
           return prev + 1;
         }
         return prev + 1;
