@@ -55,33 +55,9 @@ export function MessageReactions({ messageId, messageType, reactions, onReaction
   const reactionEntries = Object.entries(reactions);
   const hasReactions = reactionEntries.length > 0;
 
-  // If no reactions and not showing picker, render nothing visible (button shows on hover via parent)
+  // If no reactions, render nothing - the add button is in the parent toolbar
   if (!hasReactions && !showPicker) {
-    return (
-      <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          onClick={() => setShowPicker(true)}
-          className="p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
-        {showPicker && (
-          <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl p-2 z-50">
-            <div className="flex gap-1">
-              {QUICK_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => toggleReaction(emoji)}
-                  className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors text-lg"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
+    return null;
   }
 
   return (
