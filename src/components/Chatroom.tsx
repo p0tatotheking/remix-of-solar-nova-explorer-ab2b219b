@@ -347,7 +347,10 @@ export function Chatroom() {
                     : 'bg-muted'
                 }`}
               >
-                <p className="text-xs text-foreground/70 mb-1">{msg.username}</p>
+                <p className={`text-xs mb-1 ${adminUsernames.has(msg.username) ? 'text-red-500 font-bold' : 'text-foreground/70'}`}>
+                  {msg.username}
+                  {adminUsernames.has(msg.username) && <span className="ml-1 text-[9px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded">ADMIN</span>}
+                </p>
                 {renderMessage(msg)}
               </div>
             </div>
