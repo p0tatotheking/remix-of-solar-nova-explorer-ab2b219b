@@ -138,13 +138,7 @@ const Index = () => {
     if (!user) {
       return (
         <ThemeProvider>
-          <div className="fixed inset-0 z-[300] bg-gradient-to-br from-[hsl(220,50%,10%)] via-[hsl(270,40%,15%)] to-[hsl(220,50%,10%)] flex items-center justify-center">
-            <div className="bg-card/80 backdrop-blur-xl border border-border rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-              <h2 className="text-xl font-bold text-foreground text-center mb-2">🔒 Login Required</h2>
-              <p className="text-sm text-muted-foreground text-center mb-6">You must be logged in to access Developer Mode.</p>
-              <LoginPage onBack={() => setShowDevMode(false)} isModal />
-            </div>
-          </div>
+          <DevModeLoginGate onBack={() => setShowDevMode(false)} />
         </ThemeProvider>
       );
     }
