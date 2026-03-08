@@ -168,9 +168,10 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     setIconPositions(prev => {
       const next = { ...prev, [appId]: { x, y } };
       localStorage.setItem('solarnova-desktop-positions', JSON.stringify(next));
+      saveCustomizations({ icon_positions: next });
       return next;
     });
-  }, []);
+  }, [saveCustomizations]);
 
   const togglePin = useCallback((appId: string) => {
     setPinnedApps(prev =>
@@ -182,33 +183,37 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     setHiddenApps(prev => {
       const next = [...prev, appId];
       localStorage.setItem('solarnova-desktop-hidden', JSON.stringify(next));
+      saveCustomizations({ hidden_apps: next });
       return next;
     });
-  }, []);
+  }, [saveCustomizations]);
 
   const unhideApp = useCallback((appId: string) => {
     setHiddenApps(prev => {
       const next = prev.filter(id => id !== appId);
       localStorage.setItem('solarnova-desktop-hidden', JSON.stringify(next));
+      saveCustomizations({ hidden_apps: next });
       return next;
     });
-  }, []);
+  }, [saveCustomizations]);
 
   const changeIcon = useCallback((appId: string, newIcon: string) => {
     setCustomIcons(prev => {
       const next = { ...prev, [appId]: newIcon };
       localStorage.setItem('solarnova-desktop-icons', JSON.stringify(next));
+      saveCustomizations({ custom_icons: next });
       return next;
     });
-  }, []);
+  }, [saveCustomizations]);
 
   const renameApp = useCallback((appId: string, newName: string) => {
     setCustomNames(prev => {
       const next = { ...prev, [appId]: newName };
       localStorage.setItem('solarnova-desktop-names', JSON.stringify(next));
+      saveCustomizations({ custom_names: next });
       return next;
     });
-  }, []);
+  }, [saveCustomizations]);
 
   const openWindow = useCallback((appId: string, title: string) => {
     if (appId === 'music') setMusicActivated(true);
