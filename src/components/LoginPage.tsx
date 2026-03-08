@@ -181,7 +181,7 @@ export function LoginPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Version</span>
-                <span className="text-foreground">2.0</span>
+                <span className="text-foreground">3.0</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Browser</span>
