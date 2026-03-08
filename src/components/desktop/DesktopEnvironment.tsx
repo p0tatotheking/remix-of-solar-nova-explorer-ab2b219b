@@ -143,6 +143,38 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     );
   }, [setPinnedApps]);
 
+  const hideApp = useCallback((appId: string) => {
+    setHiddenApps(prev => {
+      const next = [...prev, appId];
+      localStorage.setItem('solarnova-desktop-hidden', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const unhideApp = useCallback((appId: string) => {
+    setHiddenApps(prev => {
+      const next = prev.filter(id => id !== appId);
+      localStorage.setItem('solarnova-desktop-hidden', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const changeIcon = useCallback((appId: string, newIcon: string) => {
+    setCustomIcons(prev => {
+      const next = { ...prev, [appId]: newIcon };
+      localStorage.setItem('solarnova-desktop-icons', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const renameApp = useCallback((appId: string, newName: string) => {
+    setCustomNames(prev => {
+      const next = { ...prev, [appId]: newName };
+      localStorage.setItem('solarnova-desktop-names', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const openWindow = useCallback((appId: string, title: string) => {
     // Activate music persistence when music is first opened
     if (appId === 'music') setMusicActivated(true);
