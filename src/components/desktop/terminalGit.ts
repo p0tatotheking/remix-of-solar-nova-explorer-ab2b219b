@@ -187,7 +187,7 @@ export async function handleAsyncGitCommand(
         owner: parsed.owner,
         repo: parsed.repo,
         branch: git.currentBranch,
-      });
+      }, userId);
 
       // Update files in current directory
       let updated = 0;
