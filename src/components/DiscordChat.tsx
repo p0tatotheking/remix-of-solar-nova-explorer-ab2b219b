@@ -1087,12 +1087,13 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                                       key={emoji}
                                       onClick={async () => {
                                         if (!user) return;
-                                        const userReacted = reactions[msg.id]?.[emoji]?.users.includes(user.id);
-                                        if (userReacted) {
-                                          await supabase.from('message_reactions').delete().eq('message_id', msg.id).eq('user_id', user.id).eq('emoji', emoji);
-                                        } else {
-                                          await supabase.from('message_reactions').insert({ message_id: msg.id, user_id: user.id, username: user.username, emoji, message_type: 'server' });
-                                        }
+                                        await supabase.rpc('toggle_reaction', {
+                                          p_caller_id: user.id,
+                                          p_message_id: msg.id,
+                                          p_username: user.username,
+                                          p_emoji: emoji,
+                                          p_message_type: 'server',
+                                        });
                                         fetchReactions();
                                         setReactionPickerMsgId(null);
                                       }}
