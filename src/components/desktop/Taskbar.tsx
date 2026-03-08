@@ -272,6 +272,7 @@ export function Taskbar({ theme, windows, pinnedApps, allApps, hiddenApps, onWin
             <LogOut className="w-5 h-5 text-red-300" />
           </button>
         </div>
+        </div>
 
         {contextMenu && (
           <div className="fixed z-[600] bg-black/80 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl py-1 min-w-[160px]"
