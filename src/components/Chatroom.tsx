@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Lock, Users, MessageSquare, Smile, Image as ImageIcon } from 'lucide-react';
+import { Send, Lock, Users, MessageSquare, Smile, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { censorText } from '@/lib/profanityFilter';
