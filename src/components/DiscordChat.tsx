@@ -411,8 +411,14 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
   };
 
   const fetchAdminUsers = async () => {
-    const { data } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
-    if (data) setAdminUserIds(new Set(data.map(r => r.user_id)));
+    const { data: users } = await supabase.rpc('get_all_app_users');
+    if (!users) return;
+    const adminIds = new Set<string>();
+    for (const u of users as Array<{ id: string; username: string }>) {
+      const { data: isAdmin } = await supabase.rpc('has_role', { _user_id: u.id, _role: 'admin' });
+      if (isAdmin) adminIds.add(u.id);
+    }
+    setAdminUserIds(adminIds);
   };
 
   const fetchPinnedMessages = async () => {
