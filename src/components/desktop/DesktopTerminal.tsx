@@ -443,7 +443,7 @@ export function DesktopTerminal({ fileSystem, onFileSystemChange }: DesktopTermi
       case 'git': {
         if (isAsyncGitCommand(args)) {
           addLines([{ type: 'system', text: `$ git ${args.join(' ')}` }]);
-          handleAsyncGitCommand(args, currentPath, fileSystem, user?.username || 'user', updateFs, getDir, addLines);
+          handleAsyncGitCommand(args, currentPath, fileSystem, user?.username || 'user', user?.id || '', updateFs, getDir, addLines);
         } else {
           const result = handleGitCommand(args, currentPath, fileSystem, user?.username || 'user', updateFs, getDir);
           if (result.length > 0) addLines(result);

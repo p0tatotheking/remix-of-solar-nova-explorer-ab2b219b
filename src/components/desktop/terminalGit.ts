@@ -279,7 +279,7 @@ export async function handleAsyncGitCommand(
           message: lastCommit.message,
           branch: git.currentBranch,
           sha,
-        });
+        }, userId);
         pushed++;
       }
 
