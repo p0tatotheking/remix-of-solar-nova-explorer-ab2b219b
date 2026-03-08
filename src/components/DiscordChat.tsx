@@ -1071,9 +1071,12 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                   const msgAvatar = getAvatar(msg.sender_id);
                   const displayName = getDisplayName(msg.sender_id, msg.sender_username);
                   const replyMsg = getReplyMessage(msg.reply_to_id, 'dm') as DirectMessage | null;
+                  const senderIsAdmin = isAdminUser(msg.sender_id);
+                  const dmChannelId = `dm-${[user?.id, selectedDmUser?.id].sort().join('-')}`;
+                  const msgPinned = isMessagePinned(msg.id, dmChannelId);
                   
                   return (
-                    <div key={msg.id} className="group relative flex gap-3 hover:bg-muted/20 px-2 py-1 rounded">
+                    <div key={msg.id} className={`group relative flex gap-3 hover:bg-muted/20 px-2 py-1 rounded ${msgPinned ? 'border-l-2 border-primary/50' : ''}`}>
                       <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
                         {msgAvatar ? (
                           <img src={msgAvatar} alt="" className="w-full h-full object-cover" />
@@ -1095,10 +1098,14 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                           </div>
                         )}
                         <div className="flex items-baseline gap-2">
-                          <span className="font-semibold text-foreground">{displayName}</span>
+                          <span className={`font-semibold ${senderIsAdmin ? 'text-red-500' : 'text-foreground'}`}>
+                            {displayName}
+                            {senderIsAdmin && <span className="ml-1 text-[10px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded align-middle">ADMIN</span>}
+                          </span>
                           <span className="text-xs text-muted-foreground">
                             {new Date(msg.created_at).toLocaleTimeString()}
                           </span>
+                          {msgPinned && <Pin className="w-3 h-3 text-primary" />}
                         </div>
                         <p className="text-foreground/90">
                           {isGifUrl(msg.message) ? (
@@ -1114,14 +1121,25 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                           onReactionChange={fetchReactions}
                         />
                       </div>
-                      {/* Reply button */}
-                      <button
-                        onClick={() => setReplyingTo(msg)}
-                        className="absolute right-2 top-1 p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Reply"
-                      >
-                        <Reply className="w-3.5 h-3.5" />
-                      </button>
+                      {/* Action buttons */}
+                      <div className="absolute right-2 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setReplyingTo(msg)}
+                          className="p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground"
+                          title="Reply"
+                        >
+                          <Reply className="w-3.5 h-3.5" />
+                        </button>
+                        {user?.role === 'admin' && (
+                          <button
+                            onClick={() => msgPinned ? unpinMessage(msg.id, dmChannelId) : pinMessage(msg.id, msg.message, msg.sender_username, dmChannelId)}
+                            className="p-1.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground"
+                            title={msgPinned ? 'Unpin' : 'Pin'}
+                          >
+                            {msgPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
