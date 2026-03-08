@@ -99,7 +99,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 
     try {
       const { data, error } = await supabase.functions.invoke('auth-hash', {
-        body: { action: 'update_password', admin_id: user.id, user_id: userId, new_password: newPass },
+        body: { action: 'update_password', session_token: sessionToken, user_id: userId, new_password: newPass },
       });
 
       if (error || data?.error) throw new Error(data?.error || 'Failed to update password');
