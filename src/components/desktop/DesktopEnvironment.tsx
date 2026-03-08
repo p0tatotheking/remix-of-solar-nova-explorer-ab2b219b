@@ -122,10 +122,13 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     if (!user) return;
     if (customSaveTimeout.current) clearTimeout(customSaveTimeout.current);
     customSaveTimeout.current = setTimeout(() => {
-      supabase.from('desktop_customizations').upsert(
-        { user_id: user.id, ...updates, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id' }
-      ).then(() => {});
+      supabase.rpc('upsert_my_desktop_customizations', {
+        p_caller_id: user.id,
+        p_hidden_apps: (updates.hidden_apps || []) as any,
+        p_custom_icons: (updates.custom_icons || {}) as any,
+        p_custom_names: (updates.custom_names || {}) as any,
+        p_icon_positions: (updates.icon_positions || {}) as any,
+      }).then(() => {});
     }, 1000);
   }, [user]);
 

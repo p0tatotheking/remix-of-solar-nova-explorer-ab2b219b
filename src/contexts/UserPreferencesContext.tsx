@@ -65,10 +65,11 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
 
   const saveToDb = useCallback(async (popups: boolean, transitions: boolean) => {
     if (user) {
-      await supabase
-        .from('user_profiles')
-        .update({ popups_disabled: popups, transitions_disabled: transitions })
-        .eq('user_id', user.id);
+      await supabase.rpc('update_my_profile', {
+        p_caller_id: user.id,
+        p_popups_disabled: popups,
+        p_transitions_disabled: transitions,
+      });
     }
     // Also save to localStorage as fallback
     const key = user ? `solarnova_prefs_${user.id}` : 'solarnova_prefs';
