@@ -44,13 +44,6 @@ export function useAutoFriendAdmin() {
           }
 
           // Create mutual friendships for all users
-          const friendshipRows: { user_id: string; friend_id: string }[] = [];
-          for (const targetUser of usersToFriend) {
-            friendshipRows.push(
-              { user_id: user.id, friend_id: targetUser.id },
-              { user_id: targetUser.id, friend_id: user.id }
-            );
-          }
 
           for (const targetUser of usersToFriend) {
             await supabase.rpc('add_friendship', {
