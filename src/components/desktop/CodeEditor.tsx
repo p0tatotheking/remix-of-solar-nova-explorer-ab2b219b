@@ -2,9 +2,9 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { 
   Files, Search, GitBranch, Play, Settings, ChevronRight, ChevronDown, 
   File, Folder, FolderOpen, X, Plus, MoreHorizontal, Terminal,
-  Code2, FileText, FileJson, FileCode, Hash, Minus, Maximize2, 
+  Code2, FileText, FileJson, FileCode, Hash, Minus, Maximize2, Minimize2,
   PanelBottom, SplitSquareVertical, LayoutGrid, Bell, GitCommit,
-  AlertCircle, CheckCircle2, Info
+  AlertCircle, CheckCircle2, Info, TriangleAlert, Bug
 } from 'lucide-react';
 import type { FileSystemNode } from './types';
 
@@ -12,6 +12,10 @@ interface CodeEditorProps {
   fileSystem: Record<string, FileSystemNode>;
   onFileSystemChange: (fs: Record<string, FileSystemNode>) => void;
   onOpenTerminal?: () => void;
+  onClose?: () => void;
+  onMinimize?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
 }
 
 interface OpenTab {
@@ -173,14 +177,17 @@ function createFileAtPath(fs: Record<string, FileSystemNode>, dirPath: string, f
   return newFs;
 }
 
-export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal }: CodeEditorProps) {
+export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal, onClose, onMinimize, onMaximize, isMaximized }: CodeEditorProps) {
   const [activeTab, setActiveTab] = useState(0); // activity bar tab
   const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
   const [activeFileTab, setActiveFileTab] = useState<number>(-1);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['home', 'home/user']));
   const [showTerminalPanel, setShowTerminalPanel] = useState(false);
-  const [terminalOutput, setTerminalOutput] = useState<string[]>(['Welcome to SolarCode Terminal', '$ ']);
+  const [bottomPanelTab, setBottomPanelTab] = useState<'problems' | 'output' | 'debug' | 'terminal'>('terminal');
+  const [terminalOutput, setTerminalOutput] = useState<string[]>(['Welcome to SolarCode Terminal', '']);
   const [terminalInput, setTerminalInput] = useState('');
+  const [problemsOutput] = useState<string[]>(['No problems detected.']);
+  const [outputLog] = useState<string[]>(['[SolarCode] Ready.']);
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [showSidebar, setShowSidebar] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -301,26 +308,27 @@ export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal }: C
   const handleTerminalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const cmd = terminalInput.trim();
-    setTerminalOutput(prev => [...prev.slice(0, -1), `$ ${cmd}`, '']);
+    const prompt = 'user@solarnova:~$ ';
+    setTerminalOutput(prev => [...prev, `${prompt}${cmd}`]);
     
     if (cmd === 'clear') {
-      setTerminalOutput(['$ ']);
+      setTerminalOutput([]);
     } else if (cmd === 'help') {
-      setTerminalOutput(prev => [...prev.slice(0, -1), 'Available: clear, help, ls, pwd, echo, date', '$ ']);
+      setTerminalOutput(prev => [...prev, 'Available: clear, help, ls, pwd, echo, date']);
     } else if (cmd === 'pwd') {
-      setTerminalOutput(prev => [...prev.slice(0, -1), '/home/user', '$ ']);
+      setTerminalOutput(prev => [...prev, '/home/user']);
     } else if (cmd === 'date') {
-      setTerminalOutput(prev => [...prev.slice(0, -1), new Date().toString(), '$ ']);
+      setTerminalOutput(prev => [...prev, new Date().toString()]);
     } else if (cmd.startsWith('echo ')) {
-      setTerminalOutput(prev => [...prev.slice(0, -1), cmd.slice(5), '$ ']);
+      setTerminalOutput(prev => [...prev, cmd.slice(5)]);
     } else if (cmd === 'ls') {
       const userDir = fileSystem.home?.children?.user?.children;
       if (userDir) {
         const items = Object.keys(userDir).join('  ');
-        setTerminalOutput(prev => [...prev.slice(0, -1), items, '$ ']);
+        setTerminalOutput(prev => [...prev, items]);
       }
     } else if (cmd) {
-      setTerminalOutput(prev => [...prev.slice(0, -1), `command not found: ${cmd}`, '$ ']);
+      setTerminalOutput(prev => [...prev, `command not found: ${cmd}`]);
     }
     setTerminalInput('');
   };
@@ -437,19 +445,39 @@ export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal }: C
 
   return (
     <div className="flex flex-col h-full bg-[#1e1e1e] text-[#cccccc] overflow-hidden" style={{ fontFamily: "'Consolas', 'Courier New', monospace" }}>
-      {/* Title bar / Menu bar */}
-      <div className="flex items-center h-[30px] bg-[#323233] px-2 text-[12px] text-[#cccccc] gap-3 shrink-0 border-b border-[#252526]">
-        <Code2 className="w-4 h-4 text-[#007acc]" />
-        <span className="opacity-70">File</span>
-        <span className="opacity-70">Edit</span>
-        <span className="opacity-70">Selection</span>
-        <span className="opacity-70">View</span>
-        <span className="opacity-70">Go</span>
-        <span className="opacity-70">Run</span>
-        <span className="opacity-70">Terminal</span>
-        <span className="opacity-70">Help</span>
+      {/* Title bar / Menu bar with window controls */}
+      <div className="flex items-center h-[30px] bg-[#323233] px-2 text-[12px] text-[#cccccc] shrink-0 border-b border-[#252526]">
+        <Code2 className="w-4 h-4 text-[#007acc] mr-2 shrink-0" />
+        <div className="flex items-center gap-3">
+          <span className="opacity-70 hover:opacity-100 cursor-default">File</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Edit</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Selection</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">View</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Go</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Run</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Terminal</span>
+          <span className="opacity-70 hover:opacity-100 cursor-default">Help</span>
+        </div>
         <div className="flex-1 text-center text-[12px] opacity-60">
           {currentTab ? `${currentTab.name} — SolarCode` : 'SolarCode'}
+        </div>
+        {/* Window controls */}
+        <div className="flex items-center shrink-0">
+          {onMinimize && (
+            <button onClick={onMinimize} className="p-1.5 hover:bg-white/10 rounded-sm" title="Minimize">
+              <Minus className="w-3.5 h-3.5 text-[#cccccc]" />
+            </button>
+          )}
+          {onMaximize && (
+            <button onClick={onMaximize} className="p-1.5 hover:bg-white/10 rounded-sm" title={isMaximized ? 'Restore' : 'Maximize'}>
+              {isMaximized ? <Minimize2 className="w-3.5 h-3.5 text-[#cccccc]" /> : <Maximize2 className="w-3.5 h-3.5 text-[#cccccc]" />}
+            </button>
+          )}
+          {onClose && (
+            <button onClick={onClose} className="p-1.5 hover:bg-[#e81123] rounded-sm" title="Close">
+              <X className="w-3.5 h-3.5 text-[#cccccc]" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -731,38 +759,81 @@ export function CodeEditor({ fileSystem, onFileSystemChange, onOpenTerminal }: C
               <div className="flex-1 bg-[#1e1e1e]" />
             )}
 
-            {/* Integrated Terminal Panel */}
+            {/* Integrated Bottom Panel (VS Code style) */}
             {showTerminalPanel && (
-              <div className="h-[200px] bg-[#1e1e1e] border-t border-[#3c3c3c] flex flex-col shrink-0">
-                <div className="flex items-center h-[30px] bg-[#252526] px-3 shrink-0">
-                  <div className="flex items-center gap-2 text-[12px]">
-                    <Terminal className="w-3.5 h-3.5 text-[#cccccc]" />
-                    <span className="text-white text-[11px] bg-[#1e1e1e] px-2 py-0.5 rounded">bash</span>
+              <div className="h-[220px] bg-[#1e1e1e] border-t border-[#3c3c3c] flex flex-col shrink-0">
+                {/* Panel tab bar */}
+                <div className="flex items-center h-[35px] bg-[#252526] px-0 shrink-0 border-b border-[#1e1e1e]">
+                  <div className="flex items-center h-full">
+                    {(['problems', 'output', 'debug', 'terminal'] as const).map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setBottomPanelTab(tab)}
+                        className={`px-3 h-full text-[11px] uppercase tracking-wider font-medium transition-colors ${
+                          bottomPanelTab === tab
+                            ? 'text-white border-b border-b-white bg-transparent'
+                            : 'text-[#858585] hover:text-[#cccccc] border-b border-b-transparent'
+                        }`}
+                      >
+                        {tab === 'debug' ? 'Debug Console' : tab}
+                      </button>
+                    ))}
                   </div>
                   <div className="flex-1" />
-                  <div className="flex gap-1">
-                    <button className="p-0.5 hover:bg-[#3c3c3c] rounded" onClick={() => setShowTerminalPanel(false)}>
-                      <X className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-0.5 px-2">
+                    <button className="p-1 hover:bg-[#3c3c3c] rounded" title="Maximize Panel">
+                      <Maximize2 className="w-3.5 h-3.5 text-[#858585]" />
+                    </button>
+                    <button className="p-1 hover:bg-[#3c3c3c] rounded" onClick={() => setShowTerminalPanel(false)} title="Close Panel">
+                      <X className="w-3.5 h-3.5 text-[#858585]" />
                     </button>
                   </div>
                 </div>
-                <div
-                  className="flex-1 overflow-y-auto px-3 py-1 text-[13px] font-mono scrollbar-thin scrollbar-thumb-[#424242]"
-                  onClick={() => terminalInputRef.current?.focus()}
-                >
-                  {terminalOutput.map((line, i) => (
-                    <div key={i} className="leading-[20px] text-[#cccccc]">{line}</div>
-                  ))}
-                  <form onSubmit={handleTerminalSubmit} className="flex items-center">
-                    <span className="text-[#cccccc]">$ </span>
-                    <input
-                      ref={terminalInputRef}
-                      className="flex-1 bg-transparent outline-none text-[#cccccc] ml-1"
-                      value={terminalInput}
-                      onChange={e => setTerminalInput(e.target.value)}
-                      autoFocus
-                    />
-                  </form>
+
+                {/* Panel content */}
+                <div className="flex-1 overflow-y-auto px-3 py-1 text-[13px] font-mono scrollbar-thin scrollbar-thumb-[#424242]">
+                  {bottomPanelTab === 'problems' && (
+                    <div className="text-[#cccccc]">
+                      {problemsOutput.map((line, i) => (
+                        <div key={i} className="leading-[20px] flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                          {line}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {bottomPanelTab === 'output' && (
+                    <div className="text-[#cccccc]">
+                      {outputLog.map((line, i) => (
+                        <div key={i} className="leading-[20px]">{line}</div>
+                      ))}
+                    </div>
+                  )}
+                  {bottomPanelTab === 'debug' && (
+                    <div className="text-[#858585] leading-[20px]">
+                      <span className="text-[#569cd6]">Debug Console</span> — No active debug session.
+                    </div>
+                  )}
+                  {bottomPanelTab === 'terminal' && (
+                    <div onClick={() => terminalInputRef.current?.focus()}>
+                      {terminalOutput.map((line, i) => (
+                        <div key={i} className="leading-[20px] text-[#cccccc]">{line}</div>
+                      ))}
+                      <form onSubmit={handleTerminalSubmit} className="flex items-center">
+                        <span className="text-[#6a9955]">user@solarnova</span>
+                        <span className="text-[#cccccc]">:</span>
+                        <span className="text-[#569cd6]">~</span>
+                        <span className="text-[#cccccc]">$ </span>
+                        <input
+                          ref={terminalInputRef}
+                          className="flex-1 bg-transparent outline-none text-[#cccccc] ml-1"
+                          value={terminalInput}
+                          onChange={e => setTerminalInput(e.target.value)}
+                          autoFocus
+                        />
+                      </form>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

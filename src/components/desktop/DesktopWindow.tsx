@@ -124,6 +124,7 @@ export function DesktopWindowComponent({
   );
 
   if (theme === 'macos') {
+    const hideDefaultTitleBarMac = win.appId === 'code-editor';
     return (
       <div
         className="fixed rounded-xl overflow-visible shadow-2xl border border-white/10 flex flex-col"
@@ -131,19 +132,24 @@ export function DesktopWindowComponent({
         onClick={() => onFocus(win.id)}
       >
         {resizeHandles}
-        <div
-          className="h-8 bg-[hsl(220,15%,18%)] flex items-center px-3 gap-2 shrink-0 cursor-move select-none rounded-t-xl"
-          onMouseDown={handleMouseDown}
-        >
-          <button onClick={() => onClose(win.id)} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400" />
-          <button onClick={() => onMinimize(win.id)} className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400" />
-          <button onClick={() => onMaximize(win.id)} className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400" />
-          <span className="flex-1 text-center text-xs text-white/60 font-medium">{win.title}</span>
-        </div>
-        <div className="flex-1 bg-[hsl(220,15%,10%)] overflow-auto rounded-b-xl">{children}</div>
+        {!hideDefaultTitleBarMac && (
+          <div
+            className="h-8 bg-[hsl(220,15%,18%)] flex items-center px-3 gap-2 shrink-0 cursor-move select-none rounded-t-xl"
+            onMouseDown={handleMouseDown}
+          >
+            <button onClick={() => onClose(win.id)} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400" />
+            <button onClick={() => onMinimize(win.id)} className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400" />
+            <button onClick={() => onMaximize(win.id)} className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400" />
+            <span className="flex-1 text-center text-xs text-white/60 font-medium">{win.title}</span>
+          </div>
+        )}
+        <div className={`flex-1 bg-[hsl(220,15%,10%)] overflow-auto ${hideDefaultTitleBarMac ? 'rounded-xl' : 'rounded-b-xl'}`}>{children}</div>
       </div>
     );
   }
+
+  // Hide default title bar for code-editor (it has its own)
+  const hideDefaultTitleBar = win.appId === 'code-editor';
 
   return (
     <div
@@ -152,24 +158,26 @@ export function DesktopWindowComponent({
       onClick={() => onFocus(win.id)}
     >
       {resizeHandles}
-      <div
-        className="h-8 bg-[hsl(220,15%,12%)] flex items-center px-3 shrink-0 cursor-move select-none rounded-t-lg"
-        onMouseDown={handleMouseDown}
-      >
-        <span className="flex-1 text-xs text-foreground/80">{win.title}</span>
-        <div className="flex items-center">
-          <button onClick={() => onMinimize(win.id)} className="p-1.5 hover:bg-white/10 rounded-sm">
-            <Minus className="w-3 h-3 text-muted-foreground" />
-          </button>
-          <button onClick={() => onMaximize(win.id)} className="p-1.5 hover:bg-white/10 rounded-sm">
-            {win.isMaximized ? <Minimize2 className="w-3 h-3 text-muted-foreground" /> : <Maximize2 className="w-3 h-3 text-muted-foreground" />}
-          </button>
-          <button onClick={() => onClose(win.id)} className="p-1.5 hover:bg-destructive rounded-sm">
-            <X className="w-3 h-3 text-muted-foreground" />
-          </button>
+      {!hideDefaultTitleBar && (
+        <div
+          className="h-8 bg-[hsl(220,15%,12%)] flex items-center px-3 shrink-0 cursor-move select-none rounded-t-lg"
+          onMouseDown={handleMouseDown}
+        >
+          <span className="flex-1 text-xs text-foreground/80">{win.title}</span>
+          <div className="flex items-center">
+            <button onClick={() => onMinimize(win.id)} className="p-1.5 hover:bg-white/10 rounded-sm">
+              <Minus className="w-3 h-3 text-muted-foreground" />
+            </button>
+            <button onClick={() => onMaximize(win.id)} className="p-1.5 hover:bg-white/10 rounded-sm">
+              {win.isMaximized ? <Minimize2 className="w-3 h-3 text-muted-foreground" /> : <Maximize2 className="w-3 h-3 text-muted-foreground" />}
+            </button>
+            <button onClick={() => onClose(win.id)} className="p-1.5 hover:bg-destructive rounded-sm">
+              <X className="w-3 h-3 text-muted-foreground" />
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="flex-1 bg-[hsl(220,15%,8%)] overflow-auto rounded-b-lg">{children}</div>
+      )}
+      <div className={`flex-1 bg-[hsl(220,15%,8%)] overflow-auto ${hideDefaultTitleBar ? 'rounded-lg' : 'rounded-b-lg'}`}>{children}</div>
     </div>
   );
 }
