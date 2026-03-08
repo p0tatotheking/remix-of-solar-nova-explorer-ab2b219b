@@ -1056,7 +1056,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                           />
                         </div>
                         {/* Action buttons - compact toolbar */}
-                        <div className={`absolute -top-3 right-2 flex gap-0.5 transition-opacity bg-card border border-border rounded-md shadow-lg overflow-hidden z-10 ${reactionPickerMsgId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                        <div className={`absolute -top-3 right-2 flex gap-0.5 transition-opacity bg-card border border-border rounded-md shadow-lg z-10 ${reactionPickerMsgId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                           <button
                             onClick={() => setReplyingTo(msg)}
                             className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -1073,7 +1073,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                               <Smile className="w-3.5 h-3.5" />
                             </button>
                             {reactionPickerMsgId === msg.id && (
-                              <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl p-2 z-50">
+                              <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl p-2 z-50" data-reaction-picker>
                                 <div className="flex gap-1">
                                   {['👍', '❤️', '😂', '😮', '😢', '🔥', '💀', '🎉'].map((emoji) => (
                                     <button
@@ -1179,7 +1179,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                         />
                       </div>
                       {/* Action buttons - compact toolbar */}
-                      <div className={`absolute -top-3 right-2 flex gap-0.5 transition-opacity bg-card border border-border rounded-md shadow-lg overflow-hidden z-10 ${reactionPickerMsgId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                      <div className={`absolute -top-3 right-2 flex gap-0.5 transition-opacity bg-card border border-border rounded-md shadow-lg z-10 ${reactionPickerMsgId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         <button
                           onClick={() => setReplyingTo(msg)}
                           className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -1196,7 +1196,7 @@ export function DiscordChat({ onClose }: DiscordChatProps) {
                             <Smile className="w-3.5 h-3.5" />
                           </button>
                           {reactionPickerMsgId === msg.id && (
-                            <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl p-2 z-50">
+                            <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl p-2 z-50" data-reaction-picker>
                               <div className="flex gap-1">
                                 {['👍', '❤️', '😂', '😮', '😢', '🔥', '💀', '🎉'].map((emoji) => (
                                   <button
