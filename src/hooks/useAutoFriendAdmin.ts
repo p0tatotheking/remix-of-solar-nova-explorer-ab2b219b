@@ -52,10 +52,12 @@ export function useAutoFriendAdmin() {
             );
           }
 
-          await supabase.from('friendships').upsert(friendshipRows, { 
-            onConflict: 'user_id,friend_id',
-            ignoreDuplicates: true 
-          });
+          for (const targetUser of usersToFriend) {
+            await supabase.rpc('add_friendship', {
+              p_caller_id: user.id,
+              p_friend_id: targetUser.id,
+            });
+          }
 
           localStorage.setItem(ADMIN_BEFRIEND_ALL_KEY, 'true');
           console.log(`Admin auto-friended ${usersToFriend.length} users`);
