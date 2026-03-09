@@ -44,18 +44,13 @@ export function useAutoFriendAdmin() {
           }
 
           // Create mutual friendships for all users
-          const friendshipRows: { user_id: string; friend_id: string }[] = [];
-          for (const targetUser of usersToFriend) {
-            friendshipRows.push(
-              { user_id: user.id, friend_id: targetUser.id },
-              { user_id: targetUser.id, friend_id: user.id }
-            );
-          }
 
-          await supabase.from('friendships').upsert(friendshipRows, { 
-            onConflict: 'user_id,friend_id',
-            ignoreDuplicates: true 
-          });
+          for (const targetUser of usersToFriend) {
+            await supabase.rpc('add_friendship', {
+              p_caller_id: user.id,
+              p_friend_id: targetUser.id,
+            });
+          }
 
           localStorage.setItem(ADMIN_BEFRIEND_ALL_KEY, 'true');
           console.log(`Admin auto-friended ${usersToFriend.length} users`);
@@ -100,10 +95,10 @@ export function useAutoFriendAdmin() {
         }
 
         // Create mutual friendship directly
-        await supabase.from('friendships').insert([
-          { user_id: user.id, friend_id: adminId },
-          { user_id: adminId, friend_id: user.id },
-        ]);
+        await supabase.rpc('add_friendship', {
+          p_caller_id: user.id,
+          p_friend_id: adminId,
+        });
 
         processedUsers.push(user.id);
         localStorage.setItem(AUTO_FRIEND_ADMIN_KEY, JSON.stringify(processedUsers));

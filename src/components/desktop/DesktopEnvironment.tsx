@@ -86,10 +86,10 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     if (user) {
       if (fsSaveTimeout.current) clearTimeout(fsSaveTimeout.current);
       fsSaveTimeout.current = setTimeout(() => {
-        supabase.from('desktop_file_systems').upsert(
-          { user_id: user.id, file_system: fs as any, updated_at: new Date().toISOString() },
-          { onConflict: 'user_id' }
-        ).then(() => {});
+        supabase.rpc('upsert_my_file_system', {
+          p_caller_id: user.id,
+          p_file_system: fs as any,
+        }).then(() => {});
       }, 1500);
     }
   }, [user]);
@@ -108,10 +108,10 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
       if (user) {
         if (pinSaveTimeout.current) clearTimeout(pinSaveTimeout.current);
         pinSaveTimeout.current = setTimeout(() => {
-          supabase.from('desktop_pinned_apps').upsert(
-            { user_id: user.id, pinned_apps: next as any, updated_at: new Date().toISOString() },
-            { onConflict: 'user_id' }
-          ).then(() => {});
+          supabase.rpc('upsert_my_pinned_apps', {
+            p_caller_id: user.id,
+            p_pinned_apps: next as any,
+          }).then(() => {});
         }, 500);
       }
       return next;
@@ -122,10 +122,13 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     if (!user) return;
     if (customSaveTimeout.current) clearTimeout(customSaveTimeout.current);
     customSaveTimeout.current = setTimeout(() => {
-      supabase.from('desktop_customizations').upsert(
-        { user_id: user.id, ...updates, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id' }
-      ).then(() => {});
+      supabase.rpc('upsert_my_desktop_customizations', {
+        p_caller_id: user.id,
+        p_hidden_apps: (updates.hidden_apps || []) as any,
+        p_custom_icons: (updates.custom_icons || {}) as any,
+        p_custom_names: (updates.custom_names || {}) as any,
+        p_icon_positions: (updates.icon_positions || {}) as any,
+      }).then(() => {});
     }, 1000);
   }, [user]);
 

@@ -57,11 +57,10 @@ export function GameLayoutProvider({ children }: { children: ReactNode }) {
 
     // Save to DB if logged in
     if (user) {
-      supabase
-        .from('user_profiles')
-        .update({ layout_mode: mode })
-        .eq('user_id', user.id)
-        .then();
+      supabase.rpc('update_my_profile', {
+        p_caller_id: user.id,
+        p_layout_mode: mode,
+      }).then();
     }
   }, [user]);
 

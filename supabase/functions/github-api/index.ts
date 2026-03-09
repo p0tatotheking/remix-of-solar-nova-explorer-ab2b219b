@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,17 +20,39 @@ serve(async (req) => {
     });
   }
 
-  const headers = {
-    'Authorization': `token ${pat}`,
-    'Accept': 'application/vnd.github.v3+json',
-    'User-Agent': 'SolarnovaOS-Terminal',
-  };
-
   try {
-    const { action, owner, repo, branch, path, content, message, sha } = await req.json();
+    const body = await req.json();
+    const { action, owner, repo, branch, path, content, message, sha, user_id } = body;
+
+    // Verify the caller is an admin user
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc('has_role', {
+      _user_id: user_id,
+      _role: 'admin',
+    });
+
+    if (roleError || !isAdmin) {
+      return new Response(JSON.stringify({ error: 'Only admins can use the GitHub API' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const headers = {
+      'Authorization': `token ${pat}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'SolarnovaOS-Terminal',
+    };
 
     if (action === 'clone' || action === 'pull') {
-      // Get the default branch if none specified
       let targetBranch = branch || 'main';
       if (!branch) {
         const repoRes = await fetch(`${GITHUB_API}/repos/${owner}/${repo}`, { headers });
@@ -43,7 +66,6 @@ serve(async (req) => {
         targetBranch = repoData.default_branch || 'main';
       }
 
-      // Get tree recursively
       const treeRes = await fetch(
         `${GITHUB_API}/repos/${owner}/${repo}/git/trees/${targetBranch}?recursive=1`,
         { headers }
@@ -56,12 +78,10 @@ serve(async (req) => {
       }
       const treeData = await treeRes.json();
 
-      // Filter to blobs only, skip files > 100KB, limit to 200 files
       const blobs = treeData.tree
         .filter((item: any) => item.type === 'blob' && (item.size || 0) < 100000)
         .slice(0, 200);
 
-      // Fetch file contents in batches of 10
       const files: Record<string, string> = {};
       for (let i = 0; i < blobs.length; i += 10) {
         const batch = blobs.slice(i, i + 10);
@@ -73,7 +93,6 @@ serve(async (req) => {
               const blobData = await blobRes.json();
               if (blobData.encoding === 'base64') {
                 const decoded = atob(blobData.content.replace(/\n/g, ''));
-                // Skip binary-looking content
                 if (decoded.includes('\0')) return null;
                 return { path: blob.path, content: decoded };
               }
@@ -100,23 +119,22 @@ serve(async (req) => {
     }
 
     if (action === 'push') {
-      // Push a single file
       if (!path || content === undefined || !message) {
         return new Response(JSON.stringify({ error: 'path, content, and message are required for push' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      const body: any = {
+      const pushBody: any = {
         message,
         content: btoa(content),
         branch: branch || 'main',
       };
-      if (sha) body.sha = sha;
+      if (sha) pushBody.sha = sha;
 
       const pushRes = await fetch(
         `${GITHUB_API}/repos/${owner}/${repo}/contents/${path}`,
-        { method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+        { method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(pushBody) }
       );
       const pushData = await pushRes.json();
       if (!pushRes.ok) {
@@ -135,7 +153,6 @@ serve(async (req) => {
     }
 
     if (action === 'get_sha') {
-      // Get SHA of a file (needed for updates)
       const shaRes = await fetch(
         `${GITHUB_API}/repos/${owner}/${repo}/contents/${path}?ref=${branch || 'main'}`,
         { headers }
