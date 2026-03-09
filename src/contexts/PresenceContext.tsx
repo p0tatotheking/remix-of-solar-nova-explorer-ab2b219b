@@ -35,8 +35,9 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
   // Update user status in database
   const updateUserStatus = useCallback(async (userId: string, isOnline: boolean) => {
+    if (!sessionToken) return;
     const { error } = await supabase.rpc('upsert_my_status', {
-      p_caller_id: userId,
+      p_session_token: sessionToken,
       p_is_online: isOnline,
     });
 
