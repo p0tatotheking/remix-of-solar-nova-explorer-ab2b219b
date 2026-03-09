@@ -130,7 +130,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
         p_icon_positions: (updates.icon_positions || {}) as any,
       }).then(() => {});
     }, 1000);
-  }, [user]);
+  }, [user, sessionToken]);
 
   useEffect(() => {
     if (!user) return;

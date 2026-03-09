@@ -44,7 +44,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error('Error updating user status:', error);
     }
-  }, []);
+  }, [sessionToken]);
 
   // Fetch friends list
   useEffect(() => {
