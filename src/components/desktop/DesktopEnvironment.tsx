@@ -92,7 +92,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
         }).then(() => {});
       }, 1500);
     }
-  }, [user]);
+  }, [user, sessionToken]);
 
   const [games, setGames] = useState<any[]>([]);
   const [pinnedApps, setPinnedAppsState] = useState<string[]>(() => {
