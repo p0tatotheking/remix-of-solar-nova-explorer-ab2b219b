@@ -116,7 +116,7 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
       }
       return next;
     });
-  }, [user]);
+  }, [user, sessionToken]);
 
   const saveCustomizations = useCallback((updates: { hidden_apps?: string[]; custom_icons?: Record<string, string>; custom_names?: Record<string, string>; icon_positions?: Record<string, { x: number; y: number }> }) => {
     if (!user) return;
