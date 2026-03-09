@@ -12,7 +12,7 @@ interface UserPreferencesContextType {
 const UserPreferencesContext = createContext<UserPreferencesContextType | undefined>(undefined);
 
 export function UserPreferencesProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, sessionToken } = useAuth();
   const [popupsDisabled, setPopupsDisabledState] = useState(false);
   const [transitionsDisabled, setTransitionsDisabledState] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -64,9 +64,9 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   }, [transitionsDisabled]);
 
   const saveToDb = useCallback(async (popups: boolean, transitions: boolean) => {
-    if (user) {
+    if (user && sessionToken) {
       await supabase.rpc('update_my_profile', {
-        p_caller_id: user.id,
+        p_session_token: sessionToken,
         p_popups_disabled: popups,
         p_transitions_disabled: transitions,
       });
@@ -74,7 +74,7 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
     // Also save to localStorage as fallback
     const key = user ? `solarnova_prefs_${user.id}` : 'solarnova_prefs';
     localStorage.setItem(key, JSON.stringify({ popupsDisabled: popups, transitionsDisabled: transitions }));
-  }, [user]);
+  }, [user, sessionToken]);
 
   const setPopupsDisabled = useCallback((disabled: boolean) => {
     setPopupsDisabledState(disabled);
