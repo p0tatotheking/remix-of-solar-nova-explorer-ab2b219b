@@ -46,7 +46,7 @@ function generateDefaultPositions(ids: string[], theme: string): Record<string, 
 }
 
 export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
-  const { user, sessionToken } = useAuth();
+  const { user } = useAuth();
   const { customBackground } = useTheme();
   const [theme, setTheme] = useState<DesktopTheme>(() => {
     return (localStorage.getItem('solarnova-desktop-theme') as DesktopTheme) || 'windows';
@@ -86,10 +86,10 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     if (user) {
       if (fsSaveTimeout.current) clearTimeout(fsSaveTimeout.current);
       fsSaveTimeout.current = setTimeout(() => {
-        supabase.rpc('upsert_my_file_system', {
-          p_session_token: sessionToken!,
-          p_file_system: fs as any,
-        }).then(() => {});
+        supabase.from('desktop_file_systems').upsert(
+          { user_id: user.id, file_system: fs as any, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id' }
+        ).then(() => {});
       }, 1500);
     }
   }, [user]);
@@ -108,10 +108,10 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
       if (user) {
         if (pinSaveTimeout.current) clearTimeout(pinSaveTimeout.current);
         pinSaveTimeout.current = setTimeout(() => {
-          supabase.rpc('upsert_my_pinned_apps', {
-            p_session_token: sessionToken!,
-            p_pinned_apps: next as any,
-          }).then(() => {});
+          supabase.from('desktop_pinned_apps').upsert(
+            { user_id: user.id, pinned_apps: next as any, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id' }
+          ).then(() => {});
         }, 500);
       }
       return next;
@@ -122,13 +122,10 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
     if (!user) return;
     if (customSaveTimeout.current) clearTimeout(customSaveTimeout.current);
     customSaveTimeout.current = setTimeout(() => {
-      supabase.rpc('upsert_my_desktop_customizations', {
-        p_session_token: sessionToken!,
-        p_hidden_apps: (updates.hidden_apps || []) as any,
-        p_custom_icons: (updates.custom_icons || {}) as any,
-        p_custom_names: (updates.custom_names || {}) as any,
-        p_icon_positions: (updates.icon_positions || {}) as any,
-      }).then(() => {});
+      supabase.from('desktop_customizations').upsert(
+        { user_id: user.id, ...updates, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      ).then(() => {});
     }, 1000);
   }, [user]);
 

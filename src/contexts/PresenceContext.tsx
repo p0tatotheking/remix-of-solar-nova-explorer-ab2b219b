@@ -26,7 +26,7 @@ interface PresenceContextType {
 const PresenceContext = createContext<PresenceContextType | undefined>(undefined);
 
 export function PresenceProvider({ children }: { children: ReactNode }) {
-  const { user, sessionToken } = useAuth();
+  const { user } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [friends, setFriends] = useState<string[]>([]);
   const [statusCache, setStatusCache] = useState<Map<string, UserStatus>>(new Map());
@@ -35,10 +35,15 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
   // Update user status in database
   const updateUserStatus = useCallback(async (userId: string, isOnline: boolean) => {
-    const { error } = await supabase.rpc('upsert_my_status', {
-      p_session_token: sessionToken!,
-      p_is_online: isOnline,
-    });
+    const { error } = await supabase
+      .from('user_status')
+      .upsert({
+        user_id: userId,
+        is_online: isOnline,
+        last_seen: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
+      });
 
     if (error) {
       console.error('Error updating user status:', error);
@@ -101,12 +106,15 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
     // Handle page close/refresh - set user as offline
     const handleBeforeUnload = () => {
-      // Use RPC via fetch for reliable delivery on page unload
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/upsert_my_status`;
-      const body = JSON.stringify({ p_caller_id: user.id, p_is_online: false });
+      // Use sendBeacon for reliable delivery on page unload
+      const data = JSON.stringify({
+        user_id: user.id,
+        is_online: false,
+        last_seen: new Date().toISOString(),
+      });
       navigator.sendBeacon?.(
-        url,
-        new Blob([body], { type: 'application/json' })
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/user_status?on_conflict=user_id`,
+        new Blob([data], { type: 'application/json' })
       );
     };
 

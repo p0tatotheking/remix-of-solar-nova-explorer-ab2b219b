@@ -13,38 +13,32 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<{ error: string | null }>;
   logout: () => void;
   isAdmin: boolean;
-  sessionToken: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('solarnova_user');
-    const storedToken = localStorage.getItem('solarnova_session_token');
-    if (storedUser && storedToken) {
+    if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
         // Re-verify role from server on load
         verifyUserRole(parsed).then(verified => {
           if (verified) {
             setUser(verified);
-            setSessionToken(storedToken);
             localStorage.setItem('solarnova_user', JSON.stringify(verified));
           } else {
             localStorage.removeItem('solarnova_user');
-            localStorage.removeItem('solarnova_session_token');
           }
           setIsLoading(false);
         });
         return;
       } catch {
         localStorage.removeItem('solarnova_user');
-        localStorage.removeItem('solarnova_session_token');
       }
     }
     setIsLoading(false);
@@ -80,9 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       setUser(userData);
-      setSessionToken(data.session_token);
       localStorage.setItem('solarnova_user', JSON.stringify(userData));
-      localStorage.setItem('solarnova_session_token', data.session_token);
       return { error: null };
     } catch (err) {
       console.error('Login error:', err);
@@ -91,16 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    // Invalidate session on server
-    if (sessionToken) {
-      supabase.functions.invoke('auth-hash', {
-        body: { action: 'logout', session_token: sessionToken },
-      }).catch(() => {});
-    }
     setUser(null);
-    setSessionToken(null);
     localStorage.removeItem('solarnova_user');
-    localStorage.removeItem('solarnova_session_token');
   };
 
   return (
@@ -111,7 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         isAdmin: user?.role === 'admin',
-        sessionToken,
       }}
     >
       {children}

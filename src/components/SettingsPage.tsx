@@ -60,7 +60,7 @@ const THEME_OPTIONS: { id: ThemePreset; name: string; color: string }[] = [
 ];
 
 export function SettingsPage({ friends: propFriends, nicknames: propNicknames, onNicknamesChange, onProfileChange }: SettingsPageProps) {
-  const { user, sessionToken } = useAuth();
+  const { user } = useAuth();
   const { snowfallEnabled, setSnowfallEnabled } = useSnowfall();
   const { currentTheme, setCurrentTheme, customBackground, setCustomBackground, glassEnabled, setGlassEnabled } = useTheme();
   const { layoutMode, setLayoutMode } = useGameLayout();
@@ -197,11 +197,23 @@ export function SettingsPage({ friends: propFriends, nicknames: propNicknames, o
     if (!user) return;
     setIsSaving(true);
 
-    await supabase.rpc('upsert_my_profile', {
-      p_session_token: sessionToken!,
-      p_display_name: displayName.trim() || null,
-      p_avatar_url: selectedAvatar,
-    });
+    const profileData = {
+      user_id: user.id,
+      display_name: displayName.trim() || null,
+      avatar_url: selectedAvatar,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (profile) {
+      await supabase
+        .from('user_profiles')
+        .update(profileData)
+        .eq('user_id', user.id);
+    } else {
+      await supabase
+        .from('user_profiles')
+        .insert(profileData);
+    }
 
     toast.success('Profile saved!');
     setIsSaving(false);
