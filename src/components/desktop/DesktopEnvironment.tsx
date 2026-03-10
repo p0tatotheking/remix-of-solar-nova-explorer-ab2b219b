@@ -46,7 +46,7 @@ function generateDefaultPositions(ids: string[], theme: string): Record<string, 
 }
 
 export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
-  const { user, sessionToken } = useAuth();
+  const { user } = useAuth();
   const { customBackground } = useTheme();
   const [theme, setTheme] = useState<DesktopTheme>(() => {
     return (localStorage.getItem('solarnova-desktop-theme') as DesktopTheme) || 'windows';
@@ -87,12 +87,12 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
       if (fsSaveTimeout.current) clearTimeout(fsSaveTimeout.current);
       fsSaveTimeout.current = setTimeout(() => {
         supabase.rpc('upsert_my_file_system', {
-          p_session_token: sessionToken!,
+          p_caller_id: user.id,
           p_file_system: fs as any,
         }).then(() => {});
       }, 1500);
     }
-  }, [user, sessionToken]);
+  }, [user]);
 
   const [games, setGames] = useState<any[]>([]);
   const [pinnedApps, setPinnedAppsState] = useState<string[]>(() => {
@@ -109,28 +109,28 @@ export function DesktopEnvironment({ onExit }: DesktopEnvironmentProps) {
         if (pinSaveTimeout.current) clearTimeout(pinSaveTimeout.current);
         pinSaveTimeout.current = setTimeout(() => {
           supabase.rpc('upsert_my_pinned_apps', {
-            p_session_token: sessionToken!,
+            p_caller_id: user.id,
             p_pinned_apps: next as any,
           }).then(() => {});
         }, 500);
       }
       return next;
     });
-  }, [user, sessionToken]);
+  }, [user]);
 
   const saveCustomizations = useCallback((updates: { hidden_apps?: string[]; custom_icons?: Record<string, string>; custom_names?: Record<string, string>; icon_positions?: Record<string, { x: number; y: number }> }) => {
     if (!user) return;
     if (customSaveTimeout.current) clearTimeout(customSaveTimeout.current);
     customSaveTimeout.current = setTimeout(() => {
       supabase.rpc('upsert_my_desktop_customizations', {
-        p_session_token: sessionToken!,
+        p_caller_id: user.id,
         p_hidden_apps: (updates.hidden_apps || []) as any,
         p_custom_icons: (updates.custom_icons || {}) as any,
         p_custom_names: (updates.custom_names || {}) as any,
         p_icon_positions: (updates.icon_positions || {}) as any,
       }).then(() => {});
     }, 1000);
-  }, [user, sessionToken]);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
